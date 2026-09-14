@@ -1,0 +1,86 @@
+<?php
+/**
+ * URL field.
+ *
+ * @package SentinelForms
+ */
+
+declare(strict_types=1);
+
+namespace SentinelForms\Forms\Fields;
+
+/**
+ * url input, restricted to http(s).
+ */
+final class UrlField implements FieldType {
+
+	/**
+	 * {@inheritDoc}
+	 */
+	public function type(): string {
+		return 'url';
+	}
+
+	/**
+	 * {@inheritDoc}
+	 */
+	public function label(): string {
+		return __( 'URL', 'sentinel-forms' );
+	}
+
+	/**
+	 * {@inheritDoc}
+	 */
+	public function validate( array $definition, mixed $value ): ?string {
+		$value = trim( (string) $value );
+
+		if ( '' === $value ) {
+			return null;
+		}
+
+		$scheme = (string) wp_parse_url( $value, PHP_URL_SCHEME );
+
+		if ( filter_var( $value, FILTER_VALIDATE_URL ) === false || ! in_array( strtolower( $scheme ), [ 'http', 'https' ], true ) ) {
+			return __( 'Please enter a valid URL.', 'sentinel-forms' );
+		}
+
+		return null;
+	}
+
+	/**
+	 * {@inheritDoc}
+	 */
+	public function sanitize( array $definition, mixed $value ): mixed {
+		return trim( (string) $value );
+	}
+
+	/**
+	 * {@inheritDoc}
+	 */
+	public function render( array $definition, mixed $value, ?string $error, string $formId ): string {
+		$control = sprintf(
+			'<input type="url" name="%1$s" id="%2$s" value="%3$s" placeholder="%4$s"%5$s>',
+			esc_attr( FieldMarkup::name( $definition ) ),
+			esc_attr( FieldMarkup::id( $definition, $formId ) ),
+			esc_attr( (string) $value ),
+			esc_attr( (string) ( $definition['placeholder'] ?? '' ) ),
+			! empty( $definition['required'] ) ? ' required' : ''
+		);
+
+		return FieldMarkup::wrap( $definition, $formId, $control, $error );
+	}
+
+	/**
+	 * {@inheritDoc}
+	 *
+	 * @return array<string, mixed>
+	 */
+	public function defaults(): array {
+		return [
+			'required'      => false,
+			'placeholder'   => '',
+			'help_text'     => '',
+			'default_value' => '',
+		];
+	}
+}

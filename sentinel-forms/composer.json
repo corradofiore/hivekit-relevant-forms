@@ -1,0 +1,61 @@
+{
+    "name": "sentinel-forms/sentinel-forms",
+    "description": "WordPress forms that understand which messages matter. Semantic spam filtering, priority alerts and secure private uploads.",
+    "type": "wordpress-plugin",
+    "license": "GPL-2.0-or-later",
+    "keywords": [
+        "wordpress",
+        "plugin",
+        "forms",
+        "spam",
+        "ai",
+        "mcp"
+    ],
+    "require": {
+        "php": "^8.4",
+        "wordpress/mcp-adapter": "^0.6"
+    },
+    "require-dev": {
+        "brain/monkey": "^2.7",
+        "dealerdirect/phpcodesniffer-composer-installer": "^1.0",
+        "pestphp/pest": "^3.7",
+        "php-stubs/wordpress-stubs": "^6.9",
+        "phpstan/phpstan": "^2.1",
+        "szepeviktor/phpstan-wordpress": "^2.0",
+        "wp-coding-standards/wpcs": "^3.1"
+    },
+    "autoload": {
+        "psr-4": {
+            "SentinelForms\\": "src/"
+        },
+        "files": [
+            "src/Support/functions.php"
+        ]
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "SentinelForms\\Tests\\": "tests/"
+        }
+    },
+    "scripts": {
+        "lint": "phpcs --standard=phpcs.xml.dist",
+        "lint:fix": "phpcbf --standard=phpcs.xml.dist",
+        "phpstan": "phpstan analyse --memory-limit=1G",
+        "test": "pest",
+        "test:unit": "pest --group=unit",
+        "test:integration": "wp-env run tests-wordpress php /var/www/html/vendor/bin/phpunit --configuration /var/www/html/wp-content/plugins/sentinel-forms/phpunit.integration.xml.dist --group=integration",
+        "i18n": "wp i18n make-pot . languages/sentinel-forms.pot --slug=sentinel-forms --domain=sentinel-forms --exclude=vendor,tests"
+    },
+    "config": {
+        "platform": {
+            "php": "8.4.0"
+        },
+        "allow-plugins": {
+            "automattic/jetpack-autoloader": true,
+            "dealerdirect/phpcodesniffer-composer-installer": true,
+            "pestphp/pest-plugin": true
+        },
+        "sort-packages": true,
+        "optimize-autoloader": true
+    }
+}

@@ -1,0 +1,10 @@
+# Dependencies.
+/vendor/
+
+# Build artifacts.
+/node_modules/
+/assets/dist/
+
+# Local environment.
+/.wp-env.override.json
+

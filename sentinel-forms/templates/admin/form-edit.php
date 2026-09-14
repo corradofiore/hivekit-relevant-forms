@@ -1,0 +1,120 @@
+<?php
+/**
+ * Form editor template.
+ *
+ * @package SentinelForms
+ *
+ * @var SentinelForms\Forms\Form                     $form      Form being edited.
+ * @var array<string, SentinelForms\Forms\Fields\FieldType> $types Available field types.
+ * @var bool                                         $isEditing Whether editing an existing form.
+ */
+
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+?>
+<div class="wrap sentinel-forms-builder">
+	<h1><?php $isEditing ? esc_html_e( 'Edit Form', 'sentinel-forms' ) : esc_html_e( 'Add New Form', 'sentinel-forms' ); ?></h1>
+
+	<?php if ( isset( $_GET['saved'] ) ) : // phpcs:ignore WordPress.Security.NonceVerification.Recommended ?>
+		<div class="notice notice-success is-dismissible">
+			<p><?php esc_html_e( 'Form saved.', 'sentinel-forms' ); ?></p>
+		</div>
+	<?php endif; ?>
+
+	<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+		<input type="hidden" name="action" value="sentinel_forms_save_form">
+		<input type="hidden" name="form_id" value="<?php echo esc_attr( (string) $form->id ); ?>">
+		<?php wp_nonce_field( 'sentinel_form_save' ); ?>
+
+		<table class="form-table" role="presentation">
+			<tr>
+				<th scope="row"><label for="sentinel-form-name"><?php esc_html_e( 'Form name', 'sentinel-forms' ); ?></label></th>
+				<td>
+					<input type="text" class="regular-text" id="sentinel-form-name" name="form_name" value="<?php echo esc_attr( $form->name ); ?>" required>
+				</td>
+			</tr>
+			<tr>
+				<th scope="row"><label for="sentinel-form-status"><?php esc_html_e( 'Status', 'sentinel-forms' ); ?></label></th>
+				<td>
+					<select id="sentinel-form-status" name="form_status">
+						<option value="draft" <?php selected( $form->status, 'draft' ); ?>><?php esc_html_e( 'Draft', 'sentinel-forms' ); ?></option>
+						<option value="published" <?php selected( $form->status, 'published' ); ?>><?php esc_html_e( 'Published', 'sentinel-forms' ); ?></option>
+					</select>
+					<p class="description"><?php esc_html_e( 'Only published forms can be rendered on the front end.', 'sentinel-forms' ); ?></p>
+				</td>
+			</tr>
+		</table>
+
+		<h2><?php esc_html_e( 'Fields', 'sentinel-forms' ); ?></h2>
+
+		<div id="sf-fields">
+			<?php
+			foreach ( $form->schema->fields() as $definition ) {
+				$field_type = SentinelForms\Forms\Fields\FieldTypeRegistry::get( (string) $definition['type'] );
+				if ( null === $field_type ) {
+					continue;
+				}
+				require SENTINEL_FORMS_PATH . 'templates/admin/field-row.php';
+			}
+			?>
+		</div>
+
+		<p>
+			<select id="sf-add-field">
+				<option value=""><?php esc_html_e( 'Add a field…', 'sentinel-forms' ); ?></option>
+				<?php foreach ( $types as $field_type ) : ?>
+					<option value="<?php echo esc_attr( $field_type->type() ); ?>"><?php echo esc_html( $field_type->label() ); ?></option>
+				<?php endforeach; ?>
+			</select>
+		</p>
+
+		<h2><?php esc_html_e( 'Confirmation', 'sentinel-forms' ); ?></h2>
+		<table class="form-table" role="presentation">
+			<tr>
+				<th scope="row"><label for="sentinel-confirmation-message"><?php esc_html_e( 'Message', 'sentinel-forms' ); ?></label></th>
+				<td>
+					<textarea class="large-text" id="sentinel-confirmation-message" name="confirmation_message" rows="2"><?php echo esc_textarea( $form->schema->confirmationMessage() ); ?></textarea>
+					<p class="description"><?php esc_html_e( 'Shown after a successful submission when no redirect is set.', 'sentinel-forms' ); ?></p>
+				</td>
+			</tr>
+			<tr>
+				<th scope="row"><label for="sentinel-redirect-url"><?php esc_html_e( 'Redirect URL', 'sentinel-forms' ); ?></label></th>
+				<td>
+					<input type="url" class="regular-text" id="sentinel-redirect-url" name="redirect_url" value="<?php echo esc_attr( $form->schema->redirectUrl() ); ?>">
+				</td>
+			</tr>
+		</table>
+
+		<h2><?php esc_html_e( 'Notifications', 'sentinel-forms' ); ?></h2>
+		<table class="form-table" role="presentation">
+			<tr>
+				<th scope="row"><label for="sentinel-notification-emails"><?php esc_html_e( 'Email recipients', 'sentinel-forms' ); ?></label></th>
+				<td>
+					<textarea class="large-text" id="sentinel-notification-emails" name="notification_emails" rows="3" placeholder="<?php esc_attr_e( 'one address per line', 'sentinel-forms' ); ?>"><?php echo esc_textarea( implode( "\n", $form->schema->notificationEmails() ) ); ?></textarea>
+					<p class="description"><?php esc_html_e( 'Leave empty to use the site administrator email.', 'sentinel-forms' ); ?></p>
+				</td>
+			</tr>
+		</table>
+
+		<?php submit_button( $isEditing ? __( 'Save Form', 'sentinel-forms' ) : __( 'Create Form', 'sentinel-forms' ) ); ?>
+	</form>
+
+	<?php foreach ( $types as $field_type ) : ?>
+		<template id="sf-field-template-<?php echo esc_attr( $field_type->type() ); ?>">
+			<?php
+			$definition = [
+				'id'            => '{ID}',
+				'type'          => $field_type->type(),
+				'label'         => '',
+				'required'      => false,
+				'placeholder'   => '',
+				'help_text'     => '',
+				'default_value' => '',
+				'choices'       => [],
+			];
+			require SENTINEL_FORMS_PATH . 'templates/admin/field-row.php';
+			?>
+		</template>
+	<?php endforeach; ?>
+</div>
