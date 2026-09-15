@@ -2,7 +2,10 @@
 	"$schema": "https://schemas.wp.org/trunk/wp-env.json",
 	"core": null,
 	"phpVersion": "8.4",
-	"plugins": [ "." ],
+	"plugins": [
+		".",
+		"https://github.com/WordPress/mcp-adapter/releases/latest/download/mcp-adapter.zip"
+	],
 	"config": {
 		"WP_DEBUG": true,
 		"WP_ENVIRONMENT_TYPE": "development"
