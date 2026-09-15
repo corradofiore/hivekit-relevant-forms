@@ -7,4 +7,5 @@
 
 # Local environment.
 /.wp-env.override.json
+/.wp-env.test.override.json
 
