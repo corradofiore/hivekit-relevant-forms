@@ -43,7 +43,7 @@
         "phpstan": "phpstan analyse --memory-limit=1G",
         "test": "pest",
         "test:unit": "pest --group=unit",
-        "test:integration": "wp-env run tests-wordpress php /var/www/html/vendor/bin/phpunit --configuration /var/www/html/wp-content/plugins/sentinel-forms/phpunit.integration.xml.dist --group=integration",
+        "test:integration": "npx --yes @wordpress/env run tests-wordpress php /var/www/html/vendor/bin/phpunit --configuration /var/www/html/wp-content/plugins/sentinel-forms/phpunit.integration.xml.dist --group=integration",
         "i18n": "wp i18n make-pot . languages/sentinel-forms.pot --slug=sentinel-forms --domain=sentinel-forms --exclude=vendor,tests"
     },
     "config": {
