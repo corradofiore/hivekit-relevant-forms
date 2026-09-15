@@ -84,6 +84,7 @@ final class FormRenderer {
 		);
 		$output[] = '<input type="hidden" name="action" value="sentinel_forms_submit">';
 		$output[] = sprintf( '<input type="hidden" name="_sentinel_form_id" value="%d">', $form->id );
+		$output[] = sprintf( '<input type="hidden" name="_sentinel_started_at" value="%s">', esc_attr( (string) microtime( true ) ) );
 		$output[] = wp_nonce_field( 'sentinel_form_' . $form->id, '_sentinel_form_nonce', true, false );
 		$output[] = self::honeypot();
 

@@ -126,6 +126,33 @@ final class EntryRepository {
 	}
 
 	/**
+	 * Submissions from one IP hash within the given window (doc §12).
+	 */
+	public function countRecentByIp( string $ipHash, int $windowSeconds ): int {
+		$table  = $this->wpdb->prefix . 'sentinel_entries';
+		$cutoff = gmdate( 'Y-m-d H:i:s', time() - $windowSeconds );
+
+		return (int) $this->wpdb->get_var( $this->wpdb->prepare( "SELECT COUNT(*) FROM {$table} WHERE ip_hash = %s AND created_at >= %s", $ipHash, $cutoff ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table name is internal, not user input.
+	}
+
+	/**
+	 * Identical submission hashes within the given window (doc §12).
+	 */
+	public function countDuplicates( string $submissionHash, int $windowSeconds ): int {
+		$entries = $this->wpdb->prefix . 'sentinel_entries';
+		$meta    = $this->wpdb->prefix . 'sentinel_entry_meta';
+		$cutoff  = gmdate( 'Y-m-d H:i:s', time() - $windowSeconds );
+
+		return (int) $this->wpdb->get_var(
+			$this->wpdb->prepare(
+				"SELECT COUNT(*) FROM {$entries} e INNER JOIN {$meta} m ON m.entry_id = e.id AND m.meta_key = '_submission_hash' AND m.meta_value = %s WHERE e.created_at >= %s",
+				$submissionHash,
+				$cutoff
+			)
+		); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table names are internal, not user input.
+	}
+
+	/**
 	 * Update the workflow status.
 	 *
 	 * @param int    $id     Entry ID.

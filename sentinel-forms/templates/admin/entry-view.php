@@ -51,6 +51,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 		</thead>
 		<tbody>
 			<?php foreach ( $entry->meta as $fieldId => $value ) : ?>
+				<?php
+				if ( str_starts_with( (string) $fieldId, '_' ) ) {
+					continue; }
+				?>
 				<tr>
 					<td><?php echo esc_html( (string) ( ( $form?->schema->field( $fieldId ) ?? [] )['label'] ?? $fieldId ) ); ?></td>
 					<td>
@@ -74,6 +78,24 @@ if ( ! defined( 'ABSPATH' ) ) {
 			</tr>
 		</tbody>
 	</table>
+
+	<h2><?php esc_html_e( 'Spam signals', 'sentinel-forms' ); ?></h2>
+	<?php
+	$signals = is_array( $entry->meta['_spam_signals'] ?? null ) ? $entry->meta['_spam_signals'] : [];
+	?>
+	<?php if ( [] === $signals ) : ?>
+		<p><?php esc_html_e( 'No anti-spam signals recorded for this entry.', 'sentinel-forms' ); ?></p>
+	<?php else : ?>
+		<table class="widefat striped">
+			<tbody>
+				<tr><th scope="row"><?php esc_html_e( 'Spam score', 'sentinel-forms' ); ?></th><td><code><?php echo esc_html( (string) ( $signals['spam_score'] ?? '0' ) ); ?></code></td></tr>
+				<tr><th scope="row"><?php esc_html_e( 'Submission time', 'sentinel-forms' ); ?></th><td><?php echo esc_html( (string) ( $signals['submission_time_ms'] ?? '0' ) . ' ms' ); ?></td></tr>
+				<tr><th scope="row"><?php esc_html_e( 'Links detected', 'sentinel-forms' ); ?></th><td><?php echo esc_html( (string) ( $signals['links_detected'] ?? '0' ) ); ?></td></tr>
+				<tr><th scope="row"><?php esc_html_e( 'Duplicate count (10 min)', 'sentinel-forms' ); ?></th><td><?php echo esc_html( (string) ( $signals['duplicate_count'] ?? '0' ) ); ?></td></tr>
+				<tr><th scope="row"><?php esc_html_e( 'Recent submissions from this IP hash', 'sentinel-forms' ); ?></th><td><?php echo esc_html( (string) ( $signals['recent_submissions'] ?? '0' ) . ' / ' . (string) ( $signals['rate_limit'] ?? '5' ) ); ?></td></tr>
+			</tbody>
+		</table>
+	<?php endif; ?>
 
 	<h2><?php esc_html_e( 'Status', 'sentinel-forms' ); ?></h2>
 	<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">

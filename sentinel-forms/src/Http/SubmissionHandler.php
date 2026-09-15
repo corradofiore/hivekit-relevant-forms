@@ -20,6 +20,7 @@ use SentinelForms\Notifications\EmailNotification;
 use SentinelForms\Support\Logger;
 use SentinelForms\Support\Privacy;
 use SentinelForms\Uploads\UploadService;
+use SentinelForms\AntiSpam\SpamProtection;
 
 /**
  * Handles POST submissions via admin-post.php for guests and logged-in users.
@@ -103,12 +104,25 @@ final class SubmissionHandler {
 		}
 
 		try {
+			$startedAt  = isset( $raw['_sentinel_started_at'] ) ? (float) $raw['_sentinel_started_at'] : null;
+			$protection = ( new SpamProtection() )->evaluate( $form->id, $values, Privacy::ipHash(), $startedAt );
+
+			$entryStatus = $protection['status'];
+			$meta        = array_merge(
+				$values,
+				[
+					'_spam_signals'    => $protection['signals']->toArray(),
+					'_submission_hash' => $protection['hash'],
+					'_spam_score'      => $protection['score'],
+				]
+			);
+
 			$versionId = $repository->createVersion( $form->id, $form->schema );
 			$entry     = new Entry(
 				null,
 				$form->id,
 				$versionId,
-				Entry::STATUS_NEW,
+				$entryStatus,
 				self::requestUrl(),
 				// phpcs:ignore WordPress.Security.ValidatedSanitizedInput -- stored only, escaped on display.
 				(string) ( $_SERVER['HTTP_REFERER'] ?? '' ),
@@ -116,7 +130,7 @@ final class SubmissionHandler {
 				Privacy::ipHash(),
 				current_time( 'mysql', true ),
 				current_time( 'mysql', true ),
-				$values,
+				$meta,
 			);
 			$entryId = ( new EntryRepository() )->create( $entry );
 		} catch ( \Throwable $exception ) {
@@ -132,11 +146,24 @@ final class SubmissionHandler {
 
 		EventRecorder::record( $entryId, 'submission_received', [ 'form_id' => $form->id ] );
 
+		EventRecorder::record(
+			$entryId,
+			'spam_scored',
+			[
+				'score'  => $protection['score'],
+				'status' => $entryStatus,
+			]
+		);
+
 		self::attachUploads( $form, $entryId, $values );
 
 		do_action( 'sentinel_forms_submission_received', $entryId, $form->id, $values );
 
-		( new EmailNotification() )->send( $form, $values, $entryId );
+		if ( Entry::STATUS_SPAM !== $entryStatus ) {
+			( new EmailNotification() )->send( $form, $values, $entryId );
+		} else {
+			EventRecorder::record( $entryId, 'notification_skipped', [ 'reason' => 'spam' ] );
+		}
 
 		self::finish( $form );
 	}
