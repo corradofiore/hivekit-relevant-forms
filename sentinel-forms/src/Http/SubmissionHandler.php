@@ -95,6 +95,13 @@ final class SubmissionHandler {
 			$values[ $fieldId ] = $type->sanitize( $definition, $value );
 		}
 
+		// Compatibility gate (Phase 7.5): WPForms-style consumers may halt
+		// a submission here via sentinel_forms_pre_insert_errors.
+		$errors = array_merge(
+			$errors,
+			(array) apply_filters( 'sentinel_forms_pre_insert_errors', [], $form, $values )
+		);
+
 		if ( $errors !== [] ) {
 			status_header( 422 );
 

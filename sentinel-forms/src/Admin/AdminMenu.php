@@ -14,6 +14,7 @@ use SentinelForms\Admin\Pages\EntryListPage;
 use SentinelForms\Admin\Pages\EntryViewPage;
 use SentinelForms\Admin\Pages\FormEditPage;
 use SentinelForms\Admin\Pages\FormListPage;
+use SentinelForms\Admin\Pages\ImportPage;
 use SentinelForms\Admin\Pages\SettingsPage;
 
 /**
@@ -82,6 +83,15 @@ final class AdminMenu {
 			self::CAPABILITY,
 			'sentinel-entry',
 			[ EntryViewPage::class, 'render' ]
+		);
+
+		add_submenu_page(
+			'sentinel-forms',
+			__( 'Import', 'sentinel-forms' ),
+			__( 'Import', 'sentinel-forms' ),
+			self::CAPABILITY,
+			'sentinel-import',
+			[ ImportPage::class, 'render' ]
 		);
 
 		add_submenu_page(

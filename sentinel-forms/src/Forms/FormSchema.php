@@ -186,6 +186,29 @@ final class FormSchema implements JsonSerializable {
 	}
 
 	/**
+	 * Free-form schema metadata (imports, provenance, notes).
+	 *
+	 * @return array<string, mixed>
+	 */
+	public function metadata(): array {
+		$metadata = $this->data['metadata'];
+
+		return is_array( $metadata ) ? $metadata : [];
+	}
+
+	/**
+	 * Copy with new metadata.
+	 *
+	 * @param array<string, mixed> $metadata Metadata map.
+	 */
+	public function withMetadata( array $metadata ): self {
+		$copy             = $this->data;
+		$copy['metadata'] = $metadata;
+
+		return new self( $copy );
+	}
+
+	/**
 	 * Notification recipient emails.
 	 *
 	 * @return array<int, string>

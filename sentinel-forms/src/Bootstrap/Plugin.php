@@ -15,8 +15,10 @@ use SentinelForms\Admin\Controllers\EntryCorrectionController;
 use SentinelForms\Admin\Controllers\EntryStatusController;
 use SentinelForms\Admin\Controllers\FormActionController;
 use SentinelForms\Admin\Controllers\FormSaveController;
+use SentinelForms\Admin\Controllers\ImportController;
 use SentinelForms\Admin\Pages\SettingsPage;
 use SentinelForms\Assets\FrontendAssets;
+use SentinelForms\Compat\WpForms\CompatLayer;
 use SentinelForms\Database\MigrationRunner;
 use SentinelForms\Forms\FormRenderer;
 use SentinelForms\Http\SubmissionHandler;
@@ -47,6 +49,10 @@ final class Plugin {
 		FormActionController::register();
 		EntryStatusController::register();
 		EntryCorrectionController::register();
+		ImportController::register();
+
+		// WPForms hook compatibility (Phase 7.5): active only when WPForms is absent.
+		CompatLayer::register();
 
 		add_action( 'sentinel_forms_scan_upload', [ ScanService::class, 'handleScheduled' ], 10, 1 );
 		add_action( 'sentinel_forms_poll_scan_results', [ ScanService::class, 'pollBackendScans' ] );
