@@ -9,6 +9,10 @@ declare(strict_types=1);
 
 namespace SentinelForms\Admin\Pages;
 
+use SentinelForms\Cloud\CloudConfig;
+use SentinelForms\Cloud\CloudConnection;
+use SentinelForms\Support\Logger;
+
 /**
  * Minimal general settings: notification sender and debug logging.
  */
@@ -48,7 +52,7 @@ final class SettingsPage {
 
 		$current = (array) get_option( self::OPTION, [] );
 
-		return [
+		$settings = [
 			'notification_sender_name'          => sanitize_text_field( (string) ( $input['notification_sender_name'] ?? '' ) ),
 			'notification_sender_email'         => sanitize_email( (string) ( $input['notification_sender_email'] ?? '' ) ),
 			'debug_logging'                     => empty( $input['debug_logging'] ) ? 0 : 1,
@@ -73,7 +77,38 @@ final class SettingsPage {
 			'cloud_api_key'                     => '' !== (string) ( $input['cloud_api_key'] ?? '' )
 				? sanitize_text_field( (string) $input['cloud_api_key'] )
 				: (string) ( $current['cloud_api_key'] ?? '' ),
+			'ai_site_purpose'                   => mb_substr( sanitize_textarea_field( (string) ( $input['ai_site_purpose'] ?? '' ) ), 0, 500 ),
+			'ai_priorities'                     => mb_substr( sanitize_textarea_field( (string) ( $input['ai_priorities'] ?? '' ) ), 0, 2000 ),
+			'ai_unwanted'                       => mb_substr( sanitize_textarea_field( (string) ( $input['ai_unwanted'] ?? '' ) ), 0, 2000 ),
+			'ai_privacy_mode'                   => empty( $input['ai_privacy_mode'] ) ? 0 : 1,
 		];
+
+		self::syncClassificationConsent( ! empty( $input['ai_enabled'] ) );
+
+		return $settings;
+	}
+
+	/**
+	 * Reconcile the semantic-classification consent flag with the Cloud
+	 * connection state (v2 §8). Enabling requires a connected account;
+	 * disabling is always allowed and takes effect immediately.
+	 */
+	private static function syncClassificationConsent( bool $requested ): void {
+		$connection = new CloudConnection();
+
+		if ( ! $requested ) {
+			$connection->disableCapability( CloudConnection::CAP_AI );
+
+			return;
+		}
+
+		if ( ! CloudConfig::isConfigured() || CloudConnection::STATE_DISCONNECTED === $connection->state() ) {
+			Logger::info( 'AI classification enable requested while disconnected — ignored' );
+
+			return;
+		}
+
+		$connection->enableCapability( CloudConnection::CAP_AI );
 	}
 
 	/**

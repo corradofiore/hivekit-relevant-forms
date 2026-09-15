@@ -86,6 +86,25 @@ final class CloudClient {
 	}
 
 	/**
+	 * POST /v1/classifications — classify one submission.
+	 *
+	 * @param array<string, mixed> $context Sanitized classification context.
+	 * @return array<string, mixed>|null
+	 */
+	public function classify( array $context ): ?array {
+		$response = wp_remote_post(
+			$this->baseUrl . '/api/v1/classifications',
+			[
+				'timeout' => 20,
+				'headers' => $this->headers(),
+				'body'    => wp_json_encode( [ 'context' => $context ] ),
+			]
+		);
+
+		return $this->decode( $response, [ 200 ] );
+	}
+
+	/**
 	 * Decode an API envelope, logging failures without throwing.
 	 *
 	 * @param array<string, mixed>|\WP_Error $response HTTP response.

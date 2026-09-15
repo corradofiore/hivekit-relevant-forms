@@ -79,6 +79,26 @@ it(
 );
 
 it(
+	'disabling a capability recomputes the state and keeps the site bound',
+	function () {
+		$connection = new CloudConnection();
+
+		$connection->connect( 'site-uuid-1', 'https://a.example', 'Acme' );
+		$connection->enableCapability( CloudConnection::CAP_AI );
+		$connection->enableCapability( CloudConnection::CAP_SMS );
+
+		expect( $connection->disableCapability( CloudConnection::CAP_SMS ) )->toBeTrue();
+		expect( $connection->capabilityEnabled( CloudConnection::CAP_SMS ) )->toBeFalse();
+		expect( $connection->capabilityEnabled( CloudConnection::CAP_AI ) )->toBeTrue();
+		expect( $connection->state() )->toBe( CloudConnection::STATE_AI_ENABLED );
+
+		expect( $connection->disableCapability( CloudConnection::CAP_AI ) )->toBeTrue();
+		expect( $connection->state() )->toBe( CloudConnection::STATE_ACCOUNT_CONNECTED );
+		expect( $connection->siteId() )->toBe( 'site-uuid-1' );
+	}
+);
+
+it(
 	'disconnect clears everything and restores local-only operation',
 	function () {
 		$connection = new CloudConnection();

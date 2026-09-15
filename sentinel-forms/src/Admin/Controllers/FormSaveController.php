@@ -48,11 +48,17 @@ final class FormSaveController {
 		$message  = sanitize_textarea_field( (string) ( $raw['confirmation_message'] ?? '' ) );
 		$redirect = esc_url_raw( (string) ( $raw['redirect_url'] ?? '' ) );
 
+		$aiPolicy = [
+			'enabled' => ! empty( $raw['ai_enabled'] ),
+			'purpose' => mb_substr( sanitize_textarea_field( (string) ( $raw['ai_purpose'] ?? '' ) ), 0, 500 ),
+		];
+
 		$schema = FormSchema::empty()
 			->withName( $name )
 			->withFields( $fields )
 			->withNotifications( $emails )
-			->withConfirmation( $message, $redirect );
+			->withConfirmation( $message, $redirect )
+			->withAiPolicy( $aiPolicy );
 
 		$errors = [];
 		if ( '' === trim( $name ) ) {

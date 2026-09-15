@@ -163,6 +163,29 @@ final class FormSchema implements JsonSerializable {
 	}
 
 	/**
+	 * Per-form AI policy (doc §18). Empty array means "use site defaults".
+	 *
+	 * @return array<string, mixed>
+	 */
+	public function aiPolicy(): array {
+		$policy = $this->data['ai_policy'];
+
+		return is_array( $policy ) ? $policy : [];
+	}
+
+	/**
+	 * Copy with a new AI policy.
+	 *
+	 * @param array<string, mixed> $policy AI policy.
+	 */
+	public function withAiPolicy( array $policy ): self {
+		$copy              = $this->data;
+		$copy['ai_policy'] = $policy;
+
+		return new self( $copy );
+	}
+
+	/**
 	 * Notification recipient emails.
 	 *
 	 * @return array<int, string>

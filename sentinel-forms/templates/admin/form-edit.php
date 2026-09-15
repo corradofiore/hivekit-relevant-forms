@@ -97,6 +97,28 @@ if ( ! defined( 'ABSPATH' ) ) {
 			</tr>
 		</table>
 
+		<?php $ai_policy = $form->schema->aiPolicy(); ?>
+		<h2><?php esc_html_e( 'AI classification', 'sentinel-forms' ); ?></h2>
+		<p class="description"><?php esc_html_e( 'Requires Sentinel Cloud with classification enabled in Sentinel Forms → Settings. Submissions are redacted before they are sent.', 'sentinel-forms' ); ?></p>
+		<table class="form-table" role="presentation">
+			<tr>
+				<th scope="row"><?php esc_html_e( 'Classify submissions', 'sentinel-forms' ); ?></th>
+				<td>
+					<label>
+						<input type="checkbox" name="ai_enabled" value="1" <?php checked( false !== ( $ai_policy['enabled'] ?? true ) ); ?>>
+						<?php esc_html_e( 'Classify new submissions to this form with Sentinel Cloud', 'sentinel-forms' ); ?>
+					</label>
+				</td>
+			</tr>
+			<tr>
+				<th scope="row"><label for="sentinel-ai-purpose"><?php esc_html_e( 'Form purpose', 'sentinel-forms' ); ?></label></th>
+				<td>
+					<textarea class="large-text" id="sentinel-ai-purpose" name="ai_purpose" rows="2"><?php echo esc_textarea( (string) ( $ai_policy['purpose'] ?? '' ) ); ?></textarea>
+					<p class="description"><?php esc_html_e( 'What a relevant submission looks like, e.g. "Requests for quotes from homeowners".', 'sentinel-forms' ); ?></p>
+				</td>
+			</tr>
+		</table>
+
 		<?php submit_button( $isEditing ? __( 'Save Form', 'sentinel-forms' ) : __( 'Create Form', 'sentinel-forms' ) ); ?>
 	</form>
 

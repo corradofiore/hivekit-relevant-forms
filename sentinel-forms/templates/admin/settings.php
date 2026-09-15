@@ -185,6 +185,56 @@ if ( ! defined( 'ABSPATH' ) ) {
 				</td>
 			</tr>
 		</table>
+
+		<h2><?php esc_html_e( 'AI classification', 'sentinel-forms' ); ?></h2>
+		<p class="description">
+			<?php esc_html_e( 'Semantic classification runs on Sentinel Cloud. Nothing is sent until you connect the site above, enable the capability here and opt forms in individually.', 'sentinel-forms' ); ?>
+		</p>
+		<table class="form-table" role="presentation">
+			<tr>
+				<th scope="row"><?php esc_html_e( 'Enable classification', 'sentinel-forms' ); ?></th>
+				<td>
+					<label>
+						<input type="checkbox" name="sentinel_forms_settings[ai_enabled]" value="1" <?php checked( $connection->capabilityEnabled( \SentinelForms\Cloud\CloudConnection::CAP_AI ) ); ?> <?php disabled( \SentinelForms\Cloud\CloudConnection::STATE_DISCONNECTED === $cloudState ); ?>>
+						<?php esc_html_e( 'Let Sentinel Cloud classify new submissions', 'sentinel-forms' ); ?>
+					</label>
+					<?php if ( \SentinelForms\Cloud\CloudConnection::STATE_DISCONNECTED === $cloudState ) : ?>
+						<p class="description"><?php esc_html_e( 'Connect to Sentinel Cloud first.', 'sentinel-forms' ); ?></p>
+					<?php endif; ?>
+				</td>
+			</tr>
+			<tr>
+				<th scope="row"><label for="sentinel-ai-site-purpose"><?php esc_html_e( 'Site purpose', 'sentinel-forms' ); ?></label></th>
+				<td>
+					<textarea class="large-text" id="sentinel-ai-site-purpose" name="sentinel_forms_settings[ai_site_purpose]" rows="2"><?php echo esc_textarea( (string) ( $settings['ai_site_purpose'] ?? '' ) ); ?></textarea>
+					<p class="description"><?php esc_html_e( 'Short description of the site, e.g. "Plumbing company in Leeds".', 'sentinel-forms' ); ?></p>
+				</td>
+			</tr>
+			<tr>
+				<th scope="row"><label for="sentinel-ai-priorities"><?php esc_html_e( 'Priorities', 'sentinel-forms' ); ?></label></th>
+				<td>
+					<textarea class="large-text" id="sentinel-ai-priorities" name="sentinel_forms_settings[ai_priorities]" rows="3" placeholder="<?php esc_attr_e( 'one per line', 'sentinel-forms' ); ?>"><?php echo esc_textarea( (string) ( $settings['ai_priorities'] ?? '' ) ); ?></textarea>
+					<p class="description"><?php esc_html_e( 'What counts as high priority, e.g. "emergency repairs", "quote requests".', 'sentinel-forms' ); ?></p>
+				</td>
+			</tr>
+			<tr>
+				<th scope="row"><label for="sentinel-ai-unwanted"><?php esc_html_e( 'Unwanted enquiries', 'sentinel-forms' ); ?></label></th>
+				<td>
+					<textarea class="large-text" id="sentinel-ai-unwanted" name="sentinel_forms_settings[ai_unwanted]" rows="3" placeholder="<?php esc_attr_e( 'one per line', 'sentinel-forms' ); ?>"><?php echo esc_textarea( (string) ( $settings['ai_unwanted'] ?? '' ) ); ?></textarea>
+					<p class="description"><?php esc_html_e( 'What to treat as spam or irrelevant, e.g. "SEO services", "guest posts".', 'sentinel-forms' ); ?></p>
+				</td>
+			</tr>
+			<tr>
+				<th scope="row"><?php esc_html_e( 'Privacy mode', 'sentinel-forms' ); ?></th>
+				<td>
+					<label>
+						<input type="checkbox" name="sentinel_forms_settings[ai_privacy_mode]" value="1" <?php checked( ! empty( $settings['ai_privacy_mode'] ?? 1 ) ); ?>>
+						<?php esc_html_e( 'Redact emails, phone numbers, IP addresses and URL paths before sending', 'sentinel-forms' ); ?>
+					</label>
+					<p class="description"><?php esc_html_e( 'Recommended. Disable only if classification quality suffers and you accept sending raw submissions.', 'sentinel-forms' ); ?></p>
+				</td>
+			</tr>
+		</table>
 		<?php submit_button(); ?>
 	</form>
 

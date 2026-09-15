@@ -46,7 +46,7 @@ final class DiagnosticsPage {
 
 		// Provider statuses are placeholders until their phases land.
 		$providers = [
-			'AI provider'       => __( 'Not configured', 'sentinel-forms' ),
+			'AI provider'       => self::aiStatus(),
 			'SMS provider'      => __( 'Not configured', 'sentinel-forms' ),
 			'Storage provider'  => self::storageStatus(),
 			'Malware scanner'   => self::scannerStatus(),
@@ -102,6 +102,23 @@ final class DiagnosticsPage {
 				BackendScanConfig::url(),
 			)
 			: __( 'Not configured — deep scans fail closed', 'sentinel-forms' );
+	}
+
+	/**
+	 * Human-readable AI classification status (Phase 4).
+	 */
+	private static function aiStatus(): string {
+		if ( ! CloudConfig::isConfigured() ) {
+			return __( 'Not configured — no external calls', 'sentinel-forms' );
+		}
+
+		$connection = new CloudConnection();
+
+		if ( ! $connection->capabilityEnabled( CloudConnection::CAP_AI ) ) {
+			return __( 'Cloud configured — semantic classification disabled', 'sentinel-forms' );
+		}
+
+		return __( 'Sentinel Cloud — semantic classification enabled', 'sentinel-forms' );
 	}
 
 	/**

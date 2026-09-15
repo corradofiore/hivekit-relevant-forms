@@ -11,6 +11,9 @@ namespace SentinelForms\Http;
 
 use SentinelForms\Entries\Entry;
 use SentinelForms\Entries\EntryRepository;
+use SentinelForms\Ai\AiClassifier;
+use SentinelForms\Ai\AttentionScore;
+use SentinelForms\Ai\Classification;
 use SentinelForms\Events\EventRecorder;
 use SentinelForms\Forms\Form;
 use SentinelForms\Forms\FormRenderer;
@@ -107,8 +110,13 @@ final class SubmissionHandler {
 			$startedAt  = isset( $raw['_sentinel_started_at'] ) ? (float) $raw['_sentinel_started_at'] : null;
 			$protection = ( new SpamProtection() )->evaluate( $form->id, $values, Privacy::ipHash(), $startedAt );
 
-			$entryStatus = $protection['status'];
-			$meta        = array_merge(
+			$classifier       = new AiClassifier();
+			$classificationOn = $classifier->isEnabled( $form );
+			$classification   = $classificationOn ? $classifier->classify( $form, $values, $protection ) : null;
+
+			$entryStatus = self::resolveStatus( $protection['status'], $classification );
+
+			$meta = array_merge(
 				$values,
 				[
 					'_spam_signals'    => $protection['signals']->toArray(),
@@ -116,6 +124,11 @@ final class SubmissionHandler {
 					'_spam_score'      => $protection['score'],
 				]
 			);
+
+			if ( null !== $classification ) {
+				$meta['_classification']  = $classification->toArray();
+				$meta['_attention_score'] = $classification->attentionScore;
+			}
 
 			$versionId = $repository->createVersion( $form->id, $form->schema );
 			$entry     = new Entry(
@@ -155,6 +168,22 @@ final class SubmissionHandler {
 			]
 		);
 
+		if ( $classificationOn ) {
+			if ( null !== $classification ) {
+				EventRecorder::record(
+					$entryId,
+					'classification_completed',
+					[
+						'reason_code'      => $classification->reasonCode,
+						'attention_score'  => $classification->attentionScore,
+						'spam_probability' => $classification->spamProbability,
+					]
+				);
+			} else {
+				EventRecorder::record( $entryId, 'classification_failed', [ 'form_id' => $form->id ] );
+			}
+		}
+
 		self::attachUploads( $form, $entryId, $values );
 
 		do_action( 'sentinel_forms_submission_received', $entryId, $form->id, $values );
@@ -166,6 +195,35 @@ final class SubmissionHandler {
 		}
 
 		self::finish( $form );
+	}
+
+	/**
+	 * Resolve the stored entry status from the local evaluation and the
+	 * (optional) Cloud classification (doc §20). Classification can only
+	 * escalate: spam >= 0.95 becomes spam, >= 0.70 suspicious, attention
+	 * >= 85 priority. Local spam is never downgraded.
+	 *
+	 * @param string              $localStatus    Local anti-spam status.
+	 * @param Classification|null $classification Cloud classification.
+	 */
+	private static function resolveStatus( string $localStatus, ?Classification $classification ): string {
+		if ( Entry::STATUS_SPAM === $localStatus || null === $classification ) {
+			return $localStatus;
+		}
+
+		if ( $classification->spamProbability >= 0.95 ) {
+			return Entry::STATUS_SPAM;
+		}
+
+		if ( $classification->spamProbability >= 0.70 ) {
+			return Entry::STATUS_SUSPICIOUS;
+		}
+
+		$status = AttentionScore::isPriority( $classification->attentionScore )
+			? Entry::STATUS_PRIORITY
+			: $localStatus;
+
+		return (string) apply_filters( 'sentinel_forms_entry_status', $status, $classification, $localStatus );
 	}
 
 	/**

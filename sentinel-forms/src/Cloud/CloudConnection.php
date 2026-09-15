@@ -138,6 +138,53 @@ final class CloudConnection {
 	}
 
 	/**
+	 * Explicitly disable a capability and recompute the consent state.
+	 */
+	public function disableCapability( string $capability ): bool {
+		if ( ! isset( self::CAPABILITY_STATES[ $capability ] ) ) {
+			return false;
+		}
+
+		$data = $this->get();
+
+		if ( ! $this->capabilityEnabled( $capability ) ) {
+			return true;
+		}
+
+		$enabled = array_values(
+			array_filter(
+				(array) ( $data['enabled'] ?? [] ),
+				static fn ( $item ): bool => $item !== $capability
+			)
+		);
+
+		$state = self::STATE_DISCONNECTED;
+
+		if ( '' !== (string) ( $data['site_id'] ?? '' ) ) {
+			$state = self::STATE_ACCOUNT_CONNECTED;
+		}
+
+		foreach ( array_reverse( self::CAPABILITY_STATES ) as $cap => $capabilityState ) {
+			if ( in_array( $cap, $enabled, true ) ) {
+				$state = $capabilityState;
+				break;
+			}
+		}
+
+		$data = array_merge(
+			$data,
+			[
+				'enabled' => $enabled,
+				'state'   => $state,
+			]
+		);
+
+		$this->save( $data );
+
+		return true;
+	}
+
+	/**
 	 * Bound site id, if connected.
 	 */
 	public function siteId(): ?string {
