@@ -49,12 +49,14 @@ final class CloudController {
 			self::redirect( 'failed' );
 		}
 
-		( new CloudConnection() )->connect(
+		$connection = new CloudConnection();
+		$connection->connect(
 			(string) $data['site_id'],
 			home_url( '/' ),
 			(string) get_bloginfo( 'name' ),
 			is_array( $data['capabilities'] ?? null ) ? $data['capabilities'] : []
 		);
+		$connection->updateSubscription( is_array( $data['subscription'] ?? null ) ? $data['subscription'] : [] );
 
 		self::redirect( 'connected' );
 	}

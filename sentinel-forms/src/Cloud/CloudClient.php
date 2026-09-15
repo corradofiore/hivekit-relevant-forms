@@ -198,6 +198,64 @@ final class CloudClient {
 	}
 
 	/**
+	 * GET /v1/billing/status — subscription snapshot (Phase 8).
+	 *
+	 * @return array<string, mixed>|null
+	 */
+	public function billingStatus(): ?array {
+		$response = wp_remote_get(
+			$this->baseUrl . '/api/v1/billing/status',
+			[
+				'timeout' => 15,
+				'headers' => $this->headers(),
+			]
+		);
+
+		return $this->decode( $response, [ 200 ] );
+	}
+
+	/**
+	 * POST /v1/billing/checkout — hosted checkout session for a plan.
+	 *
+	 * @return array<string, mixed>|null
+	 */
+	public function billingCheckout( string $plan, string $successUrl, string $cancelUrl ): ?array {
+		$response = wp_remote_post(
+			$this->baseUrl . '/api/v1/billing/checkout',
+			[
+				'timeout' => 20,
+				'headers' => $this->headers(),
+				'body'    => wp_json_encode(
+					[
+						'plan'        => $plan,
+						'success_url' => $successUrl,
+						'cancel_url'  => $cancelUrl,
+					]
+				),
+			]
+		);
+
+		return $this->decode( $response, [ 200 ] );
+	}
+
+	/**
+	 * GET /v1/billing/portal — hosted customer portal (invoices, cards).
+	 *
+	 * @return array<string, mixed>|null
+	 */
+	public function billingPortal( string $returnUrl ): ?array {
+		$response = wp_remote_get(
+			$this->baseUrl . '/api/v1/billing/portal?return_url=' . rawurlencode( $returnUrl ),
+			[
+				'timeout' => 15,
+				'headers' => $this->headers(),
+			]
+		);
+
+		return $this->decode( $response, [ 200 ] );
+	}
+
+	/**
 	 * Decode an API envelope, logging failures without throwing.
 	 *
 	 * @param array<string, mixed>|\WP_Error $response HTTP response.

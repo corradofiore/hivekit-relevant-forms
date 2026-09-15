@@ -79,6 +79,7 @@ final class CloudConnection {
 				'connected_at' => current_time( 'mysql', true ),
 				'enabled'      => [],
 				'capabilities' => $capabilities,
+				'subscription' => [],
 				'usage'        => [],
 			]
 		);
@@ -218,6 +219,32 @@ final class CloudConnection {
 		}
 
 		$this->save( array_merge( $data, [ 'capabilities' => $capabilities ] ) );
+	}
+
+	/**
+	 * Subscription summary reported by the server (Phase 8).
+	 *
+	 * @return array<string, mixed>
+	 */
+	public function subscription(): array {
+		$data = $this->get();
+
+		return is_array( $data['subscription'] ?? null ) ? $data['subscription'] : [];
+	}
+
+	/**
+	 * Store the subscription summary reported by the server.
+	 *
+	 * @param array<string, mixed> $subscription Summary payload.
+	 */
+	public function updateSubscription( array $subscription ): void {
+		$data = $this->get();
+
+		if ( self::STATE_DISCONNECTED === (string) ( $data['state'] ?? self::STATE_DISCONNECTED ) ) {
+			return;
+		}
+
+		$this->save( array_merge( $data, [ 'subscription' => $subscription ] ) );
 	}
 
 	/**

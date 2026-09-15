@@ -136,8 +136,38 @@ it(
 
 		$connection->updateUsage( [ 'scans' => 5 ] );
 		$connection->updateServerCapabilities( [ 'deep_scan' => true ] );
+		$connection->updateSubscription(
+			[
+				'plan'   => 'cloud',
+				'status' => 'active',
+			]
+		);
 
 		expect( $connection->usage() )->toBe( [] );
 		expect( $connection->serverCapabilities() )->toBe( [] );
+		expect( $connection->subscription() )->toBe( [] );
+	}
+);
+
+it(
+	'stores and refreshes the subscription summary',
+	function () {
+		$connection = new CloudConnection();
+
+		$connection->connect( 'site-uuid-1', 'https://a.example', 'Acme' );
+
+		expect( $connection->subscription() )->toBe( [] );
+
+		$connection->updateSubscription(
+			[
+				'plan'     => 'cloud',
+				'status'   => 'active',
+				'entitled' => true,
+				'ends_at'  => null,
+			]
+		);
+
+		expect( $connection->subscription()['plan'] )->toBe( 'cloud' );
+		expect( $connection->subscription()['entitled'] )->toBeTrue();
 	}
 );

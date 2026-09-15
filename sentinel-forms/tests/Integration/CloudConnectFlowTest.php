@@ -86,6 +86,11 @@ final class CloudConnectFlowTest extends TestCase {
 								'site_id'      => 'site-uuid-1',
 								'status'       => 'active',
 								'capabilities' => [ 'deep_scan' => true ],
+								'subscription' => [
+									'plan'     => 'cloud',
+									'status'   => 'active',
+									'entitled' => true,
+								],
 							],
 						]
 					),
@@ -103,6 +108,10 @@ final class CloudConnectFlowTest extends TestCase {
 		$this->assertSame( CloudConnection::STATE_ACCOUNT_CONNECTED, $connection->state() );
 		$this->assertSame( 'site-uuid-1', $connection->siteId() );
 		$this->assertSame( [ 'deep_scan' => true ], $connection->serverCapabilities() );
+
+		// Phase 8: the subscription summary is cached with the connection.
+		$this->assertSame( 'cloud', $connection->subscription()['plan'] ?? null );
+		$this->assertTrue( $connection->subscription()['entitled'] ?? false );
 
 		// Consent gate: capabilities require explicit enablement.
 		$this->assertFalse( $connection->capabilityEnabled( CloudConnection::CAP_AI ) );

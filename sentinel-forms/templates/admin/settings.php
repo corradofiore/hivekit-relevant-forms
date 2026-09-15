@@ -240,4 +240,71 @@ if ( ! defined( 'ABSPATH' ) ) {
 			<?php submit_button( __( 'Connect to Cloud', 'sentinel-forms' ), 'primary', 'submit', false ); ?>
 		<?php endif; ?>
 	</form>
+
+	<?php
+	// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only status marker set by our own redirect.
+	$billingNotice = isset( $_GET['billing'] ) ? sanitize_key( wp_unslash( $_GET['billing'] ) ) : '';
+
+	if ( 'return' === $billingNotice ) :
+		?>
+		<div class="notice notice-success is-dismissible"><p><?php esc_html_e( 'Billing session finished. Subscription changes appear below after the payment provider confirms them.', 'sentinel-forms' ); ?></p></div>
+	<?php elseif ( 'cancel' === $billingNotice ) : ?>
+		<div class="notice notice-info is-dismissible"><p><?php esc_html_e( 'Billing session cancelled. No changes were made.', 'sentinel-forms' ); ?></p></div>
+	<?php elseif ( 'failed' === $billingNotice ) : ?>
+		<div class="notice notice-error is-dismissible"><p><?php esc_html_e( 'Could not open the billing session. Please try again or contact support.', 'sentinel-forms' ); ?></p></div>
+	<?php elseif ( 'not_connected' === $billingNotice ) : ?>
+		<div class="notice notice-error is-dismissible"><p><?php esc_html_e( 'Connect this site to Sentinel Cloud before managing a subscription.', 'sentinel-forms' ); ?></p></div>
+	<?php elseif ( 'not_configured' === $billingNotice ) : ?>
+		<div class="notice notice-error is-dismissible"><p><?php esc_html_e( 'Cloud URL and API key are required before managing a subscription.', 'sentinel-forms' ); ?></p></div>
+	<?php endif; ?>
+
+	<h2><?php esc_html_e( 'Subscription', 'sentinel-forms' ); ?></h2>
+	<?php $subscription = $connection->subscription(); ?>
+	<?php if ( \SentinelForms\Cloud\CloudConnection::STATE_DISCONNECTED === $cloudState ) : ?>
+		<p><?php esc_html_e( 'Connect to Sentinel Cloud to subscribe or manage your plan.', 'sentinel-forms' ); ?></p>
+	<?php else : ?>
+		<table class="form-table" role="presentation">
+			<tr>
+				<th scope="row"><?php esc_html_e( 'Current plan', 'sentinel-forms' ); ?></th>
+				<td>
+					<?php if ( [] === $subscription ) : ?>
+						<code><?php esc_html_e( 'unknown — reconnect or refresh capabilities', 'sentinel-forms' ); ?></code>
+					<?php else : ?>
+						<code><?php echo esc_html( (string) ( $subscription['plan'] ?? 'none' ) ); ?></code>
+						&middot; <code><?php echo esc_html( (string) ( $subscription['status'] ?? 'unknown' ) ); ?></code>
+						<?php if ( ! empty( $subscription['ends_at'] ) ) : ?>
+							<p class="description">
+								<?php
+								printf(
+									/* translators: %s: subscription end date */
+									esc_html__( 'Access ends %s.', 'sentinel-forms' ),
+									esc_html( (string) $subscription['ends_at'] )
+								);
+								?>
+							</p>
+						<?php endif; ?>
+					<?php endif; ?>
+				</td>
+			</tr>
+			<tr>
+				<th scope="row"><?php esc_html_e( 'Billing', 'sentinel-forms' ); ?></th>
+				<td>
+					<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" style="display:inline-block;margin-right:.5em;">
+						<input type="hidden" name="action" value="sentinel_forms_cloud_billing">
+						<input type="hidden" name="mode" value="checkout">
+						<input type="hidden" name="plan" value="cloud">
+						<?php wp_nonce_field( 'sentinel_cloud_billing' ); ?>
+						<button type="submit" class="button button-primary"><?php esc_html_e( 'Subscribe / upgrade', 'sentinel-forms' ); ?></button>
+					</form>
+					<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" style="display:inline-block;">
+						<input type="hidden" name="action" value="sentinel_forms_cloud_billing">
+						<input type="hidden" name="mode" value="portal">
+						<?php wp_nonce_field( 'sentinel_cloud_billing' ); ?>
+						<button type="submit" class="button"><?php esc_html_e( 'Manage billing', 'sentinel-forms' ); ?></button>
+					</form>
+					<p class="description"><?php esc_html_e( 'Payments, invoices and receipts are handled by the billing provider (merchant of record); card data never touches this site.', 'sentinel-forms' ); ?></p>
+				</td>
+			</tr>
+		</table>
+	<?php endif; ?>
 </div>
