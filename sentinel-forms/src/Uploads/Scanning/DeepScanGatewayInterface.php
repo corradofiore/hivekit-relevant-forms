@@ -27,6 +27,15 @@ interface DeepScanGatewayInterface {
 	public function submit( Upload $upload, string $localPath ): ?string;
 
 	/**
+	 * Submit an object held in Sentinel Managed Secure Storage (doc §28).
+	 * The backend scans its own object; no bytes traverse the site.
+	 *
+	 * @param Upload $upload Upload record (client object key).
+	 * @return string|null External request id, or null on failure.
+	 */
+	public function submitManaged( Upload $upload ): ?string;
+
+	/**
 	 * Fetch the outcome for a submitted request.
 	 *
 	 * @return MalwareScanResult|null Result, or null while still pending.

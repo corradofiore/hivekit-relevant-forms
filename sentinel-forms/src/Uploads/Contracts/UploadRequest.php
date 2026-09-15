@@ -22,6 +22,8 @@ final class UploadRequest {
 	 * @param string   $contentType  Allowed content type (may be empty).
 	 * @param int      $ttlSeconds   Authorization lifetime.
 	 * @param int      $formId       Owning form (for provider-side prefixes/logging).
+	 * @param string   $filename     Original client filename (sanitized).
+	 * @param int      $declaredSize Declared size in bytes (advisory).
 	 */
 	public function __construct(
 		public readonly string $objectKey,
@@ -29,5 +31,7 @@ final class UploadRequest {
 		public readonly string $contentType = '',
 		public readonly int $ttlSeconds = 3600,
 		public readonly int $formId = 0,
+		public readonly string $filename = '',
+		public readonly int $declaredSize = 0,
 	) {}
 }

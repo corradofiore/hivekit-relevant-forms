@@ -59,6 +59,21 @@
 		});
 	}
 
+	function finishRemote(baseUrl, uploadId, token) {
+		var body = new FormData();
+		body.append('action', 'sentinel_forms_upload_complete');
+		body.append('upload_id', String(uploadId));
+		body.append('token', token);
+
+		return fetch(baseUrl, { method: 'POST', body: body, credentials: 'same-origin' }).then(function (response) {
+			return response.json();
+		}).then(function (payload) {
+			if (!payload || !payload.success) {
+				throw new Error('upload_failed');
+			}
+		});
+	}
+
 	function processFile(baseUrl, formId, fieldId, file, input) {
 		var uploadId = 0;
 
@@ -71,7 +86,9 @@
 			if (data.method === 'POST') {
 				return finishLocal(data, data.upload_id, data.token, file);
 			}
-			return putFile(data, file);
+			return putFile(data, file).then(function () {
+				return finishRemote(baseUrl, data.upload_id, data.token);
+			});
 		}).then(function () {
 			var idsInput = document.getElementById(input.id + '-ids');
 			var ids = [];

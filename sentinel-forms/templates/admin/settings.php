@@ -50,11 +50,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 				<td>
 					<select id="sentinel-storage-provider" name="sentinel_forms_settings[storage_provider]" <?php disabled( defined( 'SENTINEL_STORAGE_PROVIDER' ) ); ?>>
 						<option value="local" <?php selected( (string) ( $settings['storage_provider'] ?? '' ), 'local' ); ?>><?php esc_html_e( 'Local (private server directory)', 'sentinel-forms' ); ?></option>
-						<option value="s3" <?php selected( (string) ( $settings['storage_provider'] ?? '' ), 's3' ); ?>><?php esc_html_e( 'S3-compatible object storage', 'sentinel-forms' ); ?></option>
+						<option value="s3" <?php selected( (string) ( $settings['storage_provider'] ?? '' ), 's3' ); ?>><?php esc_html_e( 'S3-compatible object storage (bring your own)', 'sentinel-forms' ); ?></option>
+						<option value="cloud" <?php selected( (string) ( $settings['storage_provider'] ?? '' ), 'cloud' ); ?>><?php esc_html_e( 'Sentinel Managed Secure Storage (Cloud)', 'sentinel-forms' ); ?></option>
 					</select>
 					<?php if ( defined( 'SENTINEL_STORAGE_PROVIDER' ) ) : ?>
 						<p class="description"><?php esc_html_e( 'Defined in wp-config.php.', 'sentinel-forms' ); ?></p>
 					<?php endif; ?>
+					<p class="description"><?php esc_html_e( 'Sentinel Managed Secure Storage requires a connected Cloud account with the managed uploads capability; until then uploads fall back to local storage. Bytes go directly to private cloud storage and are scanned on the backend before any download.', 'sentinel-forms' ); ?></p>
 				</td>
 			</tr>
 			<tr>

@@ -12,6 +12,7 @@ namespace SentinelForms\Uploads;
 use SentinelForms\Events\EventRecorder;
 use SentinelForms\Forms\Form;
 use SentinelForms\Forms\FormRepository;
+use SentinelForms\Support\Logger;
 use SentinelForms\Uploads\Contracts\DownloadAuthorization;
 use SentinelForms\Uploads\Contracts\StoredObject;
 use SentinelForms\Uploads\Contracts\UploadAuthorization;
@@ -103,15 +104,33 @@ final class UploadService {
 			)
 		);
 
-		$authorization = $provider->createUploadAuthorization(
-			new UploadRequest(
-				$objectKey,
-				$policy->maxSize,
-				$declaredMime,
-				3600,
-				$form->id,
-			)
-		);
+		$authorization = null;
+
+		try {
+			$authorization = $provider->createUploadAuthorization(
+				new UploadRequest(
+					$objectKey,
+					$policy->maxSize,
+					$declaredMime,
+					3600,
+					$form->id,
+					$filename,
+					$size,
+				)
+			);
+		} catch ( \Throwable $exception ) {
+			$this->repository->update( $uploadId, [ 'status' => UploadStatus::REJECTED ] );
+
+			Logger::warning(
+				'Upload authorization failed',
+				[
+					'upload_id' => $uploadId,
+					'exception' => $exception->getMessage(),
+				]
+			);
+
+			return [ 'error' => __( 'Uploads are temporarily unavailable. Please try again later.', 'sentinel-forms' ) ];
+		}
 
 		return [
 			'upload_id'     => $uploadId,
@@ -270,11 +289,23 @@ final class UploadService {
 		$provider = ProviderFactory::make();
 		$object   = new StoredObject( $upload->objectKey, $upload->storageLocation );
 
-		if ( ! $provider->exists( $object ) ) {
-			return [ 'error' => __( 'Stored object is missing.', 'sentinel-forms' ) ];
-		}
+		try {
+			if ( ! $provider->exists( $object ) ) {
+				return [ 'error' => __( 'Stored object is missing.', 'sentinel-forms' ) ];
+			}
 
-		$download = $provider->getDownloadAuthorization( $object );
+			$download = $provider->getDownloadAuthorization( $object );
+		} catch ( \Throwable $exception ) {
+			Logger::warning(
+				'Download authorization failed',
+				[
+					'upload_id' => $uploadId,
+					'exception' => $exception->getMessage(),
+				]
+			);
+
+			return [ 'error' => __( 'This file is temporarily unavailable. Please try again later.', 'sentinel-forms' ) ];
+		}
 
 		EventRecorder::record( $upload->entryId, 'upload_download_authorized', [ 'upload_id' => $uploadId ] );
 

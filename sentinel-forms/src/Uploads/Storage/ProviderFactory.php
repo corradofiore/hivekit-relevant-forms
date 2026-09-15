@@ -22,6 +22,14 @@ final class ProviderFactory {
 	 * Create the active provider.
 	 */
 	public static function make(): FileStorageProviderInterface {
+		if ( 'cloud' === StorageConfig::provider() ) {
+			if ( StorageConfig::isCloudUsable() ) {
+				return new CloudStorageProvider();
+			}
+
+			Logger::warning( 'Managed storage selected but not available (Cloud not connected or capability disabled); falling back to local storage.' );
+		}
+
 		if ( 's3' === StorageConfig::provider() ) {
 			if ( StorageConfig::isS3Configured() ) {
 				return new S3CompatibleProvider();

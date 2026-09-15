@@ -51,6 +51,15 @@ final class FakeScanGateway implements DeepScanGatewayInterface {
 	/**
 	 * {@inheritDoc}
 	 */
+	public function submitManaged( Upload $upload ): ?string {
+		$this->last_submitted = $upload;
+
+		return $this->next_submit;
+	}
+
+	/**
+	 * {@inheritDoc}
+	 */
 	public function fetch( string $externalId ): ?MalwareScanResult {
 		return $this->next_fetch;
 	}

@@ -46,6 +46,39 @@ final class BackendScanGateway implements DeepScanGatewayInterface {
 			$response = $this->postRemoteReference( $url, $upload );
 		}
 
+		return $this->scanRequestId( $response );
+	}
+
+	/**
+	 * {@inheritDoc}
+	 */
+	public function submitManaged( Upload $upload ): ?string {
+		$response = wp_remote_post(
+			$this->baseUrl . '/api/v1/uploads/scan',
+			[
+				'timeout' => 30,
+				'headers' => array_merge(
+					$this->headers(),
+					[ 'Content-Type' => 'application/json' ]
+				),
+				'body'    => wp_json_encode(
+					[
+						'provider'   => 'managed',
+						'object_key' => $upload->objectKey,
+					]
+				),
+			]
+		);
+
+		return $this->scanRequestId( $response );
+	}
+
+	/**
+	 * Decode the scan-request id from a submission response.
+	 *
+	 * @param array<string,mixed>|\WP_Error $response HTTP response.
+	 */
+	private function scanRequestId( array|\WP_Error $response ): ?string {
 		if ( is_wp_error( $response ) ) {
 			Logger::warning( 'Backend scan submission failed', [ 'message' => $response->get_error_message() ] );
 

@@ -52,11 +52,17 @@ final class SettingsPage {
 
 		$current = (array) get_option( self::OPTION, [] );
 
+		$storageProvider = (string) ( $input['storage_provider'] ?? '' );
+
+		if ( ! in_array( $storageProvider, [ 'local', 's3', 'cloud' ], true ) ) {
+			$storageProvider = 'local';
+		}
+
 		$settings = [
 			'notification_sender_name'          => sanitize_text_field( (string) ( $input['notification_sender_name'] ?? '' ) ),
 			'notification_sender_email'         => sanitize_email( (string) ( $input['notification_sender_email'] ?? '' ) ),
 			'debug_logging'                     => empty( $input['debug_logging'] ) ? 0 : 1,
-			'storage_provider'                  => 's3' === (string) ( $input['storage_provider'] ?? '' ) ? 's3' : 'local',
+			'storage_provider'                  => $storageProvider,
 			'storage_endpoint'                  => esc_url_raw( (string) ( $input['storage_endpoint'] ?? '' ) ),
 			'storage_region'                    => sanitize_text_field( (string) ( $input['storage_region'] ?? '' ) ),
 			'storage_bucket'                    => sanitize_text_field( (string) ( $input['storage_bucket'] ?? '' ) ),
@@ -86,6 +92,7 @@ final class SettingsPage {
 
 		self::syncCapabilityConsent( CloudConnection::CAP_AI, ! empty( $input['ai_enabled'] ) );
 		self::syncCapabilityConsent( CloudConnection::CAP_SMS, ! empty( $input['sms_enabled'] ) );
+		self::syncCapabilityConsent( CloudConnection::CAP_UPLOADS, 'cloud' === $storageProvider );
 
 		return $settings;
 	}

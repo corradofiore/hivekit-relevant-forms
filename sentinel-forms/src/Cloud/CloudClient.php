@@ -124,6 +124,80 @@ final class CloudClient {
 	}
 
 	/**
+	 * POST /v1/uploads/authorize — managed storage upload authorization.
+	 *
+	 * @param array<string, mixed> $payload Object key, filename, MIME, size.
+	 * @return array<string, mixed>|null
+	 */
+	public function authorizeManagedUpload( array $payload ): ?array {
+		$response = wp_remote_post(
+			$this->baseUrl . '/api/v1/uploads/authorize',
+			[
+				'timeout' => 20,
+				'headers' => $this->headers(),
+				'body'    => wp_json_encode( $payload ),
+			]
+		);
+
+		return $this->decode( $response, [ 200, 201 ] );
+	}
+
+	/**
+	 * POST /v1/uploads/complete — verify a managed upload landed.
+	 *
+	 * @param string $objectKey Client object key.
+	 * @return array<string, mixed>|null
+	 */
+	public function completeManagedUpload( string $objectKey ): ?array {
+		$response = wp_remote_post(
+			$this->baseUrl . '/api/v1/uploads/complete',
+			[
+				'timeout' => 20,
+				'headers' => $this->headers(),
+				'body'    => wp_json_encode( [ 'object_key' => $objectKey ] ),
+			]
+		);
+
+		return $this->decode( $response, [ 200 ] );
+	}
+
+	/**
+	 * GET /v1/uploads/status — managed upload scan state.
+	 *
+	 * @param string $objectKey Client object key.
+	 * @return array<string, mixed>|null
+	 */
+	public function managedUploadStatus( string $objectKey ): ?array {
+		$response = wp_remote_get(
+			$this->baseUrl . '/api/v1/uploads/status?object_key=' . rawurlencode( $objectKey ),
+			[
+				'timeout' => 15,
+				'headers' => $this->headers(),
+			]
+		);
+
+		return $this->decode( $response, [ 200 ] );
+	}
+
+	/**
+	 * DELETE /v1/uploads — remove a managed object.
+	 *
+	 * @param string $objectKey Client object key.
+	 */
+	public function deleteManagedUpload( string $objectKey ): bool {
+		$response = wp_remote_request(
+			$this->baseUrl . '/api/v1/uploads?object_key=' . rawurlencode( $objectKey ),
+			[
+				'method'  => 'DELETE',
+				'timeout' => 15,
+				'headers' => $this->headers(),
+			]
+		);
+
+		return null !== $this->decode( $response, [ 200 ] );
+	}
+
+	/**
 	 * Decode an API envelope, logging failures without throwing.
 	 *
 	 * @param array<string, mixed>|\WP_Error $response HTTP response.

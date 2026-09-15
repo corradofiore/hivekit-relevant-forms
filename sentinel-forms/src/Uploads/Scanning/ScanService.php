@@ -21,6 +21,7 @@ use SentinelForms\Uploads\Domain\UploadRepository;
 use SentinelForms\Uploads\Domain\UploadStatus;
 use SentinelForms\Uploads\Policy\UploadPolicy;
 use SentinelForms\Uploads\Storage\LocalStorageProvider;
+use SentinelForms\Uploads\Storage\ProviderFactory;
 use SentinelForms\Uploads\Storage\S3CompatibleProvider;
 
 /**
@@ -95,6 +96,47 @@ final class ScanService {
 				'scan_engine' => 'php-basic',
 			]
 		);
+
+		// Managed secure storage: bytes never traverse this site. The
+		// backend scans its own object (doc §28).
+		if ( 'cloud' === ProviderFactory::make()->name() ) {
+			$gateway = ScanGatewayFactory::make();
+
+			if ( null === $gateway ) {
+				return $this->applyOutcome( $uploadId, MalwareScanResult::error( 'backend', __( 'Managed storage requires the deep-scan backend.', 'sentinel-forms' ) ) );
+			}
+
+			$externalId = $gateway->submitManaged( $upload );
+
+			if ( null === $externalId ) {
+				return $this->applyOutcome( $uploadId, MalwareScanResult::error( 'backend', __( 'Could not submit the managed scan.', 'sentinel-forms' ) ) );
+			}
+
+			$this->repository->update(
+				$uploadId,
+				[
+					'scan_status'    => 'scanning',
+					'scan_engine'    => 'backend',
+					'scan_reference' => $externalId,
+				]
+			);
+
+			EventRecorder::record(
+				$upload->entryId,
+				'upload_deep_scan_submitted',
+				[
+					'upload_id'  => $uploadId,
+					'request_id' => $externalId,
+				]
+			);
+
+			self::schedulePoll();
+
+			return [
+				'submitted' => true,
+				'upload'    => $this->repository->find( $uploadId ),
+			];
+		}
 
 		$object = new StoredObject( $upload->objectKey, $upload->storageLocation );
 		$local  = $this->localCopy( $upload, $object );

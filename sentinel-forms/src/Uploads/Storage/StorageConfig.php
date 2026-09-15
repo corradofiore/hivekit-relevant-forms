@@ -9,6 +9,9 @@ declare(strict_types=1);
 
 namespace SentinelForms\Uploads\Storage;
 
+use SentinelForms\Cloud\CloudConfig;
+use SentinelForms\Cloud\CloudConnection;
+
 /**
  * Resolves storage settings from wp-config constants first, then plugin
  * settings. Never exposes secrets back to the UI (doc §55).
@@ -21,18 +24,20 @@ final class StorageConfig {
 	private const OPTION = 'sentinel_forms_settings';
 
 	/**
-	 * Active provider: local|s3.
+	 * Active provider: local|s3|cloud.
 	 */
 	public static function provider(): string {
+		$allowed  = [ 'local', 's3', 'cloud' ];
 		$constant = defined( 'SENTINEL_STORAGE_PROVIDER' ) ? (string) SENTINEL_STORAGE_PROVIDER : '';
 
 		if ( '' !== $constant ) {
-			return in_array( $constant, [ 'local', 's3' ], true ) ? $constant : 'local';
+			return in_array( $constant, $allowed, true ) ? $constant : 'local';
 		}
 
 		$settings = (array) get_option( self::OPTION, [] );
+		$selected = (string) ( $settings['storage_provider'] ?? '' );
 
-		return 's3' === (string) ( $settings['storage_provider'] ?? '' ) ? 's3' : 'local';
+		return in_array( $selected, $allowed, true ) ? $selected : 'local';
 	}
 
 	/**
@@ -98,6 +103,23 @@ final class StorageConfig {
 			&& '' !== self::bucket()
 			&& '' !== self::accessKey()
 			&& '' !== self::secretKey();
+	}
+
+	/**
+	 * Whether managed storage is selected and usable: Cloud configured,
+	 * `managed_uploads` capability explicitly enabled, provider selected
+	 * (v2 §7–8 consent rules).
+	 */
+	public static function isCloudUsable(): bool {
+		if ( self::provider() !== 'cloud' ) {
+			return false;
+		}
+
+		if ( ! CloudConfig::isConfigured() ) {
+			return false;
+		}
+
+		return ( new CloudConnection() )->capabilityEnabled( CloudConnection::CAP_UPLOADS );
 	}
 
 	/**
