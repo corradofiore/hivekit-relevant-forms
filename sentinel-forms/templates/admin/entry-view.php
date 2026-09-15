@@ -29,6 +29,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 		<div class="notice notice-success is-dismissible"><p><?php esc_html_e( 'Entry updated.', 'sentinel-forms' ); ?></p></div>
 	<?php endif; ?>
 
+	<?php if ( isset( $_GET['rescanned'] ) ) : // phpcs:ignore WordPress.Security.NonceVerification.Recommended ?>
+		<div class="notice notice-info is-dismissible"><p><?php esc_html_e( 'A new scan has been queued for this file.', 'sentinel-forms' ); ?></p></div>
+	<?php endif; ?>
+
 	<p>
 		<strong><?php esc_html_e( 'Form:', 'sentinel-forms' ); ?></strong>
 		<?php echo esc_html( null !== $form ? $form->name : (string) $entry->formId ); ?>
@@ -95,6 +99,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 					<th scope="col"><?php esc_html_e( 'Type', 'sentinel-forms' ); ?></th>
 					<th scope="col"><?php esc_html_e( 'Size', 'sentinel-forms' ); ?></th>
 					<th scope="col"><?php esc_html_e( 'Status', 'sentinel-forms' ); ?></th>
+					<th scope="col"><?php esc_html_e( 'Scan', 'sentinel-forms' ); ?></th>
 					<th scope="col"><?php esc_html_e( 'Actions', 'sentinel-forms' ); ?></th>
 				</tr>
 			</thead>
@@ -106,10 +111,43 @@ if ( ! defined( 'ABSPATH' ) ) {
 						<td><?php echo esc_html( size_format( (int) $upload->sizeBytes ) ); ?></td>
 						<td><span class="sf-badge sf-badge--<?php echo esc_attr( $upload->status ); ?>"><?php echo esc_html( strtoupper( $upload->status ) ); ?></span></td>
 						<td>
+							<?php
+							switch ( $upload->scanStatus ) {
+								case 'clean':
+									esc_html_e( 'Clean', 'sentinel-forms' );
+									break;
+								case 'infected':
+									echo '<strong style="color:#b32d2e;">' . esc_html__( 'Malware detected', 'sentinel-forms' ) . '</strong>';
+									break;
+								case 'scanning':
+									esc_html_e( 'Scanning…', 'sentinel-forms' );
+									break;
+								case 'suspicious':
+									esc_html_e( 'Suspicious — quarantined', 'sentinel-forms' );
+									break;
+								case 'error':
+									esc_html_e( 'Scan error — quarantined', 'sentinel-forms' );
+									break;
+								case 'skipped':
+									esc_html_e( 'Not required', 'sentinel-forms' );
+									break;
+								default:
+									esc_html_e( 'Pending scan', 'sentinel-forms' );
+							}
+
+							if ( '' !== $upload->scanReference ) {
+								echo '<br><code>' . esc_html( $upload->scanReference ) . '</code>';
+							}
+							?>
+						</td>
+						<td>
 							<?php if ( \SentinelForms\Uploads\Domain\UploadStatus::isDownloadable( $upload->status, \SentinelForms\Uploads\Storage\StorageConfig::allowUnscannedDownload() ) ) : ?>
 								<a class="button button-small" href="<?php echo esc_url( wp_nonce_url( admin_url( 'admin-post.php?action=sentinel_forms_download_upload&upload_id=' . (int) $upload->id ), 'sentinel_download_' . (int) $upload->id ) ); ?>"><?php esc_html_e( 'Download', 'sentinel-forms' ); ?></a>
 							<?php else : ?>
 								<span aria-disabled="true" class="button button-small disabled"><?php esc_html_e( 'Blocked', 'sentinel-forms' ); ?></span>
+							<?php endif; ?>
+							<?php if ( in_array( $upload->status, [ 'quarantined', 'infected', 'clean', 'scanning' ], true ) ) : ?>
+								<a class="button button-small" href="<?php echo esc_url( wp_nonce_url( admin_url( 'admin-post.php?action=sentinel_forms_rescan_upload&upload_id=' . (int) $upload->id ), 'sentinel_rescan_' . (int) $upload->id ) ); ?>"><?php esc_html_e( 'Rescan', 'sentinel-forms' ); ?></a>
 							<?php endif; ?>
 						</td>
 					</tr>

@@ -20,6 +20,8 @@ use SentinelForms\Database\MigrationRunner;
 use SentinelForms\Forms\FormRenderer;
 use SentinelForms\Http\SubmissionHandler;
 use SentinelForms\Http\UploadController;
+use SentinelForms\Uploads\Cleanup\UploadCleanup;
+use SentinelForms\Uploads\Scanning\ScanService;
 
 /**
  * Boots the plugin: registers admin pages, assets, shortcode, submission
@@ -42,6 +44,12 @@ final class Plugin {
 		FormActionController::register();
 		EntryStatusController::register();
 
+		add_action( 'sentinel_forms_scan_upload', [ ScanService::class, 'handleScheduled' ], 10, 1 );
+		add_action( 'sentinel_forms_poll_scan_results', [ ScanService::class, 'pollBackendScans' ] );
+		UploadCleanup::register();
+
+		add_filter( 'cron_schedules', [ self::class, 'registerCronSchedules' ] );
+
 		add_action( 'admin_notices', [ self::class, 'maybeShowMcpNotice' ] );
 
 		do_action( 'sentinel_forms_loaded' );
@@ -53,7 +61,30 @@ final class Plugin {
 	public static function activate(): void {
 		MigrationRunner::run();
 
+		if ( false === wp_next_scheduled( 'sentinel_forms_cleanup_uploads' ) ) {
+			wp_schedule_event( time() + HOUR_IN_SECONDS, 'hourly', 'sentinel_forms_cleanup_uploads' );
+		}
+
+		if ( false === wp_next_scheduled( 'sentinel_forms_poll_scan_results' ) ) {
+			wp_schedule_event( time() + 15 * MINUTE_IN_SECONDS, 'sentinel_fifteen_minutes', 'sentinel_forms_poll_scan_results' );
+		}
+
 		do_action( 'sentinel_forms_activated' );
+	}
+
+	/**
+	 * Custom cron intervals.
+	 *
+	 * @param array<string, array{interval: int, display: string}> $schedules Registered schedules.
+	 * @return array<string, array{interval: int, display: string}>
+	 */
+	public static function registerCronSchedules( array $schedules ): array {
+		$schedules['sentinel_fifteen_minutes'] = [
+			'interval' => 15 * MINUTE_IN_SECONDS,
+			'display'  => __( 'Every 15 minutes', 'sentinel-forms' ),
+		];
+
+		return $schedules;
 	}
 
 	/**

@@ -32,16 +32,30 @@ final class UploadPolicy {
 	public const DEFAULT_MAX_FILES = 5;
 
 	/**
+	 * Default scan level (pure-PHP basic checks on the WordPress host).
+	 */
+	public const SCAN_LEVEL_BASIC = 'basic';
+
+	/**
+	 * Deep scan level (backend queue with full malware engines).
+	 */
+	public const SCAN_LEVEL_DEEP = 'deep';
+
+	/**
 	 * Policy data.
 	 *
-	 * @param array<int,string> $extensions Allowed extensions.
-	 * @param int               $maxSize    Per-file max bytes.
-	 * @param int               $maxFiles   Max files per submission.
+	 * @param array<int,string> $extensions   Allowed extensions.
+	 * @param int               $maxSize      Per-file max bytes.
+	 * @param int               $maxFiles     Max files per submission.
+	 * @param bool              $scanRequired Whether files must pass a malware scan.
+	 * @param string            $scanLevel    basic|deep (deep runs in the backend).
 	 */
 	private function __construct(
 		public readonly array $extensions,
 		public readonly int $maxSize,
 		public readonly int $maxFiles,
+		public readonly bool $scanRequired,
+		public readonly string $scanLevel,
 	) {}
 
 	/**
@@ -50,14 +64,19 @@ final class UploadPolicy {
 	 * @param array<string, mixed> $definition Field definition.
 	 */
 	public static function fromDefinition( array $definition ): self {
-		$raw      = $definition['upload_policy'] ?? [];
-		$raw      = is_array( $raw ) ? $raw : [];
-		$maxSize  = absint( $raw['max_size'] ?? self::DEFAULT_MAX_SIZE );
-		$maxFiles = absint( $raw['max_files'] ?? self::DEFAULT_MAX_FILES );
-		$policy   = new self(
+		$raw       = $definition['upload_policy'] ?? [];
+		$raw       = is_array( $raw ) ? $raw : [];
+		$maxSize   = absint( $raw['max_size'] ?? self::DEFAULT_MAX_SIZE );
+		$maxFiles  = absint( $raw['max_files'] ?? self::DEFAULT_MAX_FILES );
+		$scanLevel = self::SCAN_LEVEL_DEEP === (string) ( $raw['scan_level'] ?? '' )
+			? self::SCAN_LEVEL_DEEP
+			: self::SCAN_LEVEL_BASIC;
+		$policy    = new self(
 			is_array( $raw['allowed_ext'] ?? null ) ? array_map( 'strtolower', $raw['allowed_ext'] ) : self::DEFAULT_EXTENSIONS,
 			0 !== $maxSize ? $maxSize : self::DEFAULT_MAX_SIZE,
 			0 !== $maxFiles ? $maxFiles : self::DEFAULT_MAX_FILES,
+			array_key_exists( 'scan', $raw ) ? ! empty( $raw['scan'] ) : true,
+			$scanLevel,
 		);
 
 		$filtered = apply_filters( 'sentinel_forms_upload_policy', $policy, $definition );

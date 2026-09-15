@@ -42,4 +42,11 @@ interface FileStorageProviderInterface {
 	 * Delete the object. Returns true when absent or removed.
 	 */
 	public function delete( StoredObject $stored_object ): bool;
+
+	/**
+	 * Copy the object to a local temporary file for scanning.
+	 *
+	 * Returns the temp path or null on failure. Callers own cleanup.
+	 */
+	public function copyToTemporaryFile( StoredObject $stored_object ): ?string;
 }

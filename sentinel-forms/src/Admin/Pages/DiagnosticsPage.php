@@ -9,6 +9,9 @@ declare(strict_types=1);
 
 namespace SentinelForms\Admin\Pages;
 
+use SentinelForms\Uploads\Scanning\BackendScanConfig;
+use SentinelForms\Uploads\Scanning\ClamAvScanner;
+use SentinelForms\Uploads\Scanning\ScannerFactory;
 use SentinelForms\Uploads\Storage\StorageConfig;
 
 /**
@@ -41,10 +44,11 @@ final class DiagnosticsPage {
 
 		// Provider statuses are placeholders until their phases land.
 		$providers = [
-			'AI provider'      => __( 'Not configured', 'sentinel-forms' ),
-			'SMS provider'     => __( 'Not configured', 'sentinel-forms' ),
-			'Storage provider' => self::storageStatus(),
-			'Malware scanner'  => __( 'Not configured', 'sentinel-forms' ),
+			'AI provider'       => __( 'Not configured', 'sentinel-forms' ),
+			'SMS provider'      => __( 'Not configured', 'sentinel-forms' ),
+			'Storage provider'  => self::storageStatus(),
+			'Malware scanner'   => self::scannerStatus(),
+			'Deep scan backend' => self::backendScanStatus(),
 		];
 
 		require SENTINEL_FORMS_PATH . 'templates/admin/diagnostics.php';
@@ -66,5 +70,34 @@ final class DiagnosticsPage {
 		}
 
 		return __( 'Local private directory', 'sentinel-forms' );
+	}
+
+	/**
+	 * Human-readable malware scanner status.
+	 */
+	private static function scannerStatus(): string {
+		$scanner = ScannerFactory::make();
+		$parts   = [ __( 'Basic (pure PHP) — always available', 'sentinel-forms' ) ];
+
+		if ( $scanner instanceof ClamAvScanner ) {
+			$parts[] = $scanner->isAvailable()
+				? __( 'local ClamAV available (deep fallback)', 'sentinel-forms' )
+				: __( 'local ClamAV unavailable (deep fallback)', 'sentinel-forms' );
+		}
+
+		return implode( '; ', $parts );
+	}
+
+	/**
+	 * Human-readable deep-scan backend status.
+	 */
+	private static function backendScanStatus(): string {
+		return BackendScanConfig::isConfigured()
+			? sprintf(
+				/* translators: %s: backend URL */
+				__( 'Configured (%s)', 'sentinel-forms' ),
+				BackendScanConfig::url(),
+			)
+			: __( 'Not configured — deep scans fail closed', 'sentinel-forms' );
 	}
 }

@@ -68,6 +68,7 @@ $isHidden = 'hidden' === (string) $definition['type'];
 			$allowedExt   = implode( "\n", array_map( 'strval', (array) ( $uploadPolicy['allowed_ext'] ?? \SentinelForms\Uploads\Policy\UploadPolicy::DEFAULT_EXTENSIONS ) ) );
 			$maxSizeMb    = absint( $uploadPolicy['max_size'] ?? \SentinelForms\Uploads\Policy\UploadPolicy::DEFAULT_MAX_SIZE ) / 1048576;
 			$maxFiles     = absint( $uploadPolicy['max_files'] ?? \SentinelForms\Uploads\Policy\UploadPolicy::DEFAULT_MAX_FILES );
+			$scanEnabled  = ! array_key_exists( 'scan', $uploadPolicy ) || ! empty( $uploadPolicy['scan'] );
 			?>
 			<p>
 				<label><?php esc_html_e( 'Allowed extensions', 'sentinel-forms' ); ?><br>
@@ -83,6 +84,20 @@ $isHidden = 'hidden' === (string) $definition['type'];
 			<p>
 				<label><?php esc_html_e( 'Max files per submission', 'sentinel-forms' ); ?><br>
 					<input type="number" min="1" step="1" class="widefat" name="sentinel_fields[<?php echo esc_attr( $fieldId ); ?>][upload_policy][max_files]" value="<?php echo esc_attr( (string) $maxFiles ); ?>">
+				</label>
+			</p>
+			<p>
+				<label>
+					<input type="checkbox" name="sentinel_fields[<?php echo esc_attr( $fieldId ); ?>][upload_policy][scan]" value="1" <?php checked( $scanEnabled ); ?>>
+					<?php esc_html_e( 'Require malware scanning before download', 'sentinel-forms' ); ?>
+				</label>
+			</p>
+			<p>
+				<label><?php esc_html_e( 'Scan level', 'sentinel-forms' ); ?><br>
+					<select class="widefat" name="sentinel_fields[<?php echo esc_attr( $fieldId ); ?>][upload_policy][scan_level]">
+						<option value="basic" <?php selected( (string) ( $uploadPolicy['scan_level'] ?? 'basic' ), 'basic' ); ?>><?php esc_html_e( 'Basic (pure PHP, runs on this site)', 'sentinel-forms' ); ?></option>
+						<option value="deep" <?php selected( (string) ( $uploadPolicy['scan_level'] ?? 'basic' ), 'deep' ); ?>><?php esc_html_e( 'Deep (backend queue with full malware engines)', 'sentinel-forms' ); ?></option>
+					</select>
 				</label>
 			</p>
 		<?php endif; ?>

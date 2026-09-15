@@ -62,6 +62,12 @@ final class SettingsPage {
 				? sanitize_text_field( (string) $input['storage_secret_key'] )
 				: (string) ( $current['storage_secret_key'] ?? '' ),
 			'storage_block_unscanned_downloads' => empty( $input['storage_block_unscanned_downloads'] ) ? 0 : 1,
+			'scan_clamav_path'                  => sanitize_text_field( (string) ( $input['scan_clamav_path'] ?? '' ) ),
+			'scan_backend_url'                  => esc_url_raw( (string) ( $input['scan_backend_url'] ?? '' ) ),
+			// Keep the previous key when the field is left blank (never echoed back).
+			'scan_backend_key'                  => '' !== (string) ( $input['scan_backend_key'] ?? '' )
+				? sanitize_text_field( (string) $input['scan_backend_key'] )
+				: (string) ( $current['scan_backend_key'] ?? '' ),
 		];
 	}
 

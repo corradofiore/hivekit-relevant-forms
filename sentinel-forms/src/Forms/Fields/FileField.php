@@ -86,6 +86,8 @@ final class FileField implements FieldType {
 				'allowed_ext' => \SentinelForms\Uploads\Policy\UploadPolicy::DEFAULT_EXTENSIONS,
 				'max_size'    => \SentinelForms\Uploads\Policy\UploadPolicy::DEFAULT_MAX_SIZE,
 				'max_files'   => \SentinelForms\Uploads\Policy\UploadPolicy::DEFAULT_MAX_FILES,
+				'scan'        => true,
+				'scan_level'  => \SentinelForms\Uploads\Policy\UploadPolicy::SCAN_LEVEL_BASIC,
 			],
 		];
 	}

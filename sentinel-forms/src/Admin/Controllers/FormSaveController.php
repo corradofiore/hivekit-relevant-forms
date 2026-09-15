@@ -134,6 +134,8 @@ final class FormSaveController {
 					'allowed_ext' => self::parseExtensions( (string) ( $rawField['upload_policy']['allowed_ext'] ?? '' ) ),
 					'max_size'    => absint( $rawField['upload_policy']['max_size'] ?? 0 ) * 1048576,
 					'max_files'   => absint( $rawField['upload_policy']['max_files'] ?? 1 ),
+					'scan'        => empty( $rawField['upload_policy']['scan'] ) ? false : true,
+					'scan_level'  => 'deep' === (string) ( $rawField['upload_policy']['scan_level'] ?? '' ) ? 'deep' : 'basic',
 				];
 			}
 

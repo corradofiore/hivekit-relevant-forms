@@ -71,3 +71,47 @@ it(
 		expect( $policy->maxFiles )->toBe( UploadPolicy::DEFAULT_MAX_FILES );
 	}
 );
+
+it(
+	'requires scanning by default and honors explicit opt-out',
+	function () {
+		Monkey\Functions\when( 'apply_filters' )->returnArg( 2 );
+
+		$default = UploadPolicy::fromDefinition( [ 'type' => 'file' ] );
+		expect( $default->scanRequired )->toBeTrue();
+
+		$off = UploadPolicy::fromDefinition(
+			[
+				'type'          => 'file',
+				'upload_policy' => [ 'scan' => false ],
+			]
+		);
+		expect( $off->scanRequired )->toBeFalse();
+	}
+);
+
+it(
+	'defaults to the basic scan level and honors deep',
+	function () {
+		Monkey\Functions\when( 'apply_filters' )->returnArg( 2 );
+
+		$basic = UploadPolicy::fromDefinition( [ 'type' => 'file' ] );
+		expect( $basic->scanLevel )->toBe( UploadPolicy::SCAN_LEVEL_BASIC );
+
+		$deep = UploadPolicy::fromDefinition(
+			[
+				'type'          => 'file',
+				'upload_policy' => [ 'scan_level' => 'deep' ],
+			]
+		);
+		expect( $deep->scanLevel )->toBe( UploadPolicy::SCAN_LEVEL_DEEP );
+
+		$bogus = UploadPolicy::fromDefinition(
+			[
+				'type'          => 'file',
+				'upload_policy' => [ 'scan_level' => 'nonsense' ],
+			]
+		);
+		expect( $bogus->scanLevel )->toBe( UploadPolicy::SCAN_LEVEL_BASIC );
+	}
+);

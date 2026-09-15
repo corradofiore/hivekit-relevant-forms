@@ -93,6 +93,25 @@ final class LocalStorageProvider implements FileStorageProviderInterface {
 	}
 
 	/**
+	 * {@inheritDoc}
+	 */
+	public function copyToTemporaryFile( StoredObject $stored_object ): ?string {
+		$source = $this->absolutePath( $stored_object );
+
+		if ( ! is_file( $source ) ) {
+			return null;
+		}
+
+		$target = tempnam( sys_get_temp_dir(), 'sf-scan-' );
+
+		if ( false === $target || ! copy( $source, $target ) ) {
+			return null;
+		}
+
+		return $target;
+	}
+
+	/**
 	 * Absolute filesystem path for an object key.
 	 *
 	 * Keys are random, validated against traversal, and rooted in the

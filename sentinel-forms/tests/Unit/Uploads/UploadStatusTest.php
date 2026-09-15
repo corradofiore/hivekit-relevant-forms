@@ -19,6 +19,8 @@ it(
 		expect( UploadStatus::canTransition( UploadStatus::CLEAN, UploadStatus::DELETED ) )->toBeTrue();
 		expect( UploadStatus::canTransition( UploadStatus::PENDING, UploadStatus::QUARANTINED ) )->toBeTrue();
 		expect( UploadStatus::canTransition( UploadStatus::PENDING, UploadStatus::REJECTED ) )->toBeTrue();
+		expect( UploadStatus::canTransition( UploadStatus::CLEAN, UploadStatus::SCANNING ) )->toBeTrue();
+		expect( UploadStatus::canTransition( UploadStatus::INFECTED, UploadStatus::SCANNING ) )->toBeTrue();
 	}
 );
 

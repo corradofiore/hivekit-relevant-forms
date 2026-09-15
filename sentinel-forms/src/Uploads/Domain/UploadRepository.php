@@ -93,6 +93,35 @@ final class UploadRepository {
 	}
 
 	/**
+	 * Pending uploads older than the given SQL interval (doc §40).
+	 *
+	 * @param string $intervalSql Internal interval literal (e.g. '24 HOUR').
+	 * @return array<int, Upload>
+	 */
+	public function findPendingOlderThan( string $intervalSql ): array {
+		$table = $this->wpdb->prefix . 'sentinel_uploads';
+
+		$sql = "SELECT * FROM {$table} WHERE status = 'pending' AND created_at < ( UTC_TIMESTAMP() - INTERVAL {$intervalSql} ) ORDER BY id ASC";
+
+		$rows = $this->wpdb->get_results( $sql ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery -- internal constant interval, custom table.
+
+		return array_map( static fn ( object $row ): Upload => Upload::fromRow( $row ), (array) $rows );
+	}
+
+	/**
+	 * Uploads submitted to the backend that are still awaiting results.
+	 *
+	 * @return array<int, Upload>
+	 */
+	public function findAwaitingBackendResults(): array {
+		$table = $this->wpdb->prefix . 'sentinel_uploads';
+
+		$rows = $this->wpdb->get_results( "SELECT * FROM {$table} WHERE status = 'scanning' AND scan_engine = 'backend' AND scan_reference <> '' ORDER BY id ASC LIMIT 50" ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery -- table name is internal, custom table.
+
+		return array_map( static fn ( object $row ): Upload => Upload::fromRow( $row ), (array) $rows );
+	}
+
+	/**
 	 * Attach an upload to an entry (only when not already attached).
 	 */
 	public function attachToEntry( int $uploadId, int $entryId ): bool {

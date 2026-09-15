@@ -111,4 +111,35 @@ final class S3CompatibleProvider implements FileStorageProviderInterface {
 
 		return in_array( $code, [ 200, 204, 404 ], true );
 	}
+
+	/**
+	 * {@inheritDoc}
+	 */
+	public function copyToTemporaryFile( StoredObject $stored_object ): ?string {
+		$authorization = $this->getDownloadAuthorization( $stored_object );
+		$target        = tempnam( sys_get_temp_dir(), 'sf-scan-' );
+
+		if ( false === $target ) {
+			return null;
+		}
+
+		$response = wp_remote_get(
+			$authorization->url,
+			[
+				'timeout'  => 60,
+				'stream'   => true,
+				'filename' => $target,
+			]
+		);
+
+		if ( is_wp_error( $response ) || 200 !== (int) wp_remote_retrieve_response_code( $response ) ) {
+			if ( is_file( $target ) ) {
+				unlink( $target ); // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- temp scan copy cleanup.
+			}
+
+			return null;
+		}
+
+		return $target;
+	}
 }

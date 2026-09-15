@@ -29,6 +29,7 @@ final class UploadController {
 		add_action( 'admin_post_nopriv_sentinel_forms_upload_complete', [ self::class, 'complete' ] );
 		add_action( 'admin_post_sentinel_forms_upload_complete', [ self::class, 'complete' ] );
 		add_action( 'admin_post_sentinel_forms_download_upload', [ self::class, 'download' ] );
+		add_action( 'admin_post_sentinel_forms_rescan_upload', [ self::class, 'rescan' ] );
 	}
 
 	/**
@@ -123,6 +124,36 @@ final class UploadController {
 		}
 
 		wp_send_json_success( [ 'upload_id' => $uploadId ] );
+	}
+
+	/**
+	 * Queue a rescan for an upload (admin only).
+	 */
+	public static function rescan(): void {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_die( esc_html__( 'You do not have permission to perform this action.', 'sentinel-forms' ), '', [ 'response' => 403 ] );
+		}
+
+		$raw      = wp_unslash( $_GET );
+		$uploadId = isset( $raw['upload_id'] ) ? absint( $raw['upload_id'] ) : 0;
+
+		check_admin_referer( 'sentinel_rescan_' . $uploadId );
+
+		$upload = ( new \SentinelForms\Uploads\Domain\UploadRepository() )->find( $uploadId );
+
+		if ( null === $upload ) {
+			wp_die( esc_html__( 'Upload not found.', 'sentinel-forms' ), '', [ 'response' => 404 ] );
+		}
+
+		( new UploadService() )->scheduleScan( $uploadId, 5 );
+
+		wp_safe_redirect(
+			add_query_arg(
+				[ 'rescanned' => 1 ],
+				admin_url( 'admin.php?page=sentinel-entry&entry_id=' . (int) ( $upload->entryId ?? 0 ) )
+			)
+		);
+		exit;
 	}
 
 	/**

@@ -97,8 +97,42 @@ if ( ! defined( 'ABSPATH' ) ) {
 				<td>
 					<label>
 						<input type="checkbox" name="sentinel_forms_settings[storage_block_unscanned_downloads]" value="1" <?php checked( ! empty( $settings['storage_block_unscanned_downloads'] ) ); ?>>
-						<?php esc_html_e( 'Block downloads of files that have not been scanned yet (Phase 3)', 'sentinel-forms' ); ?>
+						<?php esc_html_e( 'Block downloads of files that have not been scanned yet', 'sentinel-forms' ); ?>
 					</label>
+				</td>
+			</tr>
+		</table>
+
+		<h2><?php esc_html_e( 'Malware scanning', 'sentinel-forms' ); ?></h2>
+		<p class="description">
+			<?php esc_html_e( 'Basic scanning runs on this site in pure PHP (no services required). Deep scanning is queued on the Sentinel backend for complex analysis; this site only acts as an API client.', 'sentinel-forms' ); ?>
+		</p>
+		<table class="form-table" role="presentation">
+			<tr>
+				<th scope="row"><label for="sentinel-backend-url"><?php esc_html_e( 'Scan backend URL', 'sentinel-forms' ); ?></label></th>
+				<td>
+					<input type="url" class="regular-text" id="sentinel-backend-url" name="sentinel_forms_settings[scan_backend_url]" value="<?php echo esc_attr( (string) ( $settings['scan_backend_url'] ?? '' ) ); ?>" <?php disabled( defined( 'SENTINEL_SCAN_BACKEND_URL' ) ); ?> placeholder="https://api.example.com">
+					<?php if ( defined( 'SENTINEL_SCAN_BACKEND_URL' ) ) : ?>
+						<p class="description"><?php esc_html_e( 'Defined in wp-config.php.', 'sentinel-forms' ); ?></p>
+					<?php endif; ?>
+				</td>
+			</tr>
+			<tr>
+				<th scope="row"><label for="sentinel-backend-key"><?php esc_html_e( 'Scan backend API key', 'sentinel-forms' ); ?></label></th>
+				<td>
+					<input type="password" class="regular-text" id="sentinel-backend-key" name="sentinel_forms_settings[scan_backend_key]" value="" <?php disabled( defined( 'SENTINEL_SCAN_BACKEND_KEY' ) ); ?> autocomplete="new-password">
+					<?php if ( defined( 'SENTINEL_SCAN_BACKEND_KEY' ) ) : ?>
+						<p class="description"><?php esc_html_e( 'Defined in wp-config.php.', 'sentinel-forms' ); ?></p>
+					<?php elseif ( '' !== (string) ( $settings['scan_backend_key'] ?? '' ) ) : ?>
+						<p class="description"><?php esc_html_e( 'A key is stored. Leave blank to keep it.', 'sentinel-forms' ); ?></p>
+					<?php endif; ?>
+				</td>
+			</tr>
+			<tr>
+				<th scope="row"><label for="sentinel-clamav-path"><?php esc_html_e( 'Local ClamAV fallback path', 'sentinel-forms' ); ?></label></th>
+				<td>
+					<input type="text" class="regular-text" id="sentinel-clamav-path" name="sentinel_forms_settings[scan_clamav_path]" value="<?php echo esc_attr( (string) ( $settings['scan_clamav_path'] ?? '' ) ); ?>" placeholder="/usr/bin/clamscan">
+					<p class="description"><?php esc_html_e( 'Optional fallback for deep scans when the backend is unreachable and ClamAV is installed on this host. Auto-detected from PATH when left empty.', 'sentinel-forms' ); ?></p>
 				</td>
 			</tr>
 		</table>

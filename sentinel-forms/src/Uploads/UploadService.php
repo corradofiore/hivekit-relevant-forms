@@ -11,6 +11,7 @@ namespace SentinelForms\Uploads;
 
 use SentinelForms\Events\EventRecorder;
 use SentinelForms\Forms\Form;
+use SentinelForms\Forms\FormRepository;
 use SentinelForms\Uploads\Contracts\DownloadAuthorization;
 use SentinelForms\Uploads\Contracts\StoredObject;
 use SentinelForms\Uploads\Contracts\UploadAuthorization;
@@ -148,10 +149,9 @@ final class UploadService {
 
 		$size = (int) filesize( $tempPath );
 
-		$formRepository = new \SentinelForms\Forms\FormRepository();
-		$form           = $formRepository->find( $upload->formId );
-		$field          = null !== $form ? $form->schema->field( $upload->fieldId ) : null;
-		$policy         = null !== $field ? UploadPolicy::fromDefinition( $field ) : null;
+		$form   = ( new FormRepository() )->find( $upload->formId );
+		$field  = null !== $form ? $form->schema->field( $upload->fieldId ) : null;
+		$policy = null !== $field ? UploadPolicy::fromDefinition( $field ) : null;
 
 		if ( null !== $policy ) {
 			$policyError = $this->validator->validateDeclared( $policy, $upload->originalFilename, $size );
@@ -189,6 +189,8 @@ final class UploadService {
 
 		EventRecorder::record( null, 'upload_quarantined', [ 'upload_id' => $uploadId ] );
 
+		$this->maybeScheduleScan( $uploadId, $policy );
+
 		return [ 'upload' => $this->repository->find( $uploadId ) ];
 	}
 
@@ -224,6 +226,8 @@ final class UploadService {
 		);
 
 		EventRecorder::record( null, 'upload_quarantined', [ 'upload_id' => $uploadId ] );
+
+		$this->maybeScheduleScan( $uploadId, $this->policyFor( $upload ) );
 
 		return [ 'upload' => $this->repository->find( $uploadId ) ];
 	}
@@ -301,5 +305,39 @@ final class UploadService {
 	 */
 	private function token( int $uploadId, string $objectKey ): string {
 		return hash_hmac( 'sha256', $uploadId . '|' . $objectKey, wp_salt( 'auth' ) );
+	}
+
+	/**
+	 * Resolve the per-field policy for an upload.
+	 */
+	private function policyFor( Upload $upload ): ?UploadPolicy {
+		$form  = ( new FormRepository() )->find( $upload->formId );
+		$field = null !== $form ? $form->schema->field( $upload->fieldId ) : null;
+
+		return null !== $field ? UploadPolicy::fromDefinition( $field ) : null;
+	}
+
+	/**
+	 * Queue a scan when the policy requires one; otherwise mark skipped.
+	 */
+	private function maybeScheduleScan( int $uploadId, ?UploadPolicy $policy ): void {
+		if ( null !== $policy && $policy->scanRequired ) {
+			$this->scheduleScan( $uploadId );
+
+			return;
+		}
+
+		$this->repository->update( $uploadId, [ 'scan_status' => 'skipped' ] );
+	}
+
+	/**
+	 * Schedule the asynchronous scan event for an upload.
+	 */
+	public function scheduleScan( int $uploadId, int $delaySeconds = 30 ): bool {
+		if ( false !== wp_next_scheduled( 'sentinel_forms_scan_upload', [ $uploadId ] ) ) {
+			return false;
+		}
+
+		return false !== wp_schedule_single_event( time() + $delaySeconds, 'sentinel_forms_scan_upload', [ $uploadId ] );
 	}
 }
