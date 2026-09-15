@@ -26,8 +26,19 @@ final class EmailNotificationTest extends TestCase {
 	 */
 	public function testFallsBackToAdminEmail(): void {
 		$repository = new FormRepository();
-		$id         = $repository->create( 'No Recipients', FormSchema::empty( 'No Recipients' ), 'published' );
-		$form       = $repository->find( $id );
+
+		$schema = FormSchema::empty( 'No Recipients' )->withFields(
+			[
+				[
+					'id'    => 'f_message',
+					'type'  => 'textarea',
+					'label' => 'Message',
+				],
+			]
+		);
+
+		$id   = $repository->create( 'No Recipients', $schema, 'published' );
+		$form = $repository->find( $id );
 
 		update_option( 'admin_email', 'admin@example.com' );
 

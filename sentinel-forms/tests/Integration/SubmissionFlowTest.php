@@ -52,7 +52,7 @@ final class SubmissionFlowTest extends TestCase {
 			]
 		);
 
-		$this->assertStringContainsString( 'sentinel_form_success=' . $form->id, $url );
+		$this->assertStringContainsString( 'sentinel_form_success=' . $form->id, $url['url'] ?? '' );
 
 		$repository = new EntryRepository();
 		$entries    = $repository->findMany( [ 'form_id' => $form->id ] );
@@ -70,7 +70,8 @@ final class SubmissionFlowTest extends TestCase {
 		$this->assertContains( 'notification_sent', $names );
 
 		$this->assertNotEmpty( $emails );
-		$this->assertStringContainsString( 'New submission', $emails[0]['subject'] );
+		$this->assertStringContainsString( 'Emergency Request', $emails[0]['subject'] );
+		$this->assertStringContainsString( 'New submission', $emails[0]['message'] );
 	}
 
 	/**
@@ -112,7 +113,7 @@ final class SubmissionFlowTest extends TestCase {
 			]
 		);
 
-		$this->assertStringContainsString( 'sentinel_form_success=' . $form->id, $url );
+		$this->assertStringContainsString( 'sentinel_form_success=' . $form->id, $url['url'] ?? '' );
 
 		$repository = new EntryRepository();
 		$this->assertCount( 0, $repository->findMany( [ 'form_id' => $form->id ] ) );

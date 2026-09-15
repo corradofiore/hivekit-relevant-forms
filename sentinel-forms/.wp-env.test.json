@@ -2,7 +2,9 @@
 	"$schema": "https://schemas.wp.org/trunk/wp-env.json",
 	"core": null,
 	"phpVersion": "8.4",
-	"port": 8889,
+	"port": 8891,
+	"testsPort": 8893,
+	"testsEnvironment": true,
 	"plugins": [ "." ],
 	"config": {
 		"WP_DEBUG": true,
