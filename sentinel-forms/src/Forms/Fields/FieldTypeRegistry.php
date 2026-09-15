@@ -80,6 +80,7 @@ final class FieldTypeRegistry {
 			new ConsentField(),
 			new HiddenField(),
 			new DateField(),
+			new FileField(),
 		];
 	}
 }

@@ -129,6 +129,14 @@ final class FormSaveController {
 				$definition['choices'] = self::parseLines( (string) ( $rawField['choices'] ?? '' ) );
 			}
 
+			if ( 'file' === $type ) {
+				$definition['upload_policy'] = [
+					'allowed_ext' => self::parseExtensions( (string) ( $rawField['upload_policy']['allowed_ext'] ?? '' ) ),
+					'max_size'    => absint( $rawField['upload_policy']['max_size'] ?? 0 ) * 1048576,
+					'max_files'   => absint( $rawField['upload_policy']['max_files'] ?? 1 ),
+				];
+			}
+
 			$fields[] = $definition;
 		}
 
@@ -156,5 +164,25 @@ final class FormSaveController {
 		}
 
 		return array_values( array_unique( $result ) );
+	}
+
+	/**
+	 * Split an extension list into sanitized, lowercased tokens.
+	 *
+	 * @return array<int, string>
+	 */
+	private static function parseExtensions( string $text ): array {
+		$extensions = [];
+
+		foreach ( self::parseLines( $text ) as $line ) {
+			$token = strtolower( ltrim( trim( $line ), '.' ) );
+			$token = preg_replace( '/[^a-z0-9]/', '', $token );
+
+			if ( is_string( $token ) && '' !== $token ) {
+				$extensions[] = $token;
+			}
+		}
+
+		return array_values( array_unique( $extensions ) );
 	}
 }

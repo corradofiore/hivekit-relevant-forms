@@ -19,6 +19,7 @@ use SentinelForms\Forms\Fields\FieldTypeRegistry;
 use SentinelForms\Notifications\EmailNotification;
 use SentinelForms\Support\Logger;
 use SentinelForms\Support\Privacy;
+use SentinelForms\Uploads\UploadService;
 
 /**
  * Handles POST submissions via admin-post.php for guests and logged-in users.
@@ -70,6 +71,10 @@ final class SubmissionHandler {
 			}
 
 			$value = $raw[ 'sentinel_field_' . $fieldId ] ?? ( $definition['default_value'] ?? '' );
+
+			if ( 'file' === $type->type() ) {
+				$value = $raw[ 'sentinel_upload_' . $fieldId . '_ids' ] ?? '';
+			}
 
 			$error = $type->validate( $definition, $value );
 
@@ -127,11 +132,49 @@ final class SubmissionHandler {
 
 		EventRecorder::record( $entryId, 'submission_received', [ 'form_id' => $form->id ] );
 
+		self::attachUploads( $form, $entryId, $values );
+
 		do_action( 'sentinel_forms_submission_received', $entryId, $form->id, $values );
 
 		( new EmailNotification() )->send( $form, $values, $entryId );
 
 		self::finish( $form );
+	}
+
+	/**
+	 * Attach claimed uploads to the stored entry (doc §28).
+	 *
+	 * @param Form                  $form    Submitted form.
+	 * @param int                   $entryId Stored entry ID.
+	 * @param array<string, mixed>  $values  Sanitized values.
+	 */
+	private static function attachUploads( Form $form, int $entryId, array $values ): void {
+		$service = new UploadService();
+
+		foreach ( $form->schema->fields() as $definition ) {
+			if ( 'file' !== (string) ( $definition['type'] ?? '' ) ) {
+				continue;
+			}
+
+			$fieldId = (string) ( $definition['id'] ?? '' );
+			$json    = (string) ( $values[ $fieldId ] ?? '' );
+			$decoded = json_decode( $json, true );
+			$ids     = is_array( $decoded ) ? array_filter( array_map( 'absint', $decoded ) ) : [];
+
+			if ( [] === $ids ) {
+				continue;
+			}
+
+			$service->attachToEntry( $entryId, $fieldId, $ids );
+			EventRecorder::record(
+				$entryId,
+				'upload_attached',
+				[
+					'field_id' => $fieldId,
+					'uploads'  => $ids,
+				]
+			);
+		}
 	}
 
 	/**

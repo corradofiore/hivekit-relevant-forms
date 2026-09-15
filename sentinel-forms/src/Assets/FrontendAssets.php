@@ -32,5 +32,13 @@ final class FrontendAssets {
 			[],
 			SENTINEL_FORMS_VERSION
 		);
+
+		wp_register_script(
+			'sentinel-forms-upload',
+			SENTINEL_FORMS_URL . 'assets/js/frontend-upload.js',
+			[],
+			SENTINEL_FORMS_VERSION,
+			true
+		);
 	}
 }

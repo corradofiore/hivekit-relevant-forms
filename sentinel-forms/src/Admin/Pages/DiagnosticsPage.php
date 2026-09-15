@@ -9,6 +9,8 @@ declare(strict_types=1);
 
 namespace SentinelForms\Admin\Pages;
 
+use SentinelForms\Uploads\Storage\StorageConfig;
+
 /**
  * Environment and provider status overview.
  */
@@ -31,6 +33,7 @@ final class DiagnosticsPage {
 			'sentinel_entry_meta'    => $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->prefix . 'sentinel_entry_meta' ) ), // phpcs:ignore WordPress.DB.DirectDatabaseQuery
 			'sentinel_events'        => $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->prefix . 'sentinel_events' ) ), // phpcs:ignore WordPress.DB.DirectDatabaseQuery
 			'sentinel_logs'          => $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->prefix . 'sentinel_logs' ) ), // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+			'sentinel_uploads'       => $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->prefix . 'sentinel_uploads' ) ), // phpcs:ignore WordPress.DB.DirectDatabaseQuery
 		];
 
 		$dbVersion = (string) get_option( 'sentinel_forms_db_version', '0' );
@@ -40,10 +43,28 @@ final class DiagnosticsPage {
 		$providers = [
 			'AI provider'      => __( 'Not configured', 'sentinel-forms' ),
 			'SMS provider'     => __( 'Not configured', 'sentinel-forms' ),
-			'Storage provider' => __( 'Not configured', 'sentinel-forms' ),
+			'Storage provider' => self::storageStatus(),
 			'Malware scanner'  => __( 'Not configured', 'sentinel-forms' ),
 		];
 
 		require SENTINEL_FORMS_PATH . 'templates/admin/diagnostics.php';
+	}
+
+	/**
+	 * Human-readable storage provider status.
+	 */
+	private static function storageStatus(): string {
+		if ( 's3' === StorageConfig::provider() ) {
+			return StorageConfig::isS3Configured()
+				? sprintf(
+					/* translators: 1: bucket name, 2: endpoint */
+					__( 'S3-compatible (bucket %1$s on %2$s)', 'sentinel-forms' ),
+					StorageConfig::bucket(),
+					StorageConfig::endpoint(),
+				)
+				: __( 'S3-compatible selected, not configured (falling back to local)', 'sentinel-forms' );
+		}
+
+		return __( 'Local private directory', 'sentinel-forms' );
 	}
 }

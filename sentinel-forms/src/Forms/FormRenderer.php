@@ -61,11 +61,25 @@ final class FormRenderer {
 	public static function renderForm( Form $form, array $errors = [], array $values = [] ): string {
 		wp_enqueue_style( 'sentinel-forms' );
 
+		$hasFileField = false;
+
+		foreach ( $form->schema->fields() as $definition ) {
+			if ( 'file' === (string) ( $definition['type'] ?? '' ) ) {
+				$hasFileField = true;
+				break;
+			}
+		}
+
+		if ( $hasFileField ) {
+			wp_enqueue_script( 'sentinel-forms-upload' );
+		}
+
 		$output   = [];
 		$output[] = self::successMessage( $form );
 		$output[] = sprintf(
-			'<form class="sentinel-forms" data-form-id="%d" method="post" action="%s" novalidate>',
+			'<form class="sentinel-forms" data-form-id="%d" data-upload-nonce="%s" method="post" action="%s" novalidate>',
 			$form->id,
+			esc_attr( wp_create_nonce( 'sentinel_upload_' . $form->id ) ),
 			esc_url( admin_url( 'admin-post.php' ) )
 		);
 		$output[] = '<input type="hidden" name="action" value="sentinel_forms_submit">';

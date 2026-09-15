@@ -124,8 +124,8 @@ it(
 );
 
 it(
-	'registers all twelve built-in types',
+	'registers all thirteen built-in types',
 	function () {
-		expect( FieldTypeRegistry::all() )->toHaveCount( 12 );
+		expect( FieldTypeRegistry::all() )->toHaveCount( 13 );
 	}
 );

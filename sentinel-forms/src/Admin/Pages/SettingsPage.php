@@ -41,15 +41,27 @@ final class SettingsPage {
 	 * Sanitize the settings payload.
 	 *
 	 * @param mixed $input Raw input.
-	 * @return array{notification_sender_name: string, notification_sender_email: string, debug_logging: int}
+	 * @return array<string, mixed>
 	 */
 	public static function sanitize( mixed $input ): array {
 		$input = is_array( $input ) ? $input : [];
 
+		$current = (array) get_option( self::OPTION, [] );
+
 		return [
-			'notification_sender_name'  => sanitize_text_field( (string) ( $input['notification_sender_name'] ?? '' ) ),
-			'notification_sender_email' => sanitize_email( (string) ( $input['notification_sender_email'] ?? '' ) ),
-			'debug_logging'             => empty( $input['debug_logging'] ) ? 0 : 1,
+			'notification_sender_name'          => sanitize_text_field( (string) ( $input['notification_sender_name'] ?? '' ) ),
+			'notification_sender_email'         => sanitize_email( (string) ( $input['notification_sender_email'] ?? '' ) ),
+			'debug_logging'                     => empty( $input['debug_logging'] ) ? 0 : 1,
+			'storage_provider'                  => 's3' === (string) ( $input['storage_provider'] ?? '' ) ? 's3' : 'local',
+			'storage_endpoint'                  => esc_url_raw( (string) ( $input['storage_endpoint'] ?? '' ) ),
+			'storage_region'                    => sanitize_text_field( (string) ( $input['storage_region'] ?? '' ) ),
+			'storage_bucket'                    => sanitize_text_field( (string) ( $input['storage_bucket'] ?? '' ) ),
+			'storage_access_key'                => sanitize_text_field( (string) ( $input['storage_access_key'] ?? '' ) ),
+			// Keep the previous secret when the field is left blank (never echoed back).
+			'storage_secret_key'                => '' !== (string) ( $input['storage_secret_key'] ?? '' )
+				? sanitize_text_field( (string) $input['storage_secret_key'] )
+				: (string) ( $current['storage_secret_key'] ?? '' ),
+			'storage_block_unscanned_downloads' => empty( $input['storage_block_unscanned_downloads'] ) ? 0 : 1,
 		];
 	}
 

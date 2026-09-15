@@ -13,6 +13,7 @@ use SentinelForms\Entries\Entry;
 use SentinelForms\Entries\EntryRepository;
 use SentinelForms\Events\EventRecorder;
 use SentinelForms\Forms\FormRepository;
+use SentinelForms\Uploads\Domain\UploadRepository;
 
 /**
  * Entry detail: values, metadata, events and status management.
@@ -37,6 +38,8 @@ final class EntryViewPage {
 
 		$form   = ( new FormRepository() )->find( $entry->formId );
 		$events = EventRecorder::forEntry( $entry->id ?? 0 );
+
+		$uploads = null !== $entry->id ? ( new UploadRepository() )->findForEntry( $entry->id ) : [];
 
 		require SENTINEL_FORMS_PATH . 'templates/admin/entry-view.php';
 	}

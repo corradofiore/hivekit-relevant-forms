@@ -7,6 +7,7 @@
  * @var SentinelForms\Entries\Entry $entry  Entry being viewed.
  * @var SentinelForms\Forms\Form|null $form  Owning form.
  * @var array<int, object>          $events Domain events.
+ * @var array<int, SentinelForms\Uploads\Domain\Upload> $uploads Attached uploads.
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -82,6 +83,40 @@ if ( ! defined( 'ABSPATH' ) ) {
 		</select>
 		<button type="submit" class="button button-primary"><?php esc_html_e( 'Update status', 'sentinel-forms' ); ?></button>
 	</form>
+
+	<h2><?php esc_html_e( 'Uploads', 'sentinel-forms' ); ?></h2>
+	<?php if ( [] === $uploads ) : ?>
+		<p><?php esc_html_e( 'No uploads attached to this entry.', 'sentinel-forms' ); ?></p>
+	<?php else : ?>
+		<table class="widefat striped">
+			<thead>
+				<tr>
+					<th scope="col"><?php esc_html_e( 'File', 'sentinel-forms' ); ?></th>
+					<th scope="col"><?php esc_html_e( 'Type', 'sentinel-forms' ); ?></th>
+					<th scope="col"><?php esc_html_e( 'Size', 'sentinel-forms' ); ?></th>
+					<th scope="col"><?php esc_html_e( 'Status', 'sentinel-forms' ); ?></th>
+					<th scope="col"><?php esc_html_e( 'Actions', 'sentinel-forms' ); ?></th>
+				</tr>
+			</thead>
+			<tbody>
+				<?php foreach ( $uploads as $upload ) : ?>
+					<tr>
+						<td><?php echo esc_html( $upload->originalFilename ); ?></td>
+						<td><code><?php echo esc_html( '' !== $upload->detectedMime ? $upload->detectedMime : $upload->declaredMime ); ?></code></td>
+						<td><?php echo esc_html( size_format( (int) $upload->sizeBytes ) ); ?></td>
+						<td><span class="sf-badge sf-badge--<?php echo esc_attr( $upload->status ); ?>"><?php echo esc_html( strtoupper( $upload->status ) ); ?></span></td>
+						<td>
+							<?php if ( \SentinelForms\Uploads\Domain\UploadStatus::isDownloadable( $upload->status, \SentinelForms\Uploads\Storage\StorageConfig::allowUnscannedDownload() ) ) : ?>
+								<a class="button button-small" href="<?php echo esc_url( wp_nonce_url( admin_url( 'admin-post.php?action=sentinel_forms_download_upload&upload_id=' . (int) $upload->id ), 'sentinel_download_' . (int) $upload->id ) ); ?>"><?php esc_html_e( 'Download', 'sentinel-forms' ); ?></a>
+							<?php else : ?>
+								<span aria-disabled="true" class="button button-small disabled"><?php esc_html_e( 'Blocked', 'sentinel-forms' ); ?></span>
+							<?php endif; ?>
+						</td>
+					</tr>
+				<?php endforeach; ?>
+			</tbody>
+		</table>
+	<?php endif; ?>
 
 	<h2><?php esc_html_e( 'History', 'sentinel-forms' ); ?></h2>
 	<?php if ( $events === [] ) : ?>

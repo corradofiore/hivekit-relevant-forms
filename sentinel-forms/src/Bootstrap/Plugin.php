@@ -19,6 +19,7 @@ use SentinelForms\Assets\FrontendAssets;
 use SentinelForms\Database\MigrationRunner;
 use SentinelForms\Forms\FormRenderer;
 use SentinelForms\Http\SubmissionHandler;
+use SentinelForms\Http\UploadController;
 
 /**
  * Boots the plugin: registers admin pages, assets, shortcode, submission
@@ -36,6 +37,7 @@ final class Plugin {
 		SettingsPage::register();
 		FormRenderer::register();
 		SubmissionHandler::register();
+		UploadController::register();
 		FormSaveController::register();
 		FormActionController::register();
 		EntryStatusController::register();

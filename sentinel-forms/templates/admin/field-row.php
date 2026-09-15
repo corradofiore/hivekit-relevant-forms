@@ -62,6 +62,31 @@ $isHidden = 'hidden' === (string) $definition['type'];
 			</p>
 		<?php endif; ?>
 
+		<?php if ( 'file' === (string) $definition['type'] ) : ?>
+			<?php
+			$uploadPolicy = is_array( $definition['upload_policy'] ?? null ) ? $definition['upload_policy'] : [];
+			$allowedExt   = implode( "\n", array_map( 'strval', (array) ( $uploadPolicy['allowed_ext'] ?? \SentinelForms\Uploads\Policy\UploadPolicy::DEFAULT_EXTENSIONS ) ) );
+			$maxSizeMb    = absint( $uploadPolicy['max_size'] ?? \SentinelForms\Uploads\Policy\UploadPolicy::DEFAULT_MAX_SIZE ) / 1048576;
+			$maxFiles     = absint( $uploadPolicy['max_files'] ?? \SentinelForms\Uploads\Policy\UploadPolicy::DEFAULT_MAX_FILES );
+			?>
+			<p>
+				<label><?php esc_html_e( 'Allowed extensions', 'sentinel-forms' ); ?><br>
+					<textarea class="widefat" rows="3" name="sentinel_fields[<?php echo esc_attr( $fieldId ); ?>][upload_policy][allowed_ext]"><?php echo esc_textarea( $allowedExt ); ?></textarea>
+					<span class="description"><?php esc_html_e( 'One per line, without dots.', 'sentinel-forms' ); ?></span>
+				</label>
+			</p>
+			<p>
+				<label><?php esc_html_e( 'Max file size (MB)', 'sentinel-forms' ); ?><br>
+					<input type="number" min="1" step="1" class="widefat" name="sentinel_fields[<?php echo esc_attr( $fieldId ); ?>][upload_policy][max_size]" value="<?php echo esc_attr( (string) $maxSizeMb ); ?>">
+				</label>
+			</p>
+			<p>
+				<label><?php esc_html_e( 'Max files per submission', 'sentinel-forms' ); ?><br>
+					<input type="number" min="1" step="1" class="widefat" name="sentinel_fields[<?php echo esc_attr( $fieldId ); ?>][upload_policy][max_files]" value="<?php echo esc_attr( (string) $maxFiles ); ?>">
+				</label>
+			</p>
+		<?php endif; ?>
+
 		<p>
 			<label><?php esc_html_e( 'Default value', 'sentinel-forms' ); ?><br>
 				<input type="text" class="widefat" name="sentinel_fields[<?php echo esc_attr( $fieldId ); ?>][default_value]" value="<?php echo esc_attr( (string) ( $definition['default_value'] ?? '' ) ); ?>">

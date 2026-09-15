@@ -15,6 +15,7 @@ use SentinelForms\Database\Migrations\CreateEventsTable;
 use SentinelForms\Database\Migrations\CreateFormVersionsTable;
 use SentinelForms\Database\Migrations\CreateFormsTable;
 use SentinelForms\Database\Migrations\CreateLogsTable;
+use SentinelForms\Database\Migrations\CreateUploadsTable;
 
 /**
  * Applies migrations newer than the version stored in the database option.
@@ -37,6 +38,7 @@ final class MigrationRunner {
 		CreateEntriesTable::class,
 		CreateEntryMetaTable::class,
 		CreateEventsTable::class,
+		CreateUploadsTable::class,
 		CreateLogsTable::class,
 	];
 
