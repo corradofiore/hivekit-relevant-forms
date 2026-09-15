@@ -11,6 +11,7 @@ namespace SentinelForms\Bootstrap;
 
 use SentinelForms\Admin\AdminMenu;
 use SentinelForms\Admin\Assets\AdminAssets;
+use SentinelForms\Admin\Controllers\EntryCorrectionController;
 use SentinelForms\Admin\Controllers\EntryStatusController;
 use SentinelForms\Admin\Controllers\FormActionController;
 use SentinelForms\Admin\Controllers\FormSaveController;
@@ -45,6 +46,7 @@ final class Plugin {
 		FormSaveController::register();
 		FormActionController::register();
 		EntryStatusController::register();
+		EntryCorrectionController::register();
 
 		add_action( 'sentinel_forms_scan_upload', [ ScanService::class, 'handleScheduled' ], 10, 1 );
 		add_action( 'sentinel_forms_poll_scan_results', [ ScanService::class, 'pollBackendScans' ] );

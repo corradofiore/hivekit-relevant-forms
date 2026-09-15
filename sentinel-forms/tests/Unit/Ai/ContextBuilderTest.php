@@ -14,12 +14,34 @@ use SentinelForms\Forms\FormSchema;
 
 beforeEach(
 	function () {
-		Monkey\Functions\when( 'get_option' )->justReturn(
-			[
-				'ai_site_purpose' => 'Plumbing company in Leeds',
-				'ai_priorities'   => "emergency repairs\nquote requests\n\n",
-				'ai_unwanted'     => 'SEO services',
-			]
+		Monkey\Functions\when( 'get_option' )->alias(
+			static function ( string $key, mixed $fallback = [] ): mixed {
+				if ( 'sentinel_forms_settings' === $key ) {
+					return [
+						'ai_site_purpose' => 'Plumbing company in Leeds',
+						'ai_priorities'   => "emergency repairs\nquote requests\n\n",
+						'ai_unwanted'     => 'SEO services',
+					];
+				}
+
+				if ( 'sentinel_forms_preference_profile' === $key ) {
+					return [
+						'corrections' => [
+							[
+								'verdict'     => 'spam',
+								'reason_code' => 'seo_solicitation',
+								'summary'     => 'SEO pitch from jane@example.com',
+								'at'          => '2026-09-01 10:00:00',
+							],
+						],
+						'tallies'     => [
+							'seo_solicitation' => [ 'spam' => 2 ],
+						],
+					];
+				}
+
+				return $fallback;
+			}
 		);
 		Monkey\Functions\when( 'apply_filters' )->returnArg( 2 );
 		Monkey\Functions\when( 'wp_strip_all_tags' )->alias( 'strip_tags' );
@@ -70,5 +92,13 @@ it(
 		expect( $context['submission']['message'] )->toContain( '[EMAIL]' );
 		expect( $context['submission']['message'] )->toContain( '[PHONE]' );
 		expect( $context['local_signals']['submission_hash'] )->toBe( 'hash-1' );
+
+		// Preference profile guidance from past corrections (doc §26–27).
+		expect( $context['preference_profile']['usually_spam'] )->toBe( [ 'seo_solicitation' ] );
+		expect( $context['recent_corrections'] )->toHaveCount( 1 );
+		expect( $context['recent_corrections'][0]['verdict'] )->toBe( 'spam' );
+
+		// Correction summaries are redacted before transmission too.
+		expect( $context['recent_corrections'][0]['summary'] )->toContain( '[EMAIL]' );
 	}
 );

@@ -97,6 +97,48 @@ if ( ! defined( 'ABSPATH' ) ) {
 		</table>
 	<?php endif; ?>
 
+	<?php
+	$classification = is_array( $entry->meta['_classification'] ?? null ) ? $entry->meta['_classification'] : [];
+	$correction     = is_array( $entry->meta['_classification_correction'] ?? null ) ? $entry->meta['_classification_correction'] : [];
+	?>
+	<h2><?php esc_html_e( 'AI classification', 'sentinel-forms' ); ?></h2>
+	<?php if ( [] === $classification ) : ?>
+		<p><?php esc_html_e( 'No classification recorded for this entry.', 'sentinel-forms' ); ?></p>
+	<?php else : ?>
+		<table class="widefat striped">
+			<tbody>
+				<tr><th scope="row"><?php esc_html_e( 'Spam probability', 'sentinel-forms' ); ?></th><td><code><?php echo esc_html( (string) ( $classification['spam_probability'] ?? '0' ) ); ?></code></td></tr>
+				<tr><th scope="row"><?php esc_html_e( 'Relevance', 'sentinel-forms' ); ?></th><td><code><?php echo esc_html( (string) ( $classification['relevance'] ?? '0' ) ); ?></code></td></tr>
+				<tr><th scope="row"><?php esc_html_e( 'Urgency', 'sentinel-forms' ); ?></th><td><code><?php echo esc_html( (string) ( $classification['urgency'] ?? '0' ) ); ?></code></td></tr>
+				<tr><th scope="row"><?php esc_html_e( 'Attention score', 'sentinel-forms' ); ?></th><td><code><?php echo esc_html( (string) ( $classification['attention_score'] ?? '0' ) ); ?></code></td></tr>
+				<tr><th scope="row"><?php esc_html_e( 'Reason code', 'sentinel-forms' ); ?></th><td><code><?php echo esc_html( (string) ( $classification['reason_code'] ?? 'unknown' ) ); ?></code></td></tr>
+				<tr><th scope="row"><?php esc_html_e( 'Summary', 'sentinel-forms' ); ?></th><td><?php echo esc_html( (string) ( $classification['summary'] ?? '' ) ); ?></td></tr>
+			</tbody>
+		</table>
+		<?php if ( [] !== $correction ) : ?>
+			<p class="description">
+				<?php
+				printf(
+					/* translators: 1: administrator verdict, 2: correction timestamp */
+					esc_html__( 'Corrected as %1$s on %2$s.', 'sentinel-forms' ),
+					esc_html( str_replace( '_', ' ', (string) ( $correction['verdict'] ?? '' ) ) ),
+					esc_html( (string) ( $correction['at'] ?? '' ) )
+				);
+				?>
+			</p>
+		<?php endif; ?>
+		<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+			<input type="hidden" name="action" value="sentinel_forms_correct_classification">
+			<input type="hidden" name="entry_id" value="<?php echo esc_attr( (string) $entry->id ); ?>">
+			<?php wp_nonce_field( 'sentinel_entry_correction_' . $entry->id ); ?>
+			<button type="submit" class="button" name="verdict" value="legitimate"><?php esc_html_e( 'Mark legitimate', 'sentinel-forms' ); ?></button>
+			<button type="submit" class="button" name="verdict" value="spam"><?php esc_html_e( 'Mark spam', 'sentinel-forms' ); ?></button>
+			<button type="submit" class="button" name="verdict" value="priority"><?php esc_html_e( 'Mark priority', 'sentinel-forms' ); ?></button>
+			<button type="submit" class="button" name="verdict" value="not_important"><?php esc_html_e( 'Not important', 'sentinel-forms' ); ?></button>
+			<p class="description"><?php esc_html_e( 'Corrections adjust the entry status and improve the site preference profile used for future classifications.', 'sentinel-forms' ); ?></p>
+		</form>
+	<?php endif; ?>
+
 	<h2><?php esc_html_e( 'Status', 'sentinel-forms' ); ?></h2>
 	<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
 		<input type="hidden" name="action" value="sentinel_forms_entry_status">

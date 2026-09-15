@@ -180,6 +180,39 @@ final class EntryRepository {
 	}
 
 	/**
+	 * Insert or replace a single meta value.
+	 *
+	 * @param int    $entryId Entry ID.
+	 * @param string $key     Meta key.
+	 * @param mixed  $value   Meta value (arrays are stored as JSON).
+	 */
+	public function updateMeta( int $entryId, string $key, mixed $value ): bool {
+		$table = $this->wpdb->prefix . 'sentinel_entry_meta';
+
+		$this->wpdb->delete(
+			$table,
+			[
+				'entry_id' => $entryId,
+				'meta_key' => $key,
+			],
+			[ '%d', '%s' ]
+		);
+
+		$stored = is_scalar( $value ) ? (string) $value : wp_json_encode( $value );
+
+		$inserted = $this->wpdb->insert(
+			$table,
+			[
+				'entry_id'   => $entryId,
+				'meta_key'   => $key,
+				'meta_value' => $stored,
+			]
+		);
+
+		return false !== $inserted;
+	}
+
+	/**
 	 * Meta values for an entry, decoded from JSON where needed.
 	 *
 	 * @param int $entryId Entry ID.

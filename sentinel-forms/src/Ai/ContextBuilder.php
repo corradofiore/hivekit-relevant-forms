@@ -41,10 +41,18 @@ final class ContextBuilder {
 	private Redactor $redactor;
 
 	/**
+	 * Preference profile.
+	 *
+	 * @var PreferenceProfile
+	 */
+	private PreferenceProfile $profile;
+
+	/**
 	 * Constructor.
 	 */
 	public function __construct() {
 		$this->redactor = new Redactor();
+		$this->profile  = new PreferenceProfile();
 	}
 
 	/**
@@ -60,14 +68,16 @@ final class ContextBuilder {
 		$policy   = $form->schema->aiPolicy();
 
 		$context = [
-			'site_purpose'  => mb_substr( trim( (string) ( $settings['ai_site_purpose'] ?? '' ) ), 0, 500 ),
-			'form_name'     => mb_substr( $form->name, 0, 200 ),
-			'form_purpose'  => mb_substr( trim( (string) ( $policy['purpose'] ?? '' ) ), 0, 500 ),
-			'field_labels'  => $this->fieldLabels( $form ),
-			'priorities'    => $this->lines( (string) ( $settings['ai_priorities'] ?? '' ) ),
-			'unwanted'      => $this->lines( (string) ( $settings['ai_unwanted'] ?? '' ) ),
-			'submission'    => $this->submission( $values ),
-			'local_signals' => $this->localSignals( $protection ),
+			'site_purpose'       => mb_substr( trim( (string) ( $settings['ai_site_purpose'] ?? '' ) ), 0, 500 ),
+			'form_name'          => mb_substr( $form->name, 0, 200 ),
+			'form_purpose'       => mb_substr( trim( (string) ( $policy['purpose'] ?? '' ) ), 0, 500 ),
+			'field_labels'       => $this->fieldLabels( $form ),
+			'priorities'         => $this->lines( (string) ( $settings['ai_priorities'] ?? '' ) ),
+			'unwanted'           => $this->lines( (string) ( $settings['ai_unwanted'] ?? '' ) ),
+			'preference_profile' => $this->profile->guidance(),
+			'recent_corrections' => $this->recentCorrections(),
+			'submission'         => $this->submission( $values ),
+			'local_signals'      => $this->localSignals( $protection ),
 		];
 
 		/**
@@ -77,6 +87,25 @@ final class ContextBuilder {
 		 * @param Form                 $form    Form entity.
 		 */
 		return (array) apply_filters( 'sentinel_forms_ai_context', $context, $form );
+	}
+
+	/**
+	 * Recent admin corrections (doc §26–27), redacted for transmission.
+	 *
+	 * @return array<int, array<string, mixed>>
+	 */
+	private function recentCorrections(): array {
+		$corrections = [];
+
+		foreach ( $this->profile->recent( 10 ) as $correction ) {
+			$corrections[] = [
+				'verdict'     => (string) ( $correction['verdict'] ?? '' ),
+				'reason_code' => (string) ( $correction['reason_code'] ?? 'unknown' ),
+				'summary'     => $this->redactor->redact( (string) ( $correction['summary'] ?? '' ) ),
+			];
+		}
+
+		return $corrections;
 	}
 
 	/**
