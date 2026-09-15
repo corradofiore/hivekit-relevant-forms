@@ -84,7 +84,7 @@ final class UploadService {
 				$fieldId,
 				null,
 				$provider->name(),
-				's3' === $provider->name() ? StorageConfig::bucket() : 'local',
+				'cloud' === $provider->name() ? 'cloud' : 'local',
 				$objectKey,
 				$filename,
 				$extension,

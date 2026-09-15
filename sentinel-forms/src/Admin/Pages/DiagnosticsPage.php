@@ -10,7 +10,6 @@ declare(strict_types=1);
 namespace SentinelForms\Admin\Pages;
 
 use SentinelForms\Uploads\Scanning\BackendScanConfig;
-use SentinelForms\Uploads\Scanning\ClamAvScanner;
 use SentinelForms\Uploads\Scanning\ScannerFactory;
 use SentinelForms\Uploads\Storage\StorageConfig;
 use SentinelForms\Alerts\SmsAlert;
@@ -62,15 +61,10 @@ final class DiagnosticsPage {
 	 * Human-readable storage provider status.
 	 */
 	private static function storageStatus(): string {
-		if ( 's3' === StorageConfig::provider() ) {
-			return StorageConfig::isS3Configured()
-				? sprintf(
-					/* translators: 1: bucket name, 2: endpoint */
-					__( 'S3-compatible (bucket %1$s on %2$s)', 'sentinel-forms' ),
-					StorageConfig::bucket(),
-					StorageConfig::endpoint(),
-				)
-				: __( 'S3-compatible selected, not configured (falling back to local)', 'sentinel-forms' );
+		if ( 'cloud' === StorageConfig::provider() ) {
+			return StorageConfig::isCloudUsable()
+				? __( 'Sentinel Managed Secure Storage', 'sentinel-forms' )
+				: __( 'Managed storage selected but not usable (Cloud not connected or capability disabled) — falling back to local', 'sentinel-forms' );
 		}
 
 		return __( 'Local private directory', 'sentinel-forms' );
@@ -83,10 +77,18 @@ final class DiagnosticsPage {
 		$scanner = ScannerFactory::make();
 		$parts   = [ __( 'Basic (pure PHP) — always available', 'sentinel-forms' ) ];
 
-		if ( $scanner instanceof ClamAvScanner ) {
+		if ( 'php-basic' !== $scanner->name() ) {
 			$parts[] = $scanner->isAvailable()
-				? __( 'local ClamAV available (deep fallback)', 'sentinel-forms' )
-				: __( 'local ClamAV unavailable (deep fallback)', 'sentinel-forms' );
+				? sprintf(
+					/* translators: %s: scanner name */
+					__( '%s available (extension scanner)', 'sentinel-forms' ),
+					$scanner->name(),
+				)
+				: sprintf(
+					/* translators: %s: scanner name */
+					__( '%s unavailable (extension scanner)', 'sentinel-forms' ),
+					$scanner->name(),
+				);
 		}
 
 		return implode( '; ', $parts );

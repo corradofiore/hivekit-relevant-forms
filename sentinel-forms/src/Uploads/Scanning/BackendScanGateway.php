@@ -10,16 +10,14 @@ declare(strict_types=1);
 namespace SentinelForms\Uploads\Scanning;
 
 use SentinelForms\Support\Logger;
-use SentinelForms\Uploads\Contracts\StoredObject;
 use SentinelForms\Uploads\Domain\Upload;
-use SentinelForms\Uploads\Storage\S3CompatibleProvider;
 
 /**
  * The WordPress plugin as API client for backend deep scanning.
  *
- * Local-provider bytes are streamed as multipart; object-storage
- * uploads are referenced by a short-lived signed URL so bytes never
- * traverse WordPress. Never exposes permanent credentials.
+ * Local-provider bytes are streamed to the backend; managed-storage
+ * uploads are scanned by the backend on its own object (no bytes
+ * traverse WordPress). Never exposes permanent credentials.
  */
 final class BackendScanGateway implements DeepScanGatewayInterface {
 
@@ -38,13 +36,21 @@ final class BackendScanGateway implements DeepScanGatewayInterface {
 	 * {@inheritDoc}
 	 */
 	public function submit( Upload $upload, string $localPath ): ?string {
-		$url = $this->baseUrl . '/api/v1/uploads/scan';
+		if ( 'local' !== $upload->provider ) {
+			// Remote-reference submissions were a bring-your-own-storage
+			// affordance; managed uploads use submitManaged() and other
+			// providers are a Pro extension point (T1).
+			Logger::warning( 'Deep-scan submission skipped: unsupported provider.', [ 'provider' => $upload->provider ] );
 
-		if ( 'local' === $upload->provider ) {
-			$response = $this->postRaw( $url, $localPath, $upload->originalFilename, $upload->objectKey );
-		} else {
-			$response = $this->postRemoteReference( $url, $upload );
+			return null;
 		}
+
+		$response = $this->postRaw(
+			$this->baseUrl . '/api/v1/uploads/scan',
+			$localPath,
+			$upload->originalFilename,
+			$upload->objectKey,
+		);
 
 		return $this->scanRequestId( $response );
 	}
@@ -169,36 +175,6 @@ final class BackendScanGateway implements DeepScanGatewayInterface {
 					]
 				),
 				'body'    => $bytes,
-			]
-		);
-	}
-
-	/**
-	 * JSON submission referencing object storage via a signed URL.
-	 *
-	 * @return array<string,mixed>|\WP_Error
-	 */
-	private function postRemoteReference( string $url, Upload $upload ): array|\WP_Error {
-		$provider      = new S3CompatibleProvider();
-		$authorization = $provider->getDownloadAuthorization(
-			new StoredObject( $upload->objectKey, $upload->storageLocation )
-		);
-
-		return wp_remote_post(
-			$url,
-			[
-				'timeout' => 30,
-				'headers' => array_merge(
-					$this->headers(),
-					[ 'Content-Type' => 'application/json' ]
-				),
-				'body'    => wp_json_encode(
-					[
-						'provider'   => 's3',
-						'object_key' => $upload->objectKey,
-						'url'        => $authorization->url,
-					]
-				),
 			]
 		);
 	}

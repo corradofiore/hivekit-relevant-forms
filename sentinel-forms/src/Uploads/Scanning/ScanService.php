@@ -3,8 +3,8 @@
  * Scan orchestration: two-stage quarantine workflow (doc §34, §44, Phase 3).
  *
  * Stage 1 — basic: pure-PHP, bounded-memory checks on the WordPress host.
- * Stage 2 — deep: backend queue (plugin acts as API client); an explicitly
- * configured local ClamAV binary is an optional fallback.
+ * Stage 2 — deep: backend queue (plugin acts as API client). Deep local
+ * scanners are a Pro extension point; Core contains no deep scanner (T2).
  *
  * @package SentinelForms
  */
@@ -22,7 +22,6 @@ use SentinelForms\Uploads\Domain\UploadStatus;
 use SentinelForms\Uploads\Policy\UploadPolicy;
 use SentinelForms\Uploads\Storage\LocalStorageProvider;
 use SentinelForms\Uploads\Storage\ProviderFactory;
-use SentinelForms\Uploads\Storage\S3CompatibleProvider;
 
 /**
  * Moves uploads through scanning states and applies scan outcomes.
@@ -201,7 +200,10 @@ final class ScanService {
 			];
 		}
 
-		// Optional fallback: an explicitly configured local scanner.
+		// Extension fallback (T2): Core ships only the pure-PHP basic
+		// scanner, so this branch stays inert unless a site registers a
+		// deep scanner through the sentinel_forms_malware_scanner filter
+		// (Sentinel Pro). Deep scanning itself belongs to the Cloud.
 		$scanner = ScannerFactory::make();
 
 		if ( 'php-basic' !== $scanner->name() && $scanner->isAvailable() ) {
@@ -310,7 +312,9 @@ final class ScanService {
 	 * Produce a local temp copy of the object for the scanner.
 	 */
 	private function localCopy( Upload $upload, StoredObject $stored_object ): ?string {
-		$provider = 'local' === $upload->provider ? new LocalStorageProvider() : new S3CompatibleProvider();
+		// Local copies are produced for local uploads; extension providers
+		// (Pro) copy through their own implementation (T1).
+		$provider = 'local' === $upload->provider ? new LocalStorageProvider() : ProviderFactory::make();
 
 		return $provider->copyToTemporaryFile( $stored_object );
 	}

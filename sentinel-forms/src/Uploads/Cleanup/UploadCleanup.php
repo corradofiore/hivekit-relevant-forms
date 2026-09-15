@@ -15,7 +15,7 @@ use SentinelForms\Uploads\Domain\Upload;
 use SentinelForms\Uploads\Domain\UploadRepository;
 use SentinelForms\Uploads\Domain\UploadStatus;
 use SentinelForms\Uploads\Storage\LocalStorageProvider;
-use SentinelForms\Uploads\Storage\S3CompatibleProvider;
+use SentinelForms\Uploads\Storage\ProviderFactory;
 
 /**
  * Removes abandoned uploads: authorized but never uploaded/attached
@@ -50,7 +50,9 @@ final class UploadCleanup {
 	 * Delete the object from storage and expire the row.
 	 */
 	private static function remove( Upload $upload, UploadRepository $repository ): void {
-		$provider = 'local' === $upload->provider ? new LocalStorageProvider() : new S3CompatibleProvider();
+		// Managed (cloud) uploads delete through the Cloud API; extension
+		// providers resolve through the factory filter (T1).
+		$provider = 'local' === $upload->provider ? new LocalStorageProvider() : ProviderFactory::make();
 		$object   = new StoredObject( $upload->objectKey, $upload->storageLocation );
 
 		$provider->delete( $object );

@@ -11,8 +11,9 @@ namespace SentinelForms\Uploads\Contracts;
 
 /**
  * Backend for private object storage. The domain layer never assumes S3:
- * Hetzner Object Storage, Backblaze B2, AWS S3 and GCS (S3-compatible mode)
- * all satisfy this interface through S3CompatibleProvider.
+ * Core ships LocalStorageProvider and the managed Cloud provider;
+ * extensions (Sentinel Pro) register S3-compatible providers through the
+ * `sentinel_forms_storage_provider` filter (T1).
  */
 interface FileStorageProviderInterface {
 

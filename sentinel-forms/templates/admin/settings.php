@@ -42,7 +42,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 		<h2><?php esc_html_e( 'File storage', 'sentinel-forms' ); ?></h2>
 		<p class="description">
-			<?php esc_html_e( 'Uploads are stored privately by default. Choose an S3-compatible provider (Hetzner Object Storage, Backblaze B2, AWS S3…) or keep local storage. Constants in wp-config.php override these settings.', 'sentinel-forms' ); ?>
+			<?php esc_html_e( 'Uploads are stored privately. Choose local private storage or Sentinel Managed Secure Storage (Cloud). Bring-your-own object storage is part of Sentinel Pro. Constants in wp-config.php override these settings.', 'sentinel-forms' ); ?>
 		</p>
 		<table class="form-table" role="presentation">
 			<tr>
@@ -50,48 +50,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 				<td>
 					<select id="sentinel-storage-provider" name="sentinel_forms_settings[storage_provider]" <?php disabled( defined( 'SENTINEL_STORAGE_PROVIDER' ) ); ?>>
 						<option value="local" <?php selected( (string) ( $settings['storage_provider'] ?? '' ), 'local' ); ?>><?php esc_html_e( 'Local (private server directory)', 'sentinel-forms' ); ?></option>
-						<option value="s3" <?php selected( (string) ( $settings['storage_provider'] ?? '' ), 's3' ); ?>><?php esc_html_e( 'S3-compatible object storage (bring your own)', 'sentinel-forms' ); ?></option>
 						<option value="cloud" <?php selected( (string) ( $settings['storage_provider'] ?? '' ), 'cloud' ); ?>><?php esc_html_e( 'Sentinel Managed Secure Storage (Cloud)', 'sentinel-forms' ); ?></option>
 					</select>
 					<?php if ( defined( 'SENTINEL_STORAGE_PROVIDER' ) ) : ?>
 						<p class="description"><?php esc_html_e( 'Defined in wp-config.php.', 'sentinel-forms' ); ?></p>
 					<?php endif; ?>
 					<p class="description"><?php esc_html_e( 'Sentinel Managed Secure Storage requires a connected Cloud account with the managed uploads capability; until then uploads fall back to local storage. Bytes go directly to private cloud storage and are scanned on the backend before any download.', 'sentinel-forms' ); ?></p>
-				</td>
-			</tr>
-			<tr>
-				<th scope="row"><label for="sentinel-storage-endpoint"><?php esc_html_e( 'Endpoint URL', 'sentinel-forms' ); ?></label></th>
-				<td>
-					<input type="url" class="regular-text" id="sentinel-storage-endpoint" name="sentinel_forms_settings[storage_endpoint]" value="<?php echo esc_attr( (string) ( $settings['storage_endpoint'] ?? '' ) ); ?>" <?php disabled( defined( 'SENTINEL_STORAGE_ENDPOINT' ) ); ?> placeholder="https://s3.us-west-004.backblazeb2.com">
-				</td>
-			</tr>
-			<tr>
-				<th scope="row"><label for="sentinel-storage-region"><?php esc_html_e( 'Region', 'sentinel-forms' ); ?></label></th>
-				<td>
-					<input type="text" class="regular-text" id="sentinel-storage-region" name="sentinel_forms_settings[storage_region]" value="<?php echo esc_attr( (string) ( $settings['storage_region'] ?? '' ) ); ?>" <?php disabled( defined( 'SENTINEL_STORAGE_REGION' ) ); ?> placeholder="us-west-004">
-				</td>
-			</tr>
-			<tr>
-				<th scope="row"><label for="sentinel-storage-bucket"><?php esc_html_e( 'Bucket', 'sentinel-forms' ); ?></label></th>
-				<td>
-					<input type="text" class="regular-text" id="sentinel-storage-bucket" name="sentinel_forms_settings[storage_bucket]" value="<?php echo esc_attr( (string) ( $settings['storage_bucket'] ?? '' ) ); ?>" <?php disabled( defined( 'SENTINEL_STORAGE_BUCKET' ) ); ?>>
-				</td>
-			</tr>
-			<tr>
-				<th scope="row"><label for="sentinel-storage-access-key"><?php esc_html_e( 'Access key', 'sentinel-forms' ); ?></label></th>
-				<td>
-					<input type="text" class="regular-text" id="sentinel-storage-access-key" name="sentinel_forms_settings[storage_access_key]" value="<?php echo esc_attr( (string) ( $settings['storage_access_key'] ?? '' ) ); ?>" <?php disabled( defined( 'SENTINEL_STORAGE_ACCESS_KEY' ) ); ?>>
-				</td>
-			</tr>
-			<tr>
-				<th scope="row"><label for="sentinel-storage-secret-key"><?php esc_html_e( 'Secret key', 'sentinel-forms' ); ?></label></th>
-				<td>
-					<input type="password" class="regular-text" id="sentinel-storage-secret-key" name="sentinel_forms_settings[storage_secret_key]" value="" <?php disabled( defined( 'SENTINEL_STORAGE_SECRET_KEY' ) ); ?> autocomplete="new-password">
-					<?php if ( defined( 'SENTINEL_STORAGE_SECRET_KEY' ) ) : ?>
-						<p class="description"><?php esc_html_e( 'Defined in wp-config.php.', 'sentinel-forms' ); ?></p>
-					<?php elseif ( '' !== (string) ( $settings['storage_secret_key'] ?? '' ) ) : ?>
-						<p class="description"><?php esc_html_e( 'A secret is stored. Leave blank to keep it.', 'sentinel-forms' ); ?></p>
-					<?php endif; ?>
 				</td>
 			</tr>
 			<tr>
@@ -107,7 +71,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 		<h2><?php esc_html_e( 'Malware scanning', 'sentinel-forms' ); ?></h2>
 		<p class="description">
-			<?php esc_html_e( 'Basic scanning runs on this site in pure PHP (no services required). Deep scanning is queued on the Sentinel backend for complex analysis; this site only acts as an API client.', 'sentinel-forms' ); ?>
+			<?php esc_html_e( 'Basic scanning runs on this site in pure PHP (no services required). Deep scanning is queued on the Sentinel backend for complex analysis; this site only acts as an API client. Deep local scanners are part of Sentinel Pro.', 'sentinel-forms' ); ?>
 		</p>
 		<table class="form-table" role="presentation">
 			<tr>
@@ -128,13 +92,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 					<?php elseif ( '' !== (string) ( $settings['scan_backend_key'] ?? '' ) ) : ?>
 						<p class="description"><?php esc_html_e( 'A key is stored. Leave blank to keep it.', 'sentinel-forms' ); ?></p>
 					<?php endif; ?>
-				</td>
-			</tr>
-			<tr>
-				<th scope="row"><label for="sentinel-clamav-path"><?php esc_html_e( 'Local ClamAV fallback path', 'sentinel-forms' ); ?></label></th>
-				<td>
-					<input type="text" class="regular-text" id="sentinel-clamav-path" name="sentinel_forms_settings[scan_clamav_path]" value="<?php echo esc_attr( (string) ( $settings['scan_clamav_path'] ?? '' ) ); ?>" placeholder="/usr/bin/clamscan">
-					<p class="description"><?php esc_html_e( 'Optional fallback for deep scans when the backend is unreachable and ClamAV is installed on this host. Auto-detected from PATH when left empty.', 'sentinel-forms' ); ?></p>
 				</td>
 			</tr>
 		</table>
