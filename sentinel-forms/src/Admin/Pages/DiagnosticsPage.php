@@ -13,6 +13,8 @@ use SentinelForms\Uploads\Scanning\BackendScanConfig;
 use SentinelForms\Uploads\Scanning\ClamAvScanner;
 use SentinelForms\Uploads\Scanning\ScannerFactory;
 use SentinelForms\Uploads\Storage\StorageConfig;
+use SentinelForms\Cloud\CloudConfig;
+use SentinelForms\Cloud\CloudConnection;
 
 /**
  * Environment and provider status overview.
@@ -49,6 +51,7 @@ final class DiagnosticsPage {
 			'Storage provider'  => self::storageStatus(),
 			'Malware scanner'   => self::scannerStatus(),
 			'Deep scan backend' => self::backendScanStatus(),
+			'Sentinel Cloud'    => self::cloudStatus(),
 		];
 
 		require SENTINEL_FORMS_PATH . 'templates/admin/diagnostics.php';
@@ -99,5 +102,26 @@ final class DiagnosticsPage {
 				BackendScanConfig::url(),
 			)
 			: __( 'Not configured — deep scans fail closed', 'sentinel-forms' );
+	}
+
+	/**
+	 * Human-readable Sentinel Cloud connection state (v2 §8).
+	 */
+	private static function cloudStatus(): string {
+		$connection = new CloudConnection();
+		$state      = $connection->state();
+
+		if ( CloudConnection::STATE_DISCONNECTED === $state ) {
+			return CloudConfig::isConfigured()
+				? __( 'Configured but not connected — no external calls', 'sentinel-forms' )
+				: __( 'Not configured — no external calls', 'sentinel-forms' );
+		}
+
+		return sprintf(
+			/* translators: 1: connection state, 2: site id */
+			__( '%1$s (site %2$s)', 'sentinel-forms' ),
+			$state,
+			(string) $connection->siteId(),
+		);
 	}
 }

@@ -20,6 +20,7 @@ use SentinelForms\Database\MigrationRunner;
 use SentinelForms\Forms\FormRenderer;
 use SentinelForms\Http\SubmissionHandler;
 use SentinelForms\Http\UploadController;
+use SentinelForms\Http\CloudController;
 use SentinelForms\Uploads\Cleanup\UploadCleanup;
 use SentinelForms\Uploads\Scanning\ScanService;
 
@@ -40,6 +41,7 @@ final class Plugin {
 		FormRenderer::register();
 		SubmissionHandler::register();
 		UploadController::register();
+		CloudController::register();
 		FormSaveController::register();
 		FormActionController::register();
 		EntryStatusController::register();

@@ -136,6 +136,82 @@ if ( ! defined( 'ABSPATH' ) ) {
 				</td>
 			</tr>
 		</table>
+
+		<h2><?php esc_html_e( 'Sentinel Cloud', 'sentinel-forms' ); ?></h2>
+		<p class="description">
+			<?php esc_html_e( 'Sentinel Cloud is an optional paid managed service (semantic spam analysis, priority SMS and managed secure uploads). No external request is made until you explicitly connect this site and enable a capability.', 'sentinel-forms' ); ?>
+		</p>
+
+		<?php
+		$connection = new \SentinelForms\Cloud\CloudConnection();
+		$cloudState = $connection->state();
+		?>
+		<table class="form-table" role="presentation">
+			<tr>
+				<th scope="row"><label for="sentinel-cloud-url"><?php esc_html_e( 'Cloud URL', 'sentinel-forms' ); ?></label></th>
+				<td>
+					<input type="url" class="regular-text" id="sentinel-cloud-url" name="sentinel_forms_settings[cloud_url]" value="<?php echo esc_attr( (string) ( $settings['cloud_url'] ?? '' ) ); ?>" <?php disabled( defined( 'SENTINEL_CLOUD_URL' ) ); ?> placeholder="https://cloud.example.com">
+					<?php if ( defined( 'SENTINEL_CLOUD_URL' ) ) : ?>
+						<p class="description"><?php esc_html_e( 'Defined in wp-config.php.', 'sentinel-forms' ); ?></p>
+					<?php endif; ?>
+				</td>
+			</tr>
+			<tr>
+				<th scope="row"><label for="sentinel-cloud-key"><?php esc_html_e( 'Cloud API key', 'sentinel-forms' ); ?></label></th>
+				<td>
+					<input type="password" class="regular-text" id="sentinel-cloud-key" name="sentinel_forms_settings[cloud_api_key]" value="" <?php disabled( defined( 'SENTINEL_CLOUD_API_KEY' ) ); ?> autocomplete="new-password">
+					<?php if ( defined( 'SENTINEL_CLOUD_API_KEY' ) ) : ?>
+						<p class="description"><?php esc_html_e( 'Defined in wp-config.php.', 'sentinel-forms' ); ?></p>
+					<?php elseif ( '' !== (string) ( $settings['cloud_api_key'] ?? '' ) ) : ?>
+						<p class="description"><?php esc_html_e( 'A key is stored. Leave blank to keep it.', 'sentinel-forms' ); ?></p>
+					<?php endif; ?>
+				</td>
+			</tr>
+			<tr>
+				<th scope="row"><?php esc_html_e( 'Connection state', 'sentinel-forms' ); ?></th>
+				<td>
+					<code><?php echo esc_html( $cloudState ); ?></code>
+					<?php if ( null !== $connection->siteId() ) : ?>
+						<p class="description">
+							<?php
+							printf(
+								/* translators: %s: cloud site id */
+								esc_html__( 'Site ID: %s', 'sentinel-forms' ),
+								esc_html( (string) $connection->siteId() )
+							);
+							?>
+						</p>
+					<?php endif; ?>
+				</td>
+			</tr>
+		</table>
 		<?php submit_button(); ?>
+	</form>
+
+	<?php
+	// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only status marker set by our own redirect.
+	$cloudNotice = isset( $_GET['cloud'] ) ? sanitize_key( wp_unslash( $_GET['cloud'] ) ) : '';
+
+	if ( 'connected' === $cloudNotice ) :
+		?>
+		<div class="notice notice-success is-dismissible"><p><?php esc_html_e( 'Connected to Sentinel Cloud.', 'sentinel-forms' ); ?></p></div>
+	<?php elseif ( 'disconnected' === $cloudNotice ) : ?>
+		<div class="notice notice-info is-dismissible"><p><?php esc_html_e( 'Disconnected from Sentinel Cloud. Core features continue to work.', 'sentinel-forms' ); ?></p></div>
+	<?php elseif ( 'failed' === $cloudNotice ) : ?>
+		<div class="notice notice-error is-dismissible"><p><?php esc_html_e( 'Could not connect to Sentinel Cloud. Check the URL and API key.', 'sentinel-forms' ); ?></p></div>
+	<?php elseif ( 'not_configured' === $cloudNotice ) : ?>
+		<div class="notice notice-error is-dismissible"><p><?php esc_html_e( 'Cloud URL and API key are required before connecting.', 'sentinel-forms' ); ?></p></div>
+	<?php endif; ?>
+
+	<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+		<?php if ( \SentinelForms\Cloud\CloudConnection::STATE_DISCONNECTED !== $cloudState ) : ?>
+			<input type="hidden" name="action" value="sentinel_forms_cloud_disconnect">
+			<?php wp_nonce_field( 'sentinel_cloud_disconnect' ); ?>
+			<?php submit_button( __( 'Disconnect from Cloud', 'sentinel-forms' ), 'secondary', 'submit', false ); ?>
+		<?php else : ?>
+			<input type="hidden" name="action" value="sentinel_forms_cloud_connect">
+			<?php wp_nonce_field( 'sentinel_cloud_connect' ); ?>
+			<?php submit_button( __( 'Connect to Cloud', 'sentinel-forms' ), 'primary', 'submit', false ); ?>
+		<?php endif; ?>
 	</form>
 </div>
