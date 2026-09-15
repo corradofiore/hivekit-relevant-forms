@@ -81,34 +81,36 @@ final class SettingsPage {
 			'ai_priorities'                     => mb_substr( sanitize_textarea_field( (string) ( $input['ai_priorities'] ?? '' ) ), 0, 2000 ),
 			'ai_unwanted'                       => mb_substr( sanitize_textarea_field( (string) ( $input['ai_unwanted'] ?? '' ) ), 0, 2000 ),
 			'ai_privacy_mode'                   => empty( $input['ai_privacy_mode'] ) ? 0 : 1,
+			'sms_recipient'                     => mb_substr( sanitize_text_field( (string) ( $input['sms_recipient'] ?? '' ) ), 0, 32 ),
 		];
 
-		self::syncClassificationConsent( ! empty( $input['ai_enabled'] ) );
+		self::syncCapabilityConsent( CloudConnection::CAP_AI, ! empty( $input['ai_enabled'] ) );
+		self::syncCapabilityConsent( CloudConnection::CAP_SMS, ! empty( $input['sms_enabled'] ) );
 
 		return $settings;
 	}
 
 	/**
-	 * Reconcile the semantic-classification consent flag with the Cloud
-	 * connection state (v2 §8). Enabling requires a connected account;
-	 * disabling is always allowed and takes effect immediately.
+	 * Reconcile one capability consent flag with the Cloud connection
+	 * state (v2 §8). Enabling requires a connected account; disabling is
+	 * always allowed and takes effect immediately.
 	 */
-	private static function syncClassificationConsent( bool $requested ): void {
+	private static function syncCapabilityConsent( string $capability, bool $requested ): void {
 		$connection = new CloudConnection();
 
 		if ( ! $requested ) {
-			$connection->disableCapability( CloudConnection::CAP_AI );
+			$connection->disableCapability( $capability );
 
 			return;
 		}
 
 		if ( ! CloudConfig::isConfigured() || CloudConnection::STATE_DISCONNECTED === $connection->state() ) {
-			Logger::info( 'AI classification enable requested while disconnected — ignored' );
+			Logger::info( 'Cloud capability enable requested while disconnected — ignored', [ 'capability' => $capability ] );
 
 			return;
 		}
 
-		$connection->enableCapability( CloudConnection::CAP_AI );
+		$connection->enableCapability( $capability );
 	}
 
 	/**

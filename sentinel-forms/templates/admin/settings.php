@@ -234,6 +234,23 @@ if ( ! defined( 'ABSPATH' ) ) {
 					<p class="description"><?php esc_html_e( 'Recommended. Disable only if classification quality suffers and you accept sending raw submissions.', 'sentinel-forms' ); ?></p>
 				</td>
 			</tr>
+			<tr>
+				<th scope="row"><label for="sentinel-sms-recipient"><?php esc_html_e( 'Priority SMS recipient', 'sentinel-forms' ); ?></label></th>
+				<td>
+					<input type="tel" class="regular-text" id="sentinel-sms-recipient" name="sentinel_forms_settings[sms_recipient]" value="<?php echo esc_attr( (string) ( $settings['sms_recipient'] ?? '' ) ); ?>" placeholder="+39 333 1234567">
+					<p class="description"><?php esc_html_e( 'Mobile number that receives managed priority alerts.', 'sentinel-forms' ); ?></p>
+				</td>
+			</tr>
+			<tr>
+				<th scope="row"><?php esc_html_e( 'Priority SMS alerts', 'sentinel-forms' ); ?></th>
+				<td>
+					<label>
+						<input type="checkbox" name="sentinel_forms_settings[sms_enabled]" value="1" <?php checked( $connection->capabilityEnabled( \SentinelForms\Cloud\CloudConnection::CAP_SMS ) ); ?> <?php disabled( \SentinelForms\Cloud\CloudConnection::STATE_DISCONNECTED === $cloudState ); ?>>
+						<?php esc_html_e( 'SMS me when a submission is genuinely urgent (attention >= 85)', 'sentinel-forms' ); ?>
+					</label>
+					<p class="description"><?php esc_html_e( 'Never sends the full submission: only the AI summary and a link to the entry (WordPress login required).', 'sentinel-forms' ); ?></p>
+				</td>
+			</tr>
 		</table>
 		<?php submit_button(); ?>
 	</form>

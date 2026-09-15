@@ -14,6 +14,7 @@ use SentinelForms\Entries\EntryRepository;
 use SentinelForms\Ai\AiClassifier;
 use SentinelForms\Ai\AttentionScore;
 use SentinelForms\Ai\Classification;
+use SentinelForms\Alerts\SmsAlert;
 use SentinelForms\Events\EventRecorder;
 use SentinelForms\Forms\Form;
 use SentinelForms\Forms\FormRenderer;
@@ -188,6 +189,10 @@ final class SubmissionHandler {
 
 		do_action( 'sentinel_forms_submission_received', $entryId, $form->id, $values );
 
+		if ( null !== $classification && Entry::STATUS_SPAM !== $entryStatus ) {
+			self::notifySmsIfNeeded( $form, $entryId, $classification );
+		}
+
 		if ( Entry::STATUS_SPAM !== $entryStatus ) {
 			( new EmailNotification() )->send( $form, $values, $entryId );
 		} else {
@@ -195,6 +200,60 @@ final class SubmissionHandler {
 		}
 
 		self::finish( $form );
+	}
+
+	/**
+	 * Managed priority SMS (Phase 5, doc §20–22): interrupt the operator
+	 * when attention >= threshold. The Cloud renders the message from the
+	 * minimal payload (summary + secure entry link); failures only leave
+	 * a recorded event — entry and email remain unaffected (doc §57).
+	 *
+	 * @param Form           $form           Form entity.
+	 * @param int            $entryId        Stored entry ID.
+	 * @param Classification $classification Validated classification.
+	 */
+	private static function notifySmsIfNeeded( Form $form, int $entryId, Classification $classification ): void {
+		$alert = new SmsAlert();
+
+		if ( ! $alert->shouldSend( $classification ) ) {
+			return;
+		}
+
+		try {
+			$delivery = $alert->send( $form, $entryId, $classification );
+
+			( new EntryRepository() )->updateMeta(
+				$entryId,
+				'_sms_alert',
+				null !== $delivery
+					? [
+						'status'      => (string) ( $delivery['status'] ?? 'queued' ),
+						'delivery_id' => (int) ( $delivery['delivery_id'] ?? 0 ),
+						'at'          => current_time( 'mysql', true ),
+					]
+					: [
+						'status' => 'failed',
+						'at'     => current_time( 'mysql', true ),
+					]
+			);
+
+			EventRecorder::record(
+				$entryId,
+				null !== $delivery ? 'sms_alert_sent' : 'sms_alert_failed',
+				[
+					'attention_score' => $classification->attentionScore,
+					'delivery_id'     => (int) ( $delivery['delivery_id'] ?? 0 ),
+				]
+			);
+		} catch ( \Throwable $exception ) {
+			Logger::warning(
+				'Managed SMS step failed',
+				[
+					'entry_id'  => $entryId,
+					'exception' => $exception->getMessage(),
+				]
+			);
+		}
 	}
 
 	/**

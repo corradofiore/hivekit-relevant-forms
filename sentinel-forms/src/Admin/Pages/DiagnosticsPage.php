@@ -13,6 +13,7 @@ use SentinelForms\Uploads\Scanning\BackendScanConfig;
 use SentinelForms\Uploads\Scanning\ClamAvScanner;
 use SentinelForms\Uploads\Scanning\ScannerFactory;
 use SentinelForms\Uploads\Storage\StorageConfig;
+use SentinelForms\Alerts\SmsAlert;
 use SentinelForms\Cloud\CloudConfig;
 use SentinelForms\Cloud\CloudConnection;
 
@@ -47,7 +48,7 @@ final class DiagnosticsPage {
 		// Provider statuses are placeholders until their phases land.
 		$providers = [
 			'AI provider'       => self::aiStatus(),
-			'SMS provider'      => __( 'Not configured', 'sentinel-forms' ),
+			'SMS provider'      => self::smsStatus(),
 			'Storage provider'  => self::storageStatus(),
 			'Malware scanner'   => self::scannerStatus(),
 			'Deep scan backend' => self::backendScanStatus(),
@@ -119,6 +120,33 @@ final class DiagnosticsPage {
 		}
 
 		return __( 'Sentinel Cloud — semantic classification enabled', 'sentinel-forms' );
+	}
+
+	/**
+	 * Human-readable managed SMS status (Phase 5).
+	 */
+	private static function smsStatus(): string {
+		if ( ! CloudConfig::isConfigured() ) {
+			return __( 'Not configured — no external calls', 'sentinel-forms' );
+		}
+
+		$connection = new CloudConnection();
+
+		if ( ! $connection->capabilityEnabled( CloudConnection::CAP_SMS ) ) {
+			return __( 'Cloud configured — priority SMS disabled', 'sentinel-forms' );
+		}
+
+		$recipient = ( new SmsAlert() )->recipient();
+
+		if ( '' === $recipient ) {
+			return __( 'Priority SMS enabled — no recipient configured', 'sentinel-forms' );
+		}
+
+		return sprintf(
+			/* translators: %s: alert recipient phone number */
+			__( 'Sentinel Cloud — priority SMS to %s', 'sentinel-forms' ),
+			$recipient,
+		);
 	}
 
 	/**

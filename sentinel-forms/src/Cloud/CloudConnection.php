@@ -110,7 +110,8 @@ final class CloudConnection {
 	}
 
 	/**
-	 * Explicitly enable a capability (requires account_connected).
+	 * Explicitly enable a capability (requires a connected account).
+	 * Capabilities stack: enabling SMS on top of AI is allowed.
 	 */
 	public function enableCapability( string $capability ): bool {
 		if ( ! isset( self::CAPABILITY_STATES[ $capability ] ) ) {
@@ -119,7 +120,7 @@ final class CloudConnection {
 
 		$data = $this->get();
 
-		if ( self::STATE_ACCOUNT_CONNECTED !== (string) ( $data['state'] ?? '' ) && ! $this->capabilityEnabled( $capability ) ) {
+		if ( self::STATE_DISCONNECTED === (string) ( $data['state'] ?? self::STATE_DISCONNECTED ) ) {
 			return false;
 		}
 

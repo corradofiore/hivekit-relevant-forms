@@ -105,6 +105,25 @@ final class CloudClient {
 	}
 
 	/**
+	 * POST /v1/alerts/sms — queue one managed priority SMS (Phase 5).
+	 *
+	 * @param array<string, mixed> $payload Recipient + minimal alert payload.
+	 * @return array<string, mixed>|null
+	 */
+	public function sendSmsAlert( array $payload ): ?array {
+		$response = wp_remote_post(
+			$this->baseUrl . '/api/v1/alerts/sms',
+			[
+				'timeout' => 15,
+				'headers' => $this->headers(),
+				'body'    => wp_json_encode( $payload ),
+			]
+		);
+
+		return $this->decode( $response, [ 200, 202 ] );
+	}
+
+	/**
 	 * Decode an API envelope, logging failures without throwing.
 	 *
 	 * @param array<string, mixed>|\WP_Error $response HTTP response.

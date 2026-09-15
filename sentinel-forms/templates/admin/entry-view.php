@@ -137,6 +137,21 @@ if ( ! defined( 'ABSPATH' ) ) {
 			<button type="submit" class="button" name="verdict" value="not_important"><?php esc_html_e( 'Not important', 'sentinel-forms' ); ?></button>
 			<p class="description"><?php esc_html_e( 'Corrections adjust the entry status and improve the site preference profile used for future classifications.', 'sentinel-forms' ); ?></p>
 		</form>
+		<?php
+		$sms_alert = is_array( $entry->meta['_sms_alert'] ?? null ) ? $entry->meta['_sms_alert'] : [];
+		?>
+		<?php if ( [] !== $sms_alert ) : ?>
+			<p class="description">
+				<?php
+				printf(
+					/* translators: 1: SMS delivery status, 2: timestamp */
+					esc_html__( 'Priority SMS: %1$s (%2$s).', 'sentinel-forms' ),
+					esc_html( (string) ( $sms_alert['status'] ?? 'unknown' ) ),
+					esc_html( (string) ( $sms_alert['at'] ?? '' ) )
+				);
+				?>
+			</p>
+		<?php endif; ?>
 	<?php endif; ?>
 
 	<h2><?php esc_html_e( 'Status', 'sentinel-forms' ); ?></h2>

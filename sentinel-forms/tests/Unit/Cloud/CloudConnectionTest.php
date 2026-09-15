@@ -79,6 +79,22 @@ it(
 );
 
 it(
+	'stacks capabilities once the account is connected',
+	function () {
+		$connection = new CloudConnection();
+
+		$connection->connect( 'site-uuid-1', 'https://a.example', 'Acme' );
+
+		expect( $connection->enableCapability( CloudConnection::CAP_AI ) )->toBeTrue();
+		expect( $connection->enableCapability( CloudConnection::CAP_SMS ) )->toBeTrue();
+
+		expect( $connection->capabilityEnabled( CloudConnection::CAP_AI ) )->toBeTrue();
+		expect( $connection->capabilityEnabled( CloudConnection::CAP_SMS ) )->toBeTrue();
+		expect( $connection->state() )->toBe( CloudConnection::STATE_SMS_ENABLED );
+	}
+);
+
+it(
 	'disabling a capability recomputes the state and keeps the site bound',
 	function () {
 		$connection = new CloudConnection();
