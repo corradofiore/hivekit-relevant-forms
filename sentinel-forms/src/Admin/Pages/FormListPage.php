@@ -10,6 +10,7 @@ declare(strict_types=1);
 namespace SentinelForms\Admin\Pages;
 
 use SentinelForms\Forms\FormRepository;
+use SentinelForms\Forms\FormUsage;
 
 /**
  * Lists forms with edit/duplicate/archive actions.
@@ -25,6 +26,7 @@ final class FormListPage {
 		}
 
 		$forms = ( new FormRepository() )->all( [ 'limit' => 500 ] );
+		$usage = FormUsage::map();
 
 		require SENTINEL_FORMS_PATH . 'templates/admin/forms-list.php';
 	}

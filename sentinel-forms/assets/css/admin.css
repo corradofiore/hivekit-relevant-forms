@@ -70,3 +70,69 @@
 .sf-field-body p {
 	margin: 0.5rem 0;
 }
+
+/* Forms list: "Used on" column. */
+
+.sentinel-forms-used-on {
+	position: relative;
+}
+
+.sentinel-forms-used-on__empty,
+.sentinel-forms-used-on__more,
+.sentinel-forms-used-on__status {
+	color: #646970;
+}
+
+.sentinel-forms-used-on__more {
+	margin-left: 0.35em;
+}
+
+.sentinel-forms-used-on__toggle {
+	background: none;
+	border: 0;
+	color: #2271b1;
+	cursor: pointer;
+	margin-left: 0.35em;
+	padding: 0;
+	text-decoration: underline;
+}
+
+.sentinel-forms-used-on__toggle:focus {
+	text-decoration: none;
+}
+
+.sentinel-forms-used-on__popover {
+	background: #fff;
+	border: 1px solid #c3c4c7;
+	border-radius: 4px;
+	box-shadow: 0 3px 8px rgba( 0, 0, 0, 0.12 );
+	left: 0;
+	margin-top: 0.35em;
+	max-height: 14em;
+	max-width: 24em;
+	overflow: auto;
+	padding: 0.5em 0.75em;
+	position: absolute;
+	text-align: left;
+	top: 100%;
+	z-index: 20;
+}
+
+.sentinel-forms-used-on__popover ul {
+	margin: 0;
+}
+
+.sentinel-forms-used-on__popover li {
+	margin: 0 0 0.4em;
+}
+
+.sentinel-forms-used-on__popover li:last-child {
+	margin-bottom: 0;
+}
+
+.sentinel-forms-used-on__status,
+.sentinel-forms-used-on__view {
+	display: inline-block;
+	font-size: 0.85em;
+	margin-left: 0.4em;
+}

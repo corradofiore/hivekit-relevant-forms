@@ -87,3 +87,53 @@
 		} );
 	}
 } )();
+
+/**
+ * Forms list: "Used on" popovers (view all pages a form is embedded in).
+ */
+( function () {
+	'use strict';
+
+	var TOGGLE = '.sentinel-forms-used-on__toggle';
+
+	function closeAll() {
+		document.querySelectorAll( TOGGLE ).forEach( function ( toggle ) {
+			var popover = document.getElementById( toggle.getAttribute( 'aria-controls' ) );
+
+			if ( popover && ! popover.hidden ) {
+				popover.hidden = true;
+				toggle.setAttribute( 'aria-expanded', 'false' );
+			}
+		} );
+	}
+
+	document.addEventListener( 'click', function ( event ) {
+		var toggle = event.target.closest ? event.target.closest( TOGGLE ) : null;
+
+		if ( ! toggle ) {
+			if ( ! event.target.closest || ! event.target.closest( '.sentinel-forms-used-on__popover' ) ) {
+				closeAll();
+			}
+
+			return;
+		}
+
+		var popover = document.getElementById( toggle.getAttribute( 'aria-controls' ) );
+
+		if ( ! popover ) {
+			return;
+		}
+
+		var willOpen = popover.hidden;
+
+		closeAll();
+		popover.hidden = ! willOpen;
+		toggle.setAttribute( 'aria-expanded', willOpen ? 'true' : 'false' );
+	} );
+
+	document.addEventListener( 'keydown', function ( event ) {
+		if ( 'Escape' === event.key ) {
+			closeAll();
+		}
+	} );
+} )();

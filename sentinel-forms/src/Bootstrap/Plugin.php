@@ -21,6 +21,7 @@ use SentinelForms\Assets\FrontendAssets;
 use SentinelForms\Compat\WpForms\CompatLayer;
 use SentinelForms\Database\MigrationRunner;
 use SentinelForms\Forms\FormRenderer;
+use SentinelForms\Forms\FormUsage;
 use SentinelForms\Http\CloudBillingController;
 use SentinelForms\Http\SubmissionHandler;
 use SentinelForms\Http\UploadController;
@@ -43,6 +44,7 @@ final class Plugin {
 		FrontendAssets::register();
 		SettingsPage::register();
 		FormRenderer::register();
+		FormUsage::register();
 		SubmissionHandler::register();
 		UploadController::register();
 		CloudController::register();

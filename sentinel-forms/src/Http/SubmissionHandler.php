@@ -221,7 +221,8 @@ final class SubmissionHandler {
 	 */
 	private static function store( Form $form, array $values ): never {
 		$repository = new FormRepository();
-		$raw        = wp_unslash( $_POST );
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- nonce is verified by verifyNonce() before storing.
+		$raw = wp_unslash( $_POST );
 
 		try {
 			$startedAt  = isset( $raw['_sentinel_started_at'] ) ? (float) $raw['_sentinel_started_at'] : null;
