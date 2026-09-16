@@ -56,7 +56,7 @@ it(
 				'name'      => 'Emergency',
 				'ai_policy' => [
 					'purpose' => 'Urgent repair requests',
-					'spam'    => 'Automated sales pitches',
+					'spam'    => "Automated sales pitches\nLink drops",
 				],
 				'fields'    => [
 					[
@@ -89,7 +89,7 @@ it(
 
 		expect( $context['site_purpose'] )->toBe( 'Plumbing company in Leeds' );
 		expect( $context['form_purpose'] )->toBe( 'Urgent repair requests' );
-		expect( $context['form_spam'] )->toBe( 'Automated sales pitches' );
+		expect( $context['form_spam'] )->toBe( [ 'Automated sales pitches', 'Link drops' ] );
 		expect( $context['priorities'] )->toBe( [ 'emergency repairs', 'quote requests' ] );
 		expect( $context['unwanted'] )->toBe( [ 'SEO services' ] );
 		expect( $context['field_labels'] )->toBe( [ 'message' => 'Message' ] );

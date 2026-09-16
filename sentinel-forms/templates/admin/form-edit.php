@@ -151,14 +151,14 @@ if ( ! defined( 'ABSPATH' ) ) {
 				<th scope="row"><label for="sentinel-ai-purpose"><?php esc_html_e( 'Form purpose', 'sentinel-forms' ); ?></label></th>
 				<td>
 					<textarea class="sentinel-forms-textarea" id="sentinel-ai-purpose" name="ai_purpose" rows="4"><?php echo esc_textarea( (string) ( $ai_policy['purpose'] ?? '' ) ); ?></textarea>
-					<p class="description"><?php esc_html_e( 'What a relevant submission looks like, e.g. "Requests for quotes from homeowners".', 'sentinel-forms' ); ?></p>
+					<p class="description"><?php esc_html_e( 'Tell our Sentinel AI what a relevant submission looks like, e.g. "Requests for quotes from homeowners", "RSVP for training events", etc.', 'sentinel-forms' ); ?></p>
 				</td>
 			</tr>
 			<tr>
 				<th scope="row"><label for="sentinel-ai-spam"><?php esc_html_e( 'What counts as spam', 'sentinel-forms' ); ?></label></th>
 				<td>
 					<textarea class="sentinel-forms-textarea" id="sentinel-ai-spam" name="ai_spam" rows="4"><?php echo esc_textarea( (string) ( $ai_policy['spam'] ?? '' ) ); ?></textarea>
-					<p class="description"><?php esc_html_e( 'Describe messages this form should treat as spam, e.g. "Automated sales pitches and link drops".', 'sentinel-forms' ); ?></p>
+					<p class="description"><?php esc_html_e( 'Describe messages this form should treat as spam, e.g. "Automated sales pitches and link drops", "Comments not relevant to (insert your site\'s topic) or very generic". One category per line.', 'sentinel-forms' ); ?></p>
 				</td>
 			</tr>
 		</table>

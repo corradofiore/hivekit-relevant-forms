@@ -71,7 +71,7 @@ final class ContextBuilder {
 			'site_purpose'       => mb_substr( trim( (string) ( $settings['ai_site_purpose'] ?? '' ) ), 0, 500 ),
 			'form_name'          => mb_substr( $form->name, 0, 200 ),
 			'form_purpose'       => mb_substr( trim( (string) ( $policy['purpose'] ?? '' ) ), 0, 500 ),
-			'form_spam'          => mb_substr( trim( (string) ( $policy['spam'] ?? '' ) ), 0, 500 ),
+			'form_spam'          => $this->lines( (string) ( $policy['spam'] ?? '' ) ),
 			'field_labels'       => $this->fieldLabels( $form ),
 			'priorities'         => $this->lines( (string) ( $settings['ai_priorities'] ?? '' ) ),
 			'unwanted'           => $this->lines( (string) ( $settings['ai_unwanted'] ?? '' ) ),
