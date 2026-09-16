@@ -136,9 +136,8 @@
 	display: block;
 }
 
-/* Row page list: opens while hovering the cell or focusing the View all control. */
-td.sentinel-forms-used-on:hover .sentinel-forms-used-on__popover,
-td.sentinel-forms-used-on:focus-within .sentinel-forms-used-on__popover {
+/* Row page list: opens when the View all link is clicked (URL fragment :target). */
+td.sentinel-forms-used-on .sentinel-forms-used-on__popover:target {
 	display: block;
 }
 

@@ -107,9 +107,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 										);
 										?>
 									</span>
-									<button type="button" class="button-link">
-										<?php esc_html_e( 'View all', 'sentinel-forms' ); ?>
-									</button>
+								<a href="#sentinel-forms-usage-<?php echo esc_attr( (string) $form->id ); ?>">
+									<?php esc_html_e( 'View all', 'sentinel-forms' ); ?>
+								</a>
 									<div id="sentinel-forms-usage-<?php echo esc_attr( (string) $form->id ); ?>" class="card sentinel-forms-used-on__popover" hidden>
 										<ul>
 											<?php foreach ( $usagePages as $usagePage ) : ?>

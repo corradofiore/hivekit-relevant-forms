@@ -153,8 +153,8 @@ final class FormUsageTest extends TestCase {
 		$this->assertStringContainsString( 'About the &quot;Used on&quot; column', $html );
 		$this->assertStringContainsString( 'sentinel_forms_render() are not listed', $html );
 
-		// Native controls: link-styled View all button and core card panel.
-		$this->assertStringContainsString( 'class="button-link"', $html );
+		// View all is a fragment link that opens the core card panel on click.
+		$this->assertStringContainsString( 'href="#sentinel-forms-usage-' . $multi . '"', $html );
 		$this->assertStringContainsString( 'class="card sentinel-forms-used-on__popover"', $html );
 
 		// Only the multi-embed form gets the "View all" toggle.
