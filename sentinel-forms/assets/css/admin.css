@@ -163,8 +163,17 @@ td.sentinel-forms-used-on .sentinel-forms-used-on__popover:target {
 	margin-top: 1em;
 }
 
-/* Form editor: 50%-wide textareas (outranks core's .form-table td textarea). */
+/*
+ * Form editor: half-width textareas on desktop, full width on small screens
+ * (core's admin breakpoint) — also outranks core's .form-table td textarea.
+ */
 
 .sentinel-forms-builder textarea.sentinel-forms-textarea {
 	width: 50%;
+}
+
+@media screen and (max-width: 782px) {
+	.sentinel-forms-builder textarea.sentinel-forms-textarea {
+		width: 100%;
+	}
 }
