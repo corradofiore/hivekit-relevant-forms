@@ -9,6 +9,10 @@ declare(strict_types=1);
 
 use SentinelForms\Forms\FormRenderer;
 
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 if ( ! function_exists( 'sentinel_forms_render' ) ) {
 	/**
 	 * Render a published form by ID (doc §9).

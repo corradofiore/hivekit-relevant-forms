@@ -7,6 +7,7 @@
 
 declare(strict_types=1);
 
+use Brain\Monkey;
 use SentinelForms\Forms\Fields\FieldTypeRegistry;
 
 beforeEach(
@@ -127,5 +128,39 @@ it(
 	'registers all thirteen built-in types',
 	function () {
 		expect( FieldTypeRegistry::all() )->toHaveCount( 13 );
+	}
+);
+
+it(
+	'renders accessible errors and live upload status',
+	function () {
+		Monkey\Functions\when( 'esc_attr' )->returnArg();
+		Monkey\Functions\when( 'esc_html' )->returnArg();
+
+		$type       = FieldTypeRegistry::get( 'email' );
+		$definition = [
+			'id'    => 'email',
+			'type'  => 'email',
+			'label' => 'Email',
+		];
+
+		$markup = $type->render( $definition, '', 'Enter a valid address.', '7' );
+
+		expect( $markup )->toContain( 'id="sentinel-field-7-email-error"' );
+		expect( $markup )->toContain( 'role="alert"' );
+
+		$fileMarkup = FieldTypeRegistry::get( 'file' )->render(
+			[
+				'id'    => 'cv',
+				'type'  => 'file',
+				'label' => 'CV',
+			],
+			'',
+			null,
+			'7'
+		);
+
+		expect( $fileMarkup )->toContain( 'role="status"' );
+		expect( $fileMarkup )->toContain( 'aria-live="polite"' );
 	}
 );

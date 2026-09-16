@@ -10,6 +10,8 @@
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
+
+// phpcs:disable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- template scope variables.
 ?>
 <div class="wrap">
 	<h1><?php esc_html_e( 'Sentinel Forms Settings', 'sentinel-forms' ); ?></h1>
@@ -138,6 +140,41 @@ if ( ! defined( 'ABSPATH' ) ) {
 								esc_html__( 'Site ID: %s', 'sentinel-forms' ),
 								esc_html( (string) $connection->siteId() )
 							);
+							?>
+						</p>
+					<?php endif; ?>
+				</td>
+			</tr>
+			<tr>
+				<th scope="row"><?php esc_html_e( 'Data & privacy', 'sentinel-forms' ); ?></th>
+				<td>
+					<p class="description"><?php esc_html_e( 'Enabled capabilities send only the data they need: redacted submission text for classification, the alert summary and your mobile number for SMS, and the file itself for managed secure storage and scanning. Disconnecting stops all external calls.', 'sentinel-forms' ); ?></p>
+					<?php
+					$legalLinks  = \SentinelForms\Cloud\LegalLinks::all();
+					$legalLabels = [
+						'terms'         => __( 'Terms of service', 'sentinel-forms' ),
+						'privacy'       => __( 'Privacy policy', 'sentinel-forms' ),
+						'subprocessors' => __( 'Subprocessors', 'sentinel-forms' ),
+					];
+					?>
+					<?php if ( [] !== $legalLinks ) : ?>
+						<p>
+							<?php
+							$legalItems = [];
+
+							foreach ( $legalLinks as $legalKey => $legalUrl ) {
+								if ( ! isset( $legalLabels[ $legalKey ] ) ) {
+									continue;
+								}
+
+								$legalItems[] = sprintf(
+									'<a href="%s" target="_blank" rel="noopener noreferrer">%s</a>',
+									esc_url( (string) $legalUrl ),
+									esc_html( $legalLabels[ $legalKey ] )
+								);
+							}
+
+							echo wp_kses_post( implode( ' &middot; ', $legalItems ) );
 							?>
 						</p>
 					<?php endif; ?>

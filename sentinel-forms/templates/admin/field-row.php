@@ -12,6 +12,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+// phpcs:disable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- template scope variables.
+
 $fieldId  = (string) $definition['id'];
 $isChoice = in_array( (string) $definition['type'], [ 'select', 'radio', 'checkbox' ], true );
 $isHidden = 'hidden' === (string) $definition['type'];

@@ -62,7 +62,7 @@ final class FileField implements FieldType {
 		$control = sprintf(
 			'<input type="file" class="sentinel-forms-file" data-field-id="%1$s" name="sentinel_upload_%1$s" id="%2$s"%3$s%4$s>'
 			. '<input type="hidden" name="sentinel_upload_%1$s_ids" id="%2$s-ids" value="%5$s">'
-			. '<p class="sentinel-forms-help" id="%2$s-status"></p>',
+			. '<p class="sentinel-forms-help" id="%2$s-status" role="status" aria-live="polite"></p>',
 			esc_attr( (string) ( $definition['id'] ?? '' ) ),
 			esc_attr( FieldMarkup::id( $definition, $formId ) ),
 			! empty( $definition['required'] ) ? ' required' : '',

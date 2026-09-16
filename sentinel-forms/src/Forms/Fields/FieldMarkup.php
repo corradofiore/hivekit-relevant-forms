@@ -74,16 +74,20 @@ final class FieldMarkup {
 	}
 
 	/**
-	 * Error element.
+	 * Error element (announced by assistive technology).
+	 *
+	 * @param array<string, mixed> $definition Field definition.
+	 * @param string               $formId     Form ID.
+	 * @param string|null          $error      Error message.
 	 */
-	public static function error( ?string $error, string $formId ): string {
+	public static function error( array $definition, string $formId, ?string $error ): string {
 		if ( null === $error || '' === $error ) {
 			return '';
 		}
 
 		return sprintf(
-			'<p class="sentinel-forms-error" id="%s-error">%s</p>',
-			esc_attr( $formId ),
+			'<p class="sentinel-forms-error" id="%s-error" role="alert">%s</p>',
+			esc_attr( self::id( $definition, $formId ) ),
 			esc_html( $error )
 		);
 	}
@@ -101,7 +105,7 @@ final class FieldMarkup {
 			self::label( $definition, $formId ),
 			$control,
 			self::help( $definition, $formId ),
-			self::error( $error, $formId )
+			self::error( $definition, $formId, $error )
 		);
 	}
 }

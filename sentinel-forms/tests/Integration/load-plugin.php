@@ -13,7 +13,7 @@ declare(strict_types=1);
 
 $pluginRoot = dirname( __DIR__, 2 );
 
-define( 'SENTINEL_FORMS_VERSION', '0.1.0' );
+define( 'SENTINEL_FORMS_VERSION', '1.0.0' );
 define( 'SENTINEL_FORMS_FILE', $pluginRoot . '/sentinel-forms.php' );
 define( 'SENTINEL_FORMS_PATH', $pluginRoot . '/' );
 define( 'SENTINEL_FORMS_URL', 'https://example.org/wp-content/plugins/sentinel-forms/' );

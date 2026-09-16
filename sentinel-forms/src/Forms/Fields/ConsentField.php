@@ -64,7 +64,7 @@ final class ConsentField implements FieldType {
 		return sprintf(
 			'<div class="sentinel-forms-field sentinel-forms-field--consent">%s%s</div>',
 			$control,
-			FieldMarkup::error( $error, $formId )
+			FieldMarkup::error( $definition, $formId, $error )
 		);
 	}
 

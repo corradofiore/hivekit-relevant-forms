@@ -5,6 +5,7 @@
 # Build artifacts.
 /node_modules/
 /assets/dist/
+/dist/
 
 # Local environment.
 /.wp-env.override.json

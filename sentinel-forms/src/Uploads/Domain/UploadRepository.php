@@ -72,9 +72,9 @@ final class UploadRepository {
 	 * Find an upload by ID.
 	 */
 	public function find( int $id ): ?Upload {
-		$table = $this->wpdb->prefix . 'sentinel_uploads';
+		$wpdb = $this->wpdb;
 
-		$row = $this->wpdb->get_row( $this->wpdb->prepare( "SELECT * FROM {$table} WHERE id = %d", $id ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table name is internal, not user input.
+		$row = $wpdb->get_row( $wpdb->prepare( 'SELECT * FROM ' . $wpdb->prefix . 'sentinel_uploads WHERE id = %d', $id ) );
 
 		return $row instanceof \stdClass ? Upload::fromRow( $row ) : null;
 	}
@@ -85,25 +85,29 @@ final class UploadRepository {
 	 * @return array<int, Upload>
 	 */
 	public function findForEntry( int $entryId ): array {
-		$table = $this->wpdb->prefix . 'sentinel_uploads';
+		$wpdb = $this->wpdb;
 
-		$rows = $this->wpdb->get_results( $this->wpdb->prepare( "SELECT * FROM {$table} WHERE entry_id = %d ORDER BY id ASC", $entryId ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table name is internal, not user input.
+		$rows = $wpdb->get_results( $wpdb->prepare( 'SELECT * FROM ' . $wpdb->prefix . 'sentinel_uploads WHERE entry_id = %d ORDER BY id ASC', $entryId ) );
 
 		return array_map( static fn ( object $row ): Upload => Upload::fromRow( $row ), (array) $rows );
 	}
 
 	/**
-	 * Pending uploads older than the given SQL interval (doc §40).
+	 * Pending uploads older than the given grace period (doc §40).
 	 *
-	 * @param string $intervalSql Internal interval literal (e.g. '24 HOUR').
+	 * @param int $seconds Grace period in seconds.
 	 * @return array<int, Upload>
 	 */
-	public function findPendingOlderThan( string $intervalSql ): array {
-		$table = $this->wpdb->prefix . 'sentinel_uploads';
+	public function findPendingOlderThan( int $seconds ): array {
+		$wpdb = $this->wpdb;
 
-		$sql = "SELECT * FROM {$table} WHERE status = 'pending' AND created_at < ( UTC_TIMESTAMP() - INTERVAL {$intervalSql} ) ORDER BY id ASC";
-
-		$rows = $this->wpdb->get_results( $sql ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery -- internal constant interval, custom table.
+		$rows = $wpdb->get_results(
+			$wpdb->prepare(
+				'SELECT * FROM ' . $wpdb->prefix . 'sentinel_uploads WHERE status = %s AND created_at < ( UTC_TIMESTAMP() - INTERVAL %d SECOND ) ORDER BY id ASC',
+				UploadStatus::PENDING,
+				$seconds
+			)
+		);
 
 		return array_map( static fn ( object $row ): Upload => Upload::fromRow( $row ), (array) $rows );
 	}
@@ -114,9 +118,17 @@ final class UploadRepository {
 	 * @return array<int, Upload>
 	 */
 	public function findAwaitingBackendResults(): array {
-		$table = $this->wpdb->prefix . 'sentinel_uploads';
+		$wpdb = $this->wpdb;
 
-		$rows = $this->wpdb->get_results( "SELECT * FROM {$table} WHERE status = 'scanning' AND scan_engine = 'backend' AND scan_reference <> '' ORDER BY id ASC LIMIT 50" ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery -- table name is internal, custom table.
+		$rows = $wpdb->get_results(
+			$wpdb->prepare(
+				'SELECT * FROM ' . $wpdb->prefix . 'sentinel_uploads WHERE status = %s AND scan_engine = %s AND scan_reference <> %s ORDER BY id ASC LIMIT %d',
+				UploadStatus::SCANNING,
+				'backend',
+				'',
+				50
+			)
+		);
 
 		return array_map( static fn ( object $row ): Upload => Upload::fromRow( $row ), (array) $rows );
 	}

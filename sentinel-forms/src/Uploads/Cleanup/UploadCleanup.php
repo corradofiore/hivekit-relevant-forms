@@ -24,9 +24,9 @@ use SentinelForms\Uploads\Storage\ProviderFactory;
 final class UploadCleanup {
 
 	/**
-	 * Grace period SQL interval for abandoned pending uploads.
+	 * Grace period for abandoned pending uploads.
 	 */
-	private const ABANDONED_AFTER = '24 HOUR';
+	private const ABANDONED_AFTER = DAY_IN_SECONDS;
 
 	/**
 	 * Register the cron callback.

@@ -8,6 +8,10 @@
 
 declare(strict_types=1);
 
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 if ( ! function_exists( 'wpforms' ) ) {
 	/**
 	 * Minimal WPForms accessor: ->process->errors and ->entry->get().

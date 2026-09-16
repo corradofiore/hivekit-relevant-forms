@@ -12,6 +12,8 @@
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
+
+// phpcs:disable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- template scope variables.
 ?>
 <div class="wrap sentinel-forms-builder">
 	<h1><?php $isEditing ? esc_html_e( 'Edit Form', 'sentinel-forms' ) : esc_html_e( 'Add New Form', 'sentinel-forms' ); ?></h1>

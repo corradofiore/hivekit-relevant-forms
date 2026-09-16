@@ -30,7 +30,7 @@ use SentinelForms\Uploads\Scanning\ScanService;
 
 /**
  * Boots the plugin: registers admin pages, assets, shortcode, submission
- * handlers and MCP availability notices.
+ * handlers, Cloud endpoints and scheduled tasks.
  */
 final class Plugin {
 
@@ -61,8 +61,6 @@ final class Plugin {
 		UploadCleanup::register();
 
 		add_filter( 'cron_schedules', [ self::class, 'registerCronSchedules' ] );
-
-		add_action( 'admin_notices', [ self::class, 'maybeShowMcpNotice' ] );
 
 		do_action( 'sentinel_forms_loaded' );
 	}
@@ -104,23 +102,5 @@ final class Plugin {
 	 */
 	public static function deactivate(): void {
 		do_action( 'sentinel_forms_deactivated' );
-	}
-
-	/**
-	 * Shows a hint when the optional MCP Adapter plugin is missing.
-	 */
-	public static function maybeShowMcpNotice(): void {
-		if ( ! is_admin() || ! current_user_can( 'manage_options' ) ) {
-			return;
-		}
-
-		if ( class_exists( 'WP\MCP\Core\McpAdapter' ) ) {
-			return;
-		}
-
-		printf(
-			'<div class="notice notice-warning"><p>%s</p></div>',
-			esc_html__( 'Sentinel Forms: install and activate the MCP Adapter plugin to expose form abilities to AI agents.', 'sentinel-forms' )
-		);
 	}
 }

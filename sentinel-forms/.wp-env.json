@@ -4,8 +4,7 @@
 	"phpVersion": "8.4",
 	"testsEnvironment": false,
 	"plugins": [
-		".",
-		"https://github.com/WordPress/mcp-adapter/releases/latest/download/mcp-adapter.zip"
+		"."
 	],
 	"config": {
 		"WP_DEBUG": true,

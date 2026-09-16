@@ -89,9 +89,9 @@ final class FormRepository {
 	 * @param int $id Form ID.
 	 */
 	public function find( int $id ): ?Form {
-		$table = $this->wpdb->prefix . 'sentinel_forms';
+		$wpdb = $this->wpdb;
 
-		$row = $this->wpdb->get_row( $this->wpdb->prepare( "SELECT * FROM {$table} WHERE id = %d", $id ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table name is internal, not user input.
+		$row = $wpdb->get_row( $wpdb->prepare( 'SELECT * FROM ' . $wpdb->prefix . 'sentinel_forms WHERE id = %d', $id ) );
 
 		return $row instanceof \stdClass ? Form::fromRow( $row ) : null;
 	}
@@ -114,18 +114,20 @@ final class FormRepository {
 	 * @return array<int, Form>
 	 */
 	public function all( array $args = [] ): array {
-		$table = $this->wpdb->prefix . 'sentinel_forms';
-
-		$whereSql = 'WHERE 1 = 1';
-
-		if ( ! empty( $args['status'] ) ) {
-			$whereSql .= $this->wpdb->prepare( ' AND status = %s', (string) $args['status'] );
-		}
+		$wpdb = $this->wpdb;
 
 		$limit  = max( 1, (int) ( $args['limit'] ?? 100 ) );
 		$offset = max( 0, (int) ( $args['offset'] ?? 0 ) );
 
-		$rows = $this->wpdb->get_results( $this->wpdb->prepare( "SELECT * FROM {$table} {$whereSql} ORDER BY updated_at DESC LIMIT %d OFFSET %d", $limit, $offset ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- table name and pre-prepared WHERE clause are internal.
+		if ( ! empty( $args['status'] ) ) {
+			$rows = $wpdb->get_results(
+				$wpdb->prepare( 'SELECT * FROM ' . $wpdb->prefix . 'sentinel_forms WHERE status = %s ORDER BY updated_at DESC LIMIT %d OFFSET %d', (string) $args['status'], $limit, $offset )
+			);
+		} else {
+			$rows = $wpdb->get_results(
+				$wpdb->prepare( 'SELECT * FROM ' . $wpdb->prefix . 'sentinel_forms ORDER BY updated_at DESC LIMIT %d OFFSET %d', $limit, $offset )
+			);
+		}
 
 		return array_map( static fn ( object $row ): Form => Form::fromRow( $row ), (array) $rows );
 	}
@@ -136,15 +138,14 @@ final class FormRepository {
 	 * @param array{status?: string} $args Query args.
 	 */
 	public function count( array $args = [] ): int {
-		$table = $this->wpdb->prefix . 'sentinel_forms';
-
-		$whereSql = 'WHERE 1 = 1';
+		$wpdb = $this->wpdb;
 
 		if ( ! empty( $args['status'] ) ) {
-			$whereSql .= $this->wpdb->prepare( ' AND status = %s', (string) $args['status'] );
+			return (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM ' . $wpdb->prefix . 'sentinel_forms WHERE status = %s', (string) $args['status'] ) );
 		}
 
-		return (int) $this->wpdb->get_var( "SELECT COUNT(*) FROM {$table} {$whereSql}" ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table name and pre-prepared WHERE clause are internal.
+		// phpcs:ignore WordPress.DB.PreparedSQLPlaceholders.UnnecessaryPrepare -- prepare() keeps the internal table name traceable to static analysis.
+		return (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM ' . $wpdb->prefix . 'sentinel_forms' ) );
 	}
 
 	/**
@@ -218,11 +219,13 @@ final class FormRepository {
 	 * @param FormSchema $schema Schema to snapshot.
 	 */
 	public function createVersion( int $formId, FormSchema $schema ): int {
-		$table = $this->wpdb->prefix . 'sentinel_form_versions';
+		$wpdb = $this->wpdb;
 
-		$latest = (int) $this->wpdb->get_var( $this->wpdb->prepare( "SELECT MAX(version) FROM {$table} WHERE form_id = %d", $formId ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table name is internal, not user input.
+		$table = $wpdb->prefix . 'sentinel_form_versions';
 
-		$this->wpdb->insert(
+		$latest = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT MAX(version) FROM ' . $wpdb->prefix . 'sentinel_form_versions WHERE form_id = %d', $formId ) );
+
+		$wpdb->insert(
 			$table,
 			[
 				'form_id'     => $formId,
@@ -232,6 +235,6 @@ final class FormRepository {
 			]
 		);
 
-		return (int) $this->wpdb->insert_id;
+		return (int) $wpdb->insert_id;
 	}
 }

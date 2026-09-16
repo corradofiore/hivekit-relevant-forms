@@ -12,8 +12,7 @@
         "mcp"
     ],
     "require": {
-        "php": "^8.4",
-        "wordpress/mcp-adapter": "^0.6"
+        "php": "^8.4"
     },
     "require-dev": {
         "brain/monkey": "^2.7",
@@ -27,10 +26,7 @@
     "autoload": {
         "psr-4": {
             "SentinelForms\\": "src/"
-        },
-        "files": [
-            "src/Support/functions.php"
-        ]
+        }
     },
     "autoload-dev": {
         "psr-4": {
@@ -46,6 +42,7 @@
         "test:integration:start": "npx --yes @wordpress/env start --config=.wp-env.test.json",
         "test:integration:stop": "npx --yes @wordpress/env stop --config=.wp-env.test.json",
         "test:integration": "npx --yes @wordpress/env run --config=.wp-env.test.json tests-wordpress bash -c 'cd /var/www/html/wp-content/plugins/sentinel-forms/tests/Integration && composer install --no-interaction --no-progress && php vendor/bin/phpunit --configuration /var/www/html/wp-content/plugins/sentinel-forms/phpunit.integration.xml.dist'",
+        "build:release": "bash bin/build-release.sh",
         "i18n": "wp i18n make-pot . languages/sentinel-forms.pot --slug=sentinel-forms --domain=sentinel-forms --exclude=vendor,tests"
     },
     "config": {

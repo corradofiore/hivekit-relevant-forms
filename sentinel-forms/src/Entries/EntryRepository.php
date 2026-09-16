@@ -66,9 +66,9 @@ final class EntryRepository {
 	 * @param int $id Entry ID.
 	 */
 	public function find( int $id ): ?Entry {
-		$table = $this->wpdb->prefix . 'sentinel_entries';
+		$wpdb = $this->wpdb;
 
-		$row = $this->wpdb->get_row( $this->wpdb->prepare( "SELECT * FROM {$table} WHERE id = %d", $id ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table name is internal, not user input.
+		$row = $wpdb->get_row( $wpdb->prepare( 'SELECT * FROM ' . $wpdb->prefix . 'sentinel_entries WHERE id = %d', $id ) );
 
 		if ( ! $row instanceof \stdClass ) {
 			return null;
@@ -84,22 +84,30 @@ final class EntryRepository {
 	 * @return array<int, Entry>
 	 */
 	public function findMany( array $args = [] ): array {
-		$table = $this->wpdb->prefix . 'sentinel_entries';
+		$wpdb = $this->wpdb;
 
-		$whereSql = 'WHERE 1 = 1';
-
-		if ( ! empty( $args['status'] ) ) {
-			$whereSql .= $this->wpdb->prepare( ' AND status = %s', (string) $args['status'] );
-		}
-
-		if ( ! empty( $args['form_id'] ) ) {
-			$whereSql .= $this->wpdb->prepare( ' AND form_id = %d', (int) $args['form_id'] );
-		}
-
+		$status = (string) ( $args['status'] ?? '' );
+		$formId = (int) ( $args['form_id'] ?? 0 );
 		$limit  = max( 1, (int) ( $args['limit'] ?? 100 ) );
 		$offset = max( 0, (int) ( $args['offset'] ?? 0 ) );
 
-		$rows = $this->wpdb->get_results( $this->wpdb->prepare( "SELECT * FROM {$table} {$whereSql} ORDER BY created_at DESC LIMIT %d OFFSET %d", $limit, $offset ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- table name and pre-prepared WHERE clause are internal.
+		if ( '' !== $status && $formId > 0 ) {
+			$rows = $wpdb->get_results(
+				$wpdb->prepare( 'SELECT * FROM ' . $wpdb->prefix . 'sentinel_entries WHERE status = %s AND form_id = %d ORDER BY created_at DESC LIMIT %d OFFSET %d', $status, $formId, $limit, $offset )
+			);
+		} elseif ( '' !== $status ) {
+			$rows = $wpdb->get_results(
+				$wpdb->prepare( 'SELECT * FROM ' . $wpdb->prefix . 'sentinel_entries WHERE status = %s ORDER BY created_at DESC LIMIT %d OFFSET %d', $status, $limit, $offset )
+			);
+		} elseif ( $formId > 0 ) {
+			$rows = $wpdb->get_results(
+				$wpdb->prepare( 'SELECT * FROM ' . $wpdb->prefix . 'sentinel_entries WHERE form_id = %d ORDER BY created_at DESC LIMIT %d OFFSET %d', $formId, $limit, $offset )
+			);
+		} else {
+			$rows = $wpdb->get_results(
+				$wpdb->prepare( 'SELECT * FROM ' . $wpdb->prefix . 'sentinel_entries ORDER BY created_at DESC LIMIT %d OFFSET %d', $limit, $offset )
+			);
+		}
 
 		return array_map( fn ( object $row ): Entry => Entry::fromRow( $row, $this->meta( (int) $row->id ) ), (array) $rows );
 	}
@@ -110,46 +118,52 @@ final class EntryRepository {
 	 * @param array{status?: string, form_id?: int} $args Query args.
 	 */
 	public function count( array $args = [] ): int {
-		$table = $this->wpdb->prefix . 'sentinel_entries';
+		$wpdb = $this->wpdb;
 
-		$whereSql = 'WHERE 1 = 1';
+		$status = (string) ( $args['status'] ?? '' );
+		$formId = (int) ( $args['form_id'] ?? 0 );
 
-		if ( ! empty( $args['status'] ) ) {
-			$whereSql .= $this->wpdb->prepare( ' AND status = %s', (string) $args['status'] );
+		if ( '' !== $status && $formId > 0 ) {
+			return (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM ' . $wpdb->prefix . 'sentinel_entries WHERE status = %s AND form_id = %d', $status, $formId ) );
 		}
 
-		if ( ! empty( $args['form_id'] ) ) {
-			$whereSql .= $this->wpdb->prepare( ' AND form_id = %d', (int) $args['form_id'] );
+		if ( '' !== $status ) {
+			return (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM ' . $wpdb->prefix . 'sentinel_entries WHERE status = %s', $status ) );
 		}
 
-		return (int) $this->wpdb->get_var( "SELECT COUNT(*) FROM {$table} {$whereSql}" ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table name and pre-prepared WHERE clause are internal.
+		if ( $formId > 0 ) {
+			return (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM ' . $wpdb->prefix . 'sentinel_entries WHERE form_id = %d', $formId ) );
+		}
+
+		// phpcs:ignore WordPress.DB.PreparedSQLPlaceholders.UnnecessaryPrepare -- prepare() keeps the internal table name traceable to static analysis.
+		return (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM ' . $wpdb->prefix . 'sentinel_entries' ) );
 	}
 
 	/**
 	 * Submissions from one IP hash within the given window (doc §12).
 	 */
 	public function countRecentByIp( string $ipHash, int $windowSeconds ): int {
-		$table  = $this->wpdb->prefix . 'sentinel_entries';
+		$wpdb   = $this->wpdb;
 		$cutoff = gmdate( 'Y-m-d H:i:s', time() - $windowSeconds );
 
-		return (int) $this->wpdb->get_var( $this->wpdb->prepare( "SELECT COUNT(*) FROM {$table} WHERE ip_hash = %s AND created_at >= %s", $ipHash, $cutoff ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table name is internal, not user input.
+		return (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM ' . $wpdb->prefix . 'sentinel_entries WHERE ip_hash = %s AND created_at >= %s', $ipHash, $cutoff ) );
 	}
 
 	/**
 	 * Identical submission hashes within the given window (doc §12).
 	 */
 	public function countDuplicates( string $submissionHash, int $windowSeconds ): int {
-		$entries = $this->wpdb->prefix . 'sentinel_entries';
-		$meta    = $this->wpdb->prefix . 'sentinel_entry_meta';
-		$cutoff  = gmdate( 'Y-m-d H:i:s', time() - $windowSeconds );
+		$wpdb   = $this->wpdb;
+		$cutoff = gmdate( 'Y-m-d H:i:s', time() - $windowSeconds );
 
-		return (int) $this->wpdb->get_var(
-			$this->wpdb->prepare(
-				"SELECT COUNT(*) FROM {$entries} e INNER JOIN {$meta} m ON m.entry_id = e.id AND m.meta_key = '_submission_hash' AND m.meta_value = %s WHERE e.created_at >= %s",
+		return (int) $wpdb->get_var(
+			$wpdb->prepare(
+				'SELECT COUNT(*) FROM ' . $wpdb->prefix . 'sentinel_entries e INNER JOIN ' . $wpdb->prefix . 'sentinel_entry_meta m ON m.entry_id = e.id AND m.meta_key = %s AND m.meta_value = %s WHERE e.created_at >= %s',
+				'_submission_hash',
 				$submissionHash,
 				$cutoff
 			)
-		); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table names are internal, not user input.
+		);
 	}
 
 	/**
@@ -219,9 +233,9 @@ final class EntryRepository {
 	 * @return array<string, mixed>
 	 */
 	private function meta( int $entryId ): array {
-		$table = $this->wpdb->prefix . 'sentinel_entry_meta';
+		$wpdb = $this->wpdb;
 
-		$rows = $this->wpdb->get_results( $this->wpdb->prepare( "SELECT meta_key, meta_value FROM {$table} WHERE entry_id = %d ORDER BY meta_id ASC", $entryId ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table name is internal, not user input.
+		$rows = $wpdb->get_results( $wpdb->prepare( 'SELECT meta_key, meta_value FROM ' . $wpdb->prefix . 'sentinel_entry_meta WHERE entry_id = %d ORDER BY meta_id ASC', $entryId ) );
 
 		$meta = [];
 		foreach ( (array) $rows as $row ) {
