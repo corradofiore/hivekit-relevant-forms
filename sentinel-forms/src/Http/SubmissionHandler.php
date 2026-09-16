@@ -20,6 +20,7 @@ use SentinelForms\Forms\Form;
 use SentinelForms\Forms\FormRenderer;
 use SentinelForms\Forms\FormRepository;
 use SentinelForms\Forms\Fields\FieldTypeRegistry;
+use SentinelForms\Forms\SubmissionFeedback;
 use SentinelForms\Notifications\EmailNotification;
 use SentinelForms\Support\Logger;
 use SentinelForms\Support\Privacy;
@@ -27,7 +28,9 @@ use SentinelForms\Uploads\UploadService;
 use SentinelForms\AntiSpam\SpamProtection;
 
 /**
- * Handles POST submissions via admin-post.php for guests and logged-in users.
+ * Handles form submissions for guests and logged-in users. Rendered forms
+ * post to their own page (front-end handler); `admin-post.php` stays as a
+ * back-compat route for older markup and direct integrations.
  */
 final class SubmissionHandler {
 
@@ -37,35 +40,139 @@ final class SubmissionHandler {
 	public static function register(): void {
 		add_action( 'admin_post_nopriv_sentinel_forms_submit', [ self::class, 'handle' ] );
 		add_action( 'admin_post_sentinel_forms_submit', [ self::class, 'handle' ] );
+		add_action( 'template_redirect', [ self::class, 'maybeHandleFrontendSubmission' ] );
 	}
 
 	/**
-	 * Process a submission.
+	 * Legacy route: direct POSTs to `admin-post.php` keep the historic
+	 * behaviour (bare 422 render). Kept for older cached markup and direct
+	 * integrations; new markup posts to the form's own page.
 	 */
 	public static function handle(): void {
-		$repository = new FormRepository();
+		$form = self::resolveForm();
 
+		self::verifyNonce( $form );
+		self::guardHoneypot( $form );
+
+		[ $errors, $values, $display ] = self::validateSubmission( $form );
+
+		if ( [] !== $errors ) {
+			status_header( 422 );
+
+			$body = FormRenderer::renderForm( $form, $errors, $display );
+
+			// Test seam: allows integration tests to intercept the response.
+			apply_filters( 'sentinel_forms_invalid_submission_response', $body, 422, $form->id );
+
+			echo $body; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- fully escaped markup.
+			exit;
+		}
+
+		self::store( $form, $values );
+	}
+
+	/**
+	 * Front-end POSTs to the page a form lives on: submissions render
+	 * inline (themed page, entered values preserved) and the upload helper
+	 * actions are served from here too, so user-facing pages never post
+	 * to `wp-admin`.
+	 */
+	public static function maybeHandleFrontendSubmission(): void {
+		$method = isset( $_SERVER['REQUEST_METHOD'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REQUEST_METHOD'] ) ) : '';
+
+		if ( 'POST' !== strtoupper( $method ) ) {
+			return;
+		}
+
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- dispatch only; each branch verifies its own nonce before use.
+		$action = isset( $_POST['action'] ) ? sanitize_key( wp_unslash( $_POST['action'] ) ) : '';
+
+		switch ( $action ) {
+			case 'sentinel_forms_submit':
+				self::handleFrontendSubmission();
+				break;
+			case 'sentinel_forms_upload_authorize':
+				UploadController::authorize();
+				break;
+			case 'sentinel_forms_local_upload':
+				UploadController::localUpload();
+				break;
+			case 'sentinel_forms_upload_complete':
+				UploadController::complete();
+				break;
+		}
+	}
+
+	/**
+	 * In-page submission: validation errors are stashed for the renderer
+	 * (same request, HTTP 200) and successes redirect back (PRG).
+	 */
+	private static function handleFrontendSubmission(): void {
+		$form = self::resolveForm();
+
+		self::verifyNonce( $form );
+		self::guardHoneypot( $form );
+
+		[ $errors, $values, $display ] = self::validateSubmission( $form );
+
+		if ( [] !== $errors ) {
+			SubmissionFeedback::stash( $form->id, $errors, $display );
+
+			return;
+		}
+
+		self::store( $form, $values );
+	}
+
+	/**
+	 * Resolve the submitted form id.
+	 */
+	private static function resolveForm(): Form {
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- nonce is verified by verifyNonce() before this value is used.
 		$formId = isset( $_POST['_sentinel_form_id'] ) ? absint( wp_unslash( $_POST['_sentinel_form_id'] ) ) : 0;
-		$form   = $formId > 0 ? $repository->findPublished( $formId ) : null;
+		$form   = $formId > 0 ? ( new FormRepository() )->findPublished( $formId ) : null;
 
 		if ( null === $form ) {
 			wp_die( esc_html__( 'Form not found.', 'sentinel-forms' ), '', [ 'response' => 404 ] );
 		}
 
-		if ( ! isset( $_POST['_sentinel_form_nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['_sentinel_form_nonce'] ) ), 'sentinel_form_' . $formId ) ) {
+		return $form;
+	}
+
+	/**
+	 * Verify the per-form nonce.
+	 */
+	private static function verifyNonce( Form $form ): void {
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- this helper is the verification step for both routes.
+		$nonce = isset( $_POST['_sentinel_form_nonce'] ) ? sanitize_text_field( wp_unslash( $_POST['_sentinel_form_nonce'] ) ) : '';
+
+		if ( '' === $nonce || ! wp_verify_nonce( $nonce, 'sentinel_form_' . $form->id ) ) {
 			wp_die( esc_html__( 'Security check failed. Please try again.', 'sentinel-forms' ), '', [ 'response' => 403 ] );
 		}
+	}
 
-		// Honeypot triggered: pretend success without storing anything.
-		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- honeypot value is compared only, never stored or output.
+	/**
+	 * Honeypot triggered: pretend success without storing anything.
+	 */
+	private static function guardHoneypot( Form $form ): void {
+		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.NonceVerification.Missing -- honeypot value is compared only, never stored or output; nonce already verified.
 		if ( isset( $_POST['_sentinel_hp'] ) && '' !== (string) wp_unslash( $_POST['_sentinel_hp'] ) ) {
-			Logger::info( 'Honeypot triggered', [ 'form_id' => $formId ] );
+			Logger::info( 'Honeypot triggered', [ 'form_id' => $form->id ] );
 			self::finish( $form );
 		}
+	}
 
-		$raw    = wp_unslash( $_POST );
-		$values = [];
-		$errors = [];
+	/**
+	 * Field validation shared by both routes.
+	 *
+	 * @return array{0: array<string, string>, 1: array<string, mixed>, 2: array<string, mixed>} Errors (field id → message), sanitized values and raw display values.
+	 */
+	private static function validateSubmission( Form $form ): array {
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- nonce is verified by verifyNonce() before validation runs.
+		$raw     = wp_unslash( $_POST );
+		$values  = [];
+		$display = [];
+		$errors  = [];
 
 		foreach ( $form->schema->fields() as $definition ) {
 			$fieldId = (string) ( $definition['id'] ?? '' );
@@ -80,6 +187,8 @@ final class SubmissionHandler {
 			if ( 'file' === $type->type() ) {
 				$value = $raw[ 'sentinel_upload_' . $fieldId . '_ids' ] ?? '';
 			}
+
+			$display[ $fieldId ] = $value;
 
 			$error = $type->validate( $definition, $value );
 
@@ -102,17 +211,17 @@ final class SubmissionHandler {
 			(array) apply_filters( 'sentinel_forms_pre_insert_errors', [], $form, $values )
 		);
 
-		if ( $errors !== [] ) {
-			status_header( 422 );
+		return [ $errors, $values, $display ];
+	}
 
-			$body = FormRenderer::renderForm( $form, $errors, $values );
-
-			// Test seam: allows integration tests to intercept the response.
-			apply_filters( 'sentinel_forms_invalid_submission_response', $body, 422, $form->id );
-
-			echo $body; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- fully escaped markup.
-			exit;
-		}
+	/**
+	 * Store a validated submission, record events, notify, then redirect.
+	 *
+	 * @param array<string, mixed> $values Sanitized field values.
+	 */
+	private static function store( Form $form, array $values ): never {
+		$repository = new FormRepository();
+		$raw        = wp_unslash( $_POST );
 
 		try {
 			$startedAt  = isset( $raw['_sentinel_started_at'] ) ? (float) $raw['_sentinel_started_at'] : null;
@@ -337,10 +446,20 @@ final class SubmissionHandler {
 		if ( '' !== $redirect && filter_var( $redirect, FILTER_VALIDATE_URL ) !== false ) {
 			$url = $redirect;
 		} else {
+			// `wp_get_referer()` returns false when the referer equals the
+			// current request URI (core's redirect-loop guard) — exactly the
+			// front-end flow, where the form posts to its own page. Fall back
+			// to the raw referer with the same validation.
+			$referer = wp_get_referer();
+
+			if ( false === $referer ) {
+				$referer = wp_validate_redirect( (string) wp_get_raw_referer(), '' );
+			}
+
 			$url = add_query_arg(
 				'sentinel_form_success',
 				$form->id,
-				wp_get_referer() !== false ? wp_get_referer() : home_url( '/' )
+				'' !== $referer ? $referer : home_url( '/' )
 			);
 		}
 

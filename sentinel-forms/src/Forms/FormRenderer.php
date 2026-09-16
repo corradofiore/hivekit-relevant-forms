@@ -37,11 +37,11 @@ final class FormRenderer {
 	/**
 	 * Render a published form by ID.
 	 *
-	 * @param int                   $formId Form ID.
-	 * @param array<string, string> $errors Validation errors keyed by field id.
-	 * @param array<string, mixed>  $values Previously submitted values.
+	 * @param int                          $formId Form ID.
+	 * @param array<string, string>|null   $errors Validation errors keyed by field id.
+	 * @param array<string, mixed>|null    $values Previously submitted values.
 	 */
-	public static function render( int $formId, array $errors = [], array $values = [] ): string {
+	public static function render( int $formId, ?array $errors = null, ?array $values = null ): string {
 		$form = ( new FormRepository() )->findPublished( $formId );
 
 		if ( null === $form ) {
@@ -52,13 +52,23 @@ final class FormRenderer {
 	}
 
 	/**
-	 * Render a loaded form entity.
+	 * Render a loaded form entity. Errors/values default to the front-end
+	 * submission feedback of the current request (if any), so a failed
+	 * in-page POST shows validation errors inline.
 	 *
-	 * @param Form                  $form   Form to render.
-	 * @param array<string, string> $errors Validation errors keyed by field id.
-	 * @param array<string, mixed>  $values Previously submitted values.
+	 * @param Form                         $form   Form to render.
+	 * @param array<string, string>|null   $errors Validation errors keyed by field id.
+	 * @param array<string, mixed>|null    $values Previously submitted values.
 	 */
-	public static function renderForm( Form $form, array $errors = [], array $values = [] ): string {
+	public static function renderForm( Form $form, ?array $errors = null, ?array $values = null ): string {
+		if ( null === $errors ) {
+			$errors = SubmissionFeedback::errors( (int) $form->id );
+		}
+
+		if ( null === $values ) {
+			$values = SubmissionFeedback::values( (int) $form->id );
+		}
+
 		wp_enqueue_style( 'sentinel-forms' );
 
 		$hasFileField = false;
@@ -76,11 +86,13 @@ final class FormRenderer {
 
 		$output   = [];
 		$output[] = self::successMessage( $form );
+		// Empty action: the browser posts to this very page, where the
+		// front-end submission handler renders errors inline and redirects
+		// after success — user pages never post to wp-admin.
 		$output[] = sprintf(
-			'<form class="sentinel-forms" data-form-id="%d" data-upload-nonce="%s" method="post" action="%s" novalidate>',
+			'<form class="sentinel-forms" data-form-id="%d" data-upload-nonce="%s" method="post" action="" novalidate>',
 			$form->id,
-			esc_attr( wp_create_nonce( 'sentinel_upload_' . $form->id ) ),
-			esc_url( admin_url( 'admin-post.php' ) )
+			esc_attr( wp_create_nonce( 'sentinel_upload_' . $form->id ) )
 		);
 		$output[] = '<input type="hidden" name="action" value="sentinel_forms_submit">';
 		$output[] = sprintf( '<input type="hidden" name="_sentinel_form_id" value="%d">', $form->id );

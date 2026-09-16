@@ -110,7 +110,9 @@
 		var forms = document.querySelectorAll('.sentinel-forms[data-upload-nonce]');
 		forms.forEach(function (form) {
 			var formId = form.dataset.formId;
-			var baseUrl = form.getAttribute('action');
+			// Forms post to their own page (empty action = current URL); the
+			// front-end handler serves the upload helper actions there too.
+			var baseUrl = form.getAttribute('action') || window.location.href;
 			form.querySelectorAll('.sentinel-forms-file').forEach(function (input) {
 				input.addEventListener('change', function () {
 					var files = Array.prototype.slice.call(input.files || []);
