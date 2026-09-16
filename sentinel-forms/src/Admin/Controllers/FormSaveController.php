@@ -75,6 +75,7 @@ final class FormSaveController {
 		$aiPolicy = [
 			'enabled' => ! empty( $raw['ai_enabled'] ),
 			'purpose' => mb_substr( sanitize_textarea_field( (string) ( $raw['ai_purpose'] ?? '' ) ), 0, 500 ),
+			'spam'    => mb_substr( sanitize_textarea_field( (string) ( $raw['ai_spam'] ?? '' ) ), 0, 500 ),
 		];
 
 		$schema = FormSchema::empty()

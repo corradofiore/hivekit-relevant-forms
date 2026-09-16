@@ -9,6 +9,7 @@ declare(strict_types=1);
 
 namespace SentinelForms\Tests\Integration;
 
+use SentinelForms\Admin\Controllers\FormSaveController;
 use SentinelForms\Cloud\CloudConnection;
 use SentinelForms\Entries\Entry;
 use SentinelForms\Entries\EntryRepository;
@@ -121,6 +122,9 @@ final class AiClassificationFlowTest extends TestCase {
 		$body = (string) $this->requests[0]['args']['body'];
 		$this->assertStringContainsString( '[EMAIL]', $body );
 		$this->assertStringNotContainsString( 'ada@example.com', $body );
+
+		// Per-form guidance reaches the classifier (purpose + spam criteria).
+		$this->assertStringContainsString( 'Automated sales pitches and link drops', $body );
 
 		$names = array_column( EventRecorder::forEntry( (int) $entry->id ), 'event' );
 		$this->assertContains( 'classification_completed', $names );
@@ -237,6 +241,53 @@ final class AiClassificationFlowTest extends TestCase {
 	}
 
 	/**
+	 * The editor save persists the per-form AI policy (purpose + spam).
+	 */
+	public function testSavingPersistsTheAiPolicy(): void {
+		wp_set_current_user( self::factory()->user->create( [ 'role' => 'administrator' ] ) );
+
+		$form = $this->makeForm( true );
+
+		$_POST = [
+			'form_id'     => $form->id,
+			'form_name'   => 'Enquiry',
+			'form_status' => 'published',
+			'ai_enabled'  => '1',
+			'ai_purpose'  => 'Quote requests from homeowners',
+			'ai_spam'     => 'Automated sales pitches and link drops',
+		];
+
+		$_REQUEST['_wpnonce'] = wp_create_nonce( 'sentinel_form_save' );
+
+		add_filter(
+			'wp_redirect',
+			static function ( string $location ): string {
+				// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- handler-generated URL, assertions only.
+				throw new RedirectedException( $location );
+			}
+		);
+
+		$url = '';
+
+		try {
+			FormSaveController::handle();
+			$this->fail( 'The controller should redirect.' );
+		} catch ( RedirectedException $redirected ) {
+			$url = $redirected->url;
+		} finally {
+			remove_all_filters( 'wp_redirect' );
+			unset( $_REQUEST['_wpnonce'] );
+		}
+
+		$this->assertStringContainsString( 'saved=1', $url );
+
+		$policy = ( new FormRepository() )->find( $form->id )->schema->aiPolicy();
+
+		$this->assertSame( 'Quote requests from homeowners', $policy['purpose'] ?? '' );
+		$this->assertSame( 'Automated sales pitches and link drops', $policy['spam'] ?? '' );
+	}
+
+	/**
 	 * Enable the semantic classification capability without HTTP.
 	 */
 	private function enableConsent(): void {
@@ -280,6 +331,7 @@ final class AiClassificationFlowTest extends TestCase {
 				[
 					'enabled' => $aiEnabled,
 					'purpose' => 'Quote requests from homeowners',
+					'spam'    => 'Automated sales pitches and link drops',
 				]
 			);
 

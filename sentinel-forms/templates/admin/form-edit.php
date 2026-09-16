@@ -154,6 +154,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 					<p class="description"><?php esc_html_e( 'What a relevant submission looks like, e.g. "Requests for quotes from homeowners".', 'sentinel-forms' ); ?></p>
 				</td>
 			</tr>
+			<tr>
+				<th scope="row"><label for="sentinel-ai-spam"><?php esc_html_e( 'What counts as spam', 'sentinel-forms' ); ?></label></th>
+				<td>
+					<textarea class="sentinel-forms-textarea" id="sentinel-ai-spam" name="ai_spam" rows="4"><?php echo esc_textarea( (string) ( $ai_policy['spam'] ?? '' ) ); ?></textarea>
+					<p class="description"><?php esc_html_e( 'Describe messages this form should treat as spam, e.g. "Automated sales pitches and link drops".', 'sentinel-forms' ); ?></p>
+				</td>
+			</tr>
 		</table>
 		</div><!-- /.sentinel-forms-ai-panel -->
 		</div><!-- #sf-panel-settings -->
