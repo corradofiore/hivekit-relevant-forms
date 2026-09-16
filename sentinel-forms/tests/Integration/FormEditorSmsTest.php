@@ -46,10 +46,36 @@ final class FormEditorSmsTest extends TestCase {
 		$this->assertStringContainsString( 'data-stored="+393331234567"', $html );
 		$this->assertStringContainsString( 'sf-sms-send-code', $html );
 		$this->assertStringContainsString( 'sf-sms-code-row', $html );
+		$this->assertStringContainsString( 'sf-sms-code-message', $html );
 		$this->assertStringContainsString( 'Verified', $html );
+
+		// The verified state is shown in the message line below the field.
+		$this->assertMatchesRegularExpression( '/class="sf-sms-message sf-sms-message--ok"[^>]*id="sf-sms-phone-message"/', $html );
+		$this->assertMatchesRegularExpression( '/id="sf-sms-phone-message"[^>]*data-error="0"/', $html );
 
 		// The field is active because the option is on.
 		$this->assertDoesNotMatchRegularExpression( '/id="sentinel-ai-sms-phone"[^>]*disabled/', $html );
+	}
+
+	/**
+	 * A refused save shows its error in the phone field's message line.
+	 */
+	public function testTheSaveErrorAppearsBelowThePhoneField(): void {
+		wp_set_current_user( self::factory()->user->create( [ 'role' => 'administrator' ] ) );
+
+		$formId = $this->makeForm( 'SMS form' );
+
+		$_GET['form_id']   = $formId;
+		$_GET['sms_error'] = 'unverified_phone';
+
+		$html = $this->renderEditor();
+
+		$this->assertMatchesRegularExpression( '/class="sf-sms-message sf-sms-message--error"[^>]*id="sf-sms-phone-message"/', $html );
+		$this->assertMatchesRegularExpression( '/id="sf-sms-phone-message"[^>]*data-error="1"/', $html );
+		$this->assertStringContainsString( 'The phone number was not saved', $html );
+
+		// No duplicate page-level notice for the same error.
+		$this->assertStringNotContainsString( 'notice notice-error', $html );
 	}
 
 	/**
@@ -281,7 +307,7 @@ final class FormEditorSmsTest extends TestCase {
 	 * Tear down.
 	 */
 	public function tearDown(): void {
-		unset( $_GET['form_id'], $_POST, $_REQUEST['_wpnonce'] );
+		unset( $_GET['form_id'], $_GET['sms_error'], $_POST, $_REQUEST['_wpnonce'] );
 		remove_all_filters( 'wp_redirect' );
 
 		parent::tearDown();

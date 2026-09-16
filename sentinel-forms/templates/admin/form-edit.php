@@ -27,12 +27,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 		</div>
 	<?php endif; ?>
 
-	<?php if ( isset( $_GET['sms_error'] ) && 'unverified_phone' === sanitize_key( wp_unslash( (string) $_GET['sms_error'] ) ) ) : // phpcs:ignore WordPress.Security.NonceVerification.Recommended ?>
-		<div class="notice notice-error is-dismissible">
-			<p><?php esc_html_e( 'The phone number was not saved: verify it with the 6-digit code first, then save again.', 'sentinel-forms' ); ?></p>
-		</div>
-	<?php endif; ?>
-
 	<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
 		<input type="hidden" name="action" value="sentinel_forms_save_form">
 		<input type="hidden" name="form_id" value="<?php echo esc_attr( (string) $form->id ); ?>">
@@ -142,6 +136,20 @@ if ( ! defined( 'ABSPATH' ) ) {
 		$ai_policy    = $form->schema->aiPolicy();
 		$sms_alert_on = ! empty( $ai_policy['sms_alert'] );
 		$sms_phone    = (string) ( $ai_policy['sms_phone'] ?? '' );
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- display-only notice state carried in the redirect.
+		$sms_error = isset( $_GET['sms_error'] ) ? sanitize_key( wp_unslash( (string) $_GET['sms_error'] ) ) : '';
+
+		$sms_message      = '';
+		$sms_message_tone = '';
+
+		if ( 'unverified_phone' === $sms_error ) {
+			// The save was refused for this number: the error belongs below the field.
+			$sms_message      = __( 'The phone number was not saved: verify it with the 6-digit code first, then save again.', 'sentinel-forms' );
+			$sms_message_tone = 'error';
+		} elseif ( '' !== $sms_phone ) {
+			$sms_message      = __( 'Verified', 'sentinel-forms' );
+			$sms_message_tone = 'ok';
+		}
 		?>
 		<div class="sentinel-forms-ai-panel">
 			<h2><?php esc_html_e( 'AI classification', 'sentinel-forms' ); ?></h2>
@@ -185,11 +193,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 				<td>
 					<input type="tel" class="regular-text" id="sentinel-ai-sms-phone" name="ai_sms_phone" value="<?php echo esc_attr( $sms_phone ); ?>" data-stored="<?php echo esc_attr( $sms_phone ); ?>" placeholder="+39 333 1234567" autocomplete="tel" <?php disabled( ! $sms_alert_on ); ?>>
 					<button type="button" class="button" id="sf-sms-send-code" <?php disabled( ! $sms_alert_on ); ?>><?php esc_html_e( 'Send code', 'sentinel-forms' ); ?></button>
-					<span class="sf-sms-status" id="sf-sms-status" role="status" aria-live="polite"><?php echo '' !== $sms_phone ? esc_html__( 'Verified', 'sentinel-forms' ) : ''; ?></span>
-					<p id="sf-sms-code-row" hidden>
+					<p class="sf-sms-message<?php echo '' !== $sms_message_tone ? ' sf-sms-message--' . esc_attr( $sms_message_tone ) : ''; ?>" id="sf-sms-phone-message" role="status" aria-live="polite" data-error="<?php echo 'error' === $sms_message_tone ? '1' : '0'; ?>"<?php echo '' === $sms_message ? ' hidden' : ''; ?>><?php echo esc_html( $sms_message ); ?></p>
+					<div id="sf-sms-code-row" hidden>
 						<input type="text" class="small-text" id="sf-sms-code" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="one-time-code" placeholder="<?php esc_attr_e( '6-digit code', 'sentinel-forms' ); ?>">
 						<button type="button" class="button" id="sf-sms-verify-code"><?php esc_html_e( 'Verify code', 'sentinel-forms' ); ?></button>
-					</p>
+						<p class="sf-sms-message" id="sf-sms-code-message" role="status" aria-live="polite" hidden></p>
+					</div>
 					<p class="description"><?php esc_html_e( 'We text a 6-digit code to this number. A new or changed number is only saved after the code is verified.', 'sentinel-forms' ); ?></p>
 				</td>
 			</tr>

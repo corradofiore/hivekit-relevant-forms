@@ -275,33 +275,40 @@
 			var verifyRow = document.getElementById( 'sf-sms-code-row' );
 			var codeInput = document.getElementById( 'sf-sms-code' );
 			var verifyButton = document.getElementById( 'sf-sms-verify-code' );
-			var status = document.getElementById( 'sf-sms-status' );
+			var phoneMessage = document.getElementById( 'sf-sms-phone-message' );
+			var codeMessage = document.getElementById( 'sf-sms-code-message' );
 
 			/**
-			 * Report the verification state next to the field.
+			 * Show one feedback message directly below its field.
 			 *
-			 * @param {string}  text  Message to show.
-			 * @param {boolean} valid Whether the number is verified.
+			 * @param {Element} element Message paragraph.
+			 * @param {string}  text    Message text ('' hides the line).
+			 * @param {string}  tone    'error' | 'info' | 'ok' | ''.
 			 */
-			function setStatus( text, valid ) {
-				status.textContent = text || '';
-				status.classList.toggle( 'sf-sms-status--ok', !! valid );
-				status.classList.toggle( 'sf-sms-status--pending', ! valid && !! text );
+			function setMessage( element, text, tone ) {
+				element.textContent = text || '';
+				element.className = 'sf-sms-message' + ( text && tone ? ' sf-sms-message--' + tone : '' );
+				element.hidden = ! text;
 			}
 
 			/**
 			 * Mark the field verified only when it matches the stored number.
 			 */
 			function syncVerifiedState() {
+				if ( phoneMessage.getAttribute( 'data-error' ) === '1' ) {
+					// Keep the save error visible until the number is edited.
+					return;
+				}
+
 				var stored = smsPhone.getAttribute( 'data-stored' ) || '';
 				var current = smsPhone.value.trim();
 
 				if ( current !== '' && current === stored ) {
-					setStatus( strings.verified, true );
+					setMessage( phoneMessage, strings.verified, 'ok' );
 				} else if ( current !== '' ) {
-					setStatus( strings.unverified, false );
+					setMessage( phoneMessage, strings.unverified, 'info' );
 				} else {
-					setStatus( '', false );
+					setMessage( phoneMessage, '', '' );
 				}
 			}
 
@@ -316,7 +323,8 @@
 
 				if ( ! on ) {
 					verifyRow.hidden = true;
-					setStatus( '', false );
+					setMessage( phoneMessage, '', '' );
+					setMessage( codeMessage, '', '' );
 					return;
 				}
 
@@ -368,6 +376,8 @@
 
 			smsPhone.addEventListener( 'input', function () {
 				verifyRow.hidden = true;
+				phoneMessage.removeAttribute( 'data-error' );
+				setMessage( codeMessage, '', '' );
 				syncVerifiedState();
 			} );
 
@@ -375,16 +385,16 @@
 				var phone = smsPhone.value.trim();
 
 				if ( phone === '' ) {
-					setStatus( strings.checkPhone, false );
+					setMessage( phoneMessage, strings.checkPhone, 'error' );
 					return;
 				}
 
-				setStatus( strings.sending, false );
+				setMessage( phoneMessage, strings.sending, 'info' );
 
 				post( 'sentinel_forms_sms_send', settings.smsSendNonce, { phone: phone } )
 					.then( function ( body ) {
 						if ( ! body || ! body.success ) {
-							setStatus( errorText( body ), false );
+							setMessage( phoneMessage, errorText( body ), 'error' );
 							return;
 						}
 
@@ -392,19 +402,22 @@
 							smsPhone.value = body.data.phone;
 						}
 
+						phoneMessage.removeAttribute( 'data-error' );
+						setMessage( phoneMessage, '', '' );
+
 						var message = strings.codeSent;
 
 						if ( body.data.dev_code ) {
 							message += ' ' + strings.devCode + ' ' + body.data.dev_code;
 						}
 
-						setStatus( message, false );
+						setMessage( codeMessage, message, 'info' );
 						verifyRow.hidden = false;
 						codeInput.value = '';
 						codeInput.focus();
 					} )
 					.catch( function () {
-						setStatus( strings.requestFailed, false );
+						setMessage( phoneMessage, strings.requestFailed, 'error' );
 					} );
 			} );
 
@@ -416,7 +429,7 @@
 				)
 					.then( function ( body ) {
 						if ( ! body || ! body.success ) {
-							setStatus( errorText( body ), false );
+							setMessage( codeMessage, errorText( body ), 'error' );
 							return;
 						}
 
@@ -426,10 +439,12 @@
 						}
 
 						verifyRow.hidden = true;
-						setStatus( strings.verified, true );
+						phoneMessage.removeAttribute( 'data-error' );
+						setMessage( codeMessage, '', '' );
+						setMessage( phoneMessage, strings.verified, 'ok' );
 					} )
 					.catch( function () {
-						setStatus( strings.requestFailed, false );
+						setMessage( codeMessage, strings.requestFailed, 'error' );
 					} );
 			} );
 

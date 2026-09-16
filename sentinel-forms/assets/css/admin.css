@@ -210,21 +210,26 @@ td.sentinel-forms-used-on .sentinel-forms-used-on__popover:target {
 	max-width: 60em;
 }
 
-/* Form editor: priority-SMS recipient verification. */
+/* Form editor: priority-SMS recipient feedback. Errors sit in red directly
+   below the field they refer to; info and success use the neutral/green tones. */
 
-.sf-sms-status {
-	margin-left: 0.5em;
+.sf-sms-message {
+	margin: 0.5em 0 0;
 }
 
-.sf-sms-status--ok {
+.sf-sms-message--error {
+	color: #d63638;
+}
+
+.sf-sms-message--info {
+	color: #646970;
+}
+
+.sf-sms-message--ok {
 	color: #1e6b22;
 	font-weight: 600;
 }
 
-.sf-sms-status--pending {
-	color: #646970;
-}
-
 #sf-sms-code-row {
-	margin: 0.5em 0;
+	margin-top: 0.5em;
 }
