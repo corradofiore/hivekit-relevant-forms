@@ -53,10 +53,9 @@ final class FileValidator {
 			return '';
 		}
 
-		$mime = (string) finfo_file( $finfo, $filePath );
-		finfo_close( $finfo );
-
-		return $mime;
+		// No finfo_close(): with PHP 8.5 the call is deprecated because the
+		// finfo object is freed automatically.
+		return (string) finfo_file( $finfo, $filePath );
 	}
 
 	/**

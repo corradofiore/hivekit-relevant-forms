@@ -7,7 +7,7 @@
 	<arg value="sp"/>
 
 	<config name="minimum_wp_version" value="6.9"/>
-	<config name="testVersion" value="8.4-"/>
+	<config name="testVersion" value="8.3-"/>
 
 	<file>sentinel-forms.php</file>
 	<file>src</file>

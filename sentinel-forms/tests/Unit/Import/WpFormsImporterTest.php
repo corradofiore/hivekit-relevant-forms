@@ -98,7 +98,6 @@ it(
 		$importer   = new WpFormsImporter();
 		$form       = sf_importer_form();
 		$reflection = new ReflectionMethod( $importer, 'notes' );
-		$reflection->setAccessible( true );
 
 		$notes = implode( ' ', (array) $reflection->invoke( $importer, $form ) );
 

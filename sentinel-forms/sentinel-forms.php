@@ -4,7 +4,7 @@
  * Description:       WordPress forms with entries, local anti-spam and optional Sentinel Cloud intelligence (semantic filtering, priority alerts, managed secure uploads).
  * Version:           1.0.0
  * Requires at least: 6.9
- * Requires PHP:      8.4
+ * Requires PHP:      8.3
  * License:           GPL-2.0-or-later
  * License URI:       https://www.gnu.org/licenses/gpl-2.0.html
  * Text Domain:       sentinel-forms

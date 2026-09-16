@@ -8,17 +8,18 @@
         "plugin",
         "forms",
         "spam",
-        "ai",
-        "mcp"
+        "ai"
     ],
     "require": {
-        "php": "^8.4"
+        "php": "^8.3"
     },
     "require-dev": {
         "brain/monkey": "^2.7",
         "dealerdirect/phpcodesniffer-composer-installer": "^1.0",
         "pestphp/pest": "^3.7",
         "php-stubs/wordpress-stubs": "^6.9",
+        "phpcompatibility/php-compatibility": "^9.3",
+        "phpcompatibility/phpcompatibility-wp": "^2.1",
         "phpstan/phpstan": "^2.1",
         "szepeviktor/phpstan-wordpress": "^2.0",
         "wp-coding-standards/wpcs": "^3.1"
@@ -36,6 +37,7 @@
     "scripts": {
         "lint": "phpcs --standard=phpcs.xml.dist",
         "lint:fix": "phpcbf --standard=phpcs.xml.dist",
+        "lint:compat": "phpcs --standard=PHPCompatibilityWP --runtime-set testVersion 8.3-8.5 src sentinel-forms.php templates",
         "phpstan": "phpstan analyse --memory-limit=1G",
         "test": "pest",
         "test:unit": "pest --group=unit",
@@ -47,7 +49,7 @@
     },
     "config": {
         "platform": {
-            "php": "8.4.0"
+            "php": "8.3.0"
         },
         "allow-plugins": {
             "automattic/jetpack-autoloader": true,
