@@ -133,8 +133,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 		</table>
 
 		<?php $ai_policy = $form->schema->aiPolicy(); ?>
-		<h2><?php esc_html_e( 'AI classification', 'sentinel-forms' ); ?></h2>
-		<p class="description"><?php esc_html_e( 'Requires Sentinel Cloud with classification enabled in Sentinel Forms → Settings. Submissions are redacted before they are sent.', 'sentinel-forms' ); ?></p>
+		<div class="sentinel-forms-ai-panel">
+			<h2><?php esc_html_e( 'AI classification', 'sentinel-forms' ); ?></h2>
+			<p class="sentinel-forms-ai-panel__intro"><?php esc_html_e( 'AI evaluates meaning, relevance, intent and urgency. Important submissions receive a transparent attention score, so they do not look identical to every other email.', 'sentinel-forms' ); ?></p>
+			<p class="description"><?php esc_html_e( 'Requires Sentinel Cloud with classification enabled in Sentinel Forms → Settings. Submissions are redacted before they are sent.', 'sentinel-forms' ); ?></p>
 		<table class="form-table" role="presentation">
 			<tr>
 				<th scope="row"><?php esc_html_e( 'Classify submissions', 'sentinel-forms' ); ?></th>
@@ -153,6 +155,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 				</td>
 			</tr>
 		</table>
+		</div><!-- /.sentinel-forms-ai-panel -->
 		</div><!-- #sf-panel-settings -->
 
 		<div id="sf-panel-fields" class="sentinel-forms-tabs__panel">

@@ -61,6 +61,8 @@ final class FormEditorTabsTest extends TestCase {
 		$this->assertStringContainsString( 'name="confirmation_message"', $settings );
 		$this->assertStringContainsString( 'name="notification_emails"', $settings );
 		$this->assertStringContainsString( 'name="ai_enabled"', $settings );
+		$this->assertStringContainsString( 'sentinel-forms-ai-panel', $settings );
+		$this->assertStringContainsString( 'AI evaluates meaning, relevance, intent and urgency.', $settings );
 		$this->assertStringNotContainsString( 'id="sf-fields"', $settings );
 
 		$this->assertStringContainsString( 'id="sf-fields"', $fields );

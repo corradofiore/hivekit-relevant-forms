@@ -177,3 +177,23 @@ td.sentinel-forms-used-on .sentinel-forms-used-on__popover:target {
 		width: 100%;
 	}
 }
+
+/* Form editor: AI classification callout. */
+
+.sentinel-forms-ai-panel {
+	background: #f7f3ff;
+	border: 1px solid #e0d6f5;
+	border-radius: 4px;
+	margin-top: 1.5em;
+	padding: 1em 1.25em;
+}
+
+.sentinel-forms-ai-panel h2 {
+	margin-top: 0;
+}
+
+.sentinel-forms-ai-panel__intro {
+	font-size: 14px;
+	margin: 0.35em 0 0.75em;
+	max-width: 60em;
+}
