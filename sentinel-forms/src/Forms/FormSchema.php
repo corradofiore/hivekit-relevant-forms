@@ -51,8 +51,9 @@ final class FormSchema implements JsonSerializable {
 				'fields'         => [],
 				'notifications'  => [],
 				'confirmation'   => [
-					'message'  => '',
-					'redirect' => '',
+					'message'       => '',
+					'redirect'      => '',
+					'redirect_page' => 0,
 				],
 				'ai_policy'      => [],
 				'upload_policy'  => [],
@@ -76,8 +77,9 @@ final class FormSchema implements JsonSerializable {
 				'fields'         => isset( $data['fields'] ) && is_array( $data['fields'] ) ? array_values( $data['fields'] ) : [],
 				'notifications'  => isset( $data['notifications'] ) && is_array( $data['notifications'] ) ? array_values( $data['notifications'] ) : [],
 				'confirmation'   => [
-					'message'  => isset( $confirmation['message'] ) ? (string) $confirmation['message'] : '',
-					'redirect' => isset( $confirmation['redirect'] ) ? (string) $confirmation['redirect'] : '',
+					'message'       => isset( $confirmation['message'] ) ? (string) $confirmation['message'] : '',
+					'redirect'      => isset( $confirmation['redirect'] ) ? (string) $confirmation['redirect'] : '',
+					'redirect_page' => isset( $confirmation['redirect_page'] ) && is_scalar( $confirmation['redirect_page'] ) ? absint( $confirmation['redirect_page'] ) : 0,
 				],
 				'ai_policy'      => is_array( $data['ai_policy'] ?? null ) ? $data['ai_policy'] : [],
 				'upload_policy'  => is_array( $data['upload_policy'] ?? null ) ? $data['upload_policy'] : [],
@@ -260,16 +262,27 @@ final class FormSchema implements JsonSerializable {
 	}
 
 	/**
+	 * Immutable redirect anchor: ID of the page or post to redirect to
+	 * (0 = none). The permalink is resolved on submission, so the redirect
+	 * keeps working when the target's slug changes.
+	 */
+	public function redirectPageId(): int {
+		return (int) ( $this->data['confirmation']['redirect_page'] ?? 0 );
+	}
+
+	/**
 	 * Copy with new confirmation settings.
 	 *
-	 * @param string $message  Confirmation message.
-	 * @param string $redirect Redirect URL (may be empty).
+	 * @param string $message      Confirmation message.
+	 * @param string $redirect     Redirect URL (may be empty).
+	 * @param int    $redirectPage Redirect anchor page/post ID (0 = none).
 	 */
-	public function withConfirmation( string $message, string $redirect ): self {
+	public function withConfirmation( string $message, string $redirect, int $redirectPage = 0 ): self {
 		$copy                 = $this->data;
 		$copy['confirmation'] = [
-			'message'  => $message,
-			'redirect' => $redirect,
+			'message'       => $message,
+			'redirect'      => $redirect,
+			'redirect_page' => $redirectPage,
 		];
 
 		return new self( $copy );

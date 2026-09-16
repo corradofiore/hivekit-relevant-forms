@@ -442,7 +442,7 @@ final class SubmissionHandler {
 	 * Redirect after processing. Filterable for tests and integrations.
 	 */
 	private static function finish( Form $form ): never {
-		$redirect = $form->schema->redirectUrl();
+		$redirect = self::redirectTarget( $form );
 
 		if ( '' !== $redirect && filter_var( $redirect, FILTER_VALIDATE_URL ) !== false ) {
 			$url = $redirect;
@@ -468,6 +468,27 @@ final class SubmissionHandler {
 
 		wp_safe_redirect( $url );
 		exit;
+	}
+
+	/**
+	 * Resolve the redirect target: the anchored page/post's current permalink
+	 * when one is set and still published (immutable across slug changes),
+	 * otherwise the configured redirect URL.
+	 *
+	 * @param Form $form Form definition.
+	 */
+	private static function redirectTarget( Form $form ): string {
+		$pageId = $form->schema->redirectPageId();
+
+		if ( $pageId > 0 && 'publish' === get_post_status( $pageId ) ) {
+			$permalink = get_permalink( $pageId );
+
+			if ( is_string( $permalink ) && '' !== $permalink ) {
+				return $permalink;
+			}
+		}
+
+		return $form->schema->redirectUrl();
 	}
 
 	/**

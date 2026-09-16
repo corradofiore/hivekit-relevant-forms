@@ -7,7 +7,7 @@
  * @var SentinelForms\Forms\Form                     $form      Form being edited.
  * @var array<string, SentinelForms\Forms\Fields\FieldType> $types Available field types.
  * @var bool                                         $isEditing Whether editing an existing form.
- * @var array<int, array{label: string, items: array<int, array{title: string, url: string}>}> $redirectTargets Published pages/posts for the redirect picker.
+ * @var array<int, array{label: string, items: array<int, array{id: int, title: string}>}> $redirectTargets Published pages/posts for the redirect picker.
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -69,25 +69,25 @@ if ( ! defined( 'ABSPATH' ) ) {
 			<tr>
 				<th scope="row"><label for="sentinel-redirect-url"><?php esc_html_e( 'Redirect URL', 'sentinel-forms' ); ?></label></th>
 				<td>
-					<input type="url" class="regular-text" id="sentinel-redirect-url" name="redirect_url" value="<?php echo esc_attr( $form->schema->redirectUrl() ); ?>">
-					<p class="description"><?php esc_html_e( 'Where to send visitors after a successful submission.', 'sentinel-forms' ); ?></p>
+					<input type="url" class="regular-text" id="sentinel-redirect-url" name="redirect_url" value="<?php echo esc_attr( $form->schema->redirectUrl() ); ?>" <?php disabled( [] !== $redirectTargets && $form->schema->redirectPageId() > 0 ); ?>>
+					<p class="description"><?php esc_html_e( 'Where to send visitors after a successful submission. Disabled while a page or post is selected.', 'sentinel-forms' ); ?></p>
 				</td>
 			</tr>
 			<?php if ( [] !== $redirectTargets ) : ?>
 				<tr>
 					<th scope="row"><label for="sf-redirect-page"><?php esc_html_e( 'Page or post', 'sentinel-forms' ); ?></label></th>
 					<td>
-						<select id="sf-redirect-page">
+						<select id="sf-redirect-page" name="redirect_page">
 							<option value=""><?php esc_html_e( 'Select a page or post…', 'sentinel-forms' ); ?></option>
 							<?php foreach ( $redirectTargets as $group ) : ?>
 								<optgroup label="<?php echo esc_attr( $group['label'] ); ?>">
 									<?php foreach ( $group['items'] as $item ) : ?>
-										<option value="<?php echo esc_attr( $item['url'] ); ?>"><?php echo esc_html( $item['title'] ); ?></option>
+										<option value="<?php echo esc_attr( (string) $item['id'] ); ?>" <?php selected( $form->schema->redirectPageId(), $item['id'] ); ?>><?php echo esc_html( $item['title'] ); ?></option>
 									<?php endforeach; ?>
 								</optgroup>
 							<?php endforeach; ?>
 						</select>
-						<p class="description"><?php esc_html_e( 'Selecting an item fills the redirect URL above.', 'sentinel-forms' ); ?></p>
+						<p class="description"><?php esc_html_e( 'Redirect to this item; it keeps working even if its URL changes.', 'sentinel-forms' ); ?></p>
 					</td>
 				</tr>
 			<?php endif; ?>

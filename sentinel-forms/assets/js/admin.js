@@ -88,18 +88,17 @@
 	}
 
 	/*
-	 * Redirect picker: choosing a page or post copies its permalink into the
-	 * Redirect URL field, which stays the single saved value.
+	 * Redirect picker: a selected page or post anchors the redirect by ID —
+	 * the permalink is resolved on submission, so slug changes keep working.
+	 * While an anchor is selected the URL field is disabled (and therefore
+	 * not submitted, which keeps any stored URL for when the anchor clears).
 	 */
 	var redirectPicker = document.getElementById( 'sf-redirect-page' );
 	var redirectInput = document.getElementById( 'sentinel-redirect-url' );
 
 	if ( redirectPicker && redirectInput ) {
 		redirectPicker.addEventListener( 'change', function () {
-			if ( this.value ) {
-				redirectInput.value = this.value;
-				this.value = '';
-			}
+			redirectInput.disabled = '' !== this.value;
 		} );
 	}
 

@@ -44,7 +44,7 @@ final class FormEditPage {
 	/**
 	 * Published pages and posts for the redirect picker, grouped by type.
 	 *
-	 * @return array<int, array{label: string, items: array<int, array{title: string, url: string}>}>
+	 * @return array<int, array{label: string, items: array<int, array{id: int, title: string}>}>
 	 */
 	private static function redirectTargets(): array {
 		$groups = [];
@@ -76,8 +76,8 @@ final class FormEditPage {
 				}
 
 				$items[] = [
+					'id'    => (int) $post->ID,
 					'title' => $title,
-					'url'   => (string) get_permalink( $post ),
 				];
 			}
 

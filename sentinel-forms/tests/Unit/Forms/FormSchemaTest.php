@@ -129,6 +129,33 @@ it(
 );
 
 it(
+	'stores the redirect anchor and round-trips it through arrays',
+	function () {
+		$schema = FormSchema::empty()
+		->withConfirmation( 'Thanks!', 'https://example.com/legacy', 42 );
+
+		expect( $schema->redirectPageId() )->toBe( 42 );
+		expect( $schema->redirectUrl() )->toBe( 'https://example.com/legacy' );
+
+		$restored = FormSchema::fromArray( $schema->jsonSerialize() );
+
+		expect( $restored->redirectPageId() )->toBe( 42 );
+		expect( $restored->confirmationMessage() )->toBe( 'Thanks!' );
+	}
+);
+
+it(
+	'defaults the redirect anchor to none',
+	function () {
+		expect( FormSchema::empty()->redirectPageId() )->toBe( 0 );
+
+		$legacy = FormSchema::fromArray( [ 'confirmation' => [ 'redirect' => 'https://example.com' ] ] );
+
+		expect( $legacy->redirectPageId() )->toBe( 0 );
+	}
+);
+
+it(
 	'rejects invalid notification emails',
 	function () {
 		$schema = FormSchema::empty()->withNotifications( [ 'not-an-email' ] );

@@ -151,6 +151,100 @@ final class FrontendSubmissionTest extends TestCase {
 	}
 
 	/**
+	 * A redirect anchored to a page keeps working when the page's slug changes:
+	 * the permalink is resolved from the stored ID at submission time.
+	 */
+	public function testRedirectAnchorFollowsThePageWhenItsSlugChanges(): void {
+		$original = (string) get_option( 'permalink_structure' );
+		$this->set_permalink_structure( '/%postname%/' );
+
+		try {
+			$pageId = self::factory()->post->create(
+				[
+					'post_type'  => 'page',
+					'post_title' => 'Thank You',
+					'post_name'  => 'thank-you',
+				]
+			);
+
+			$form = $this->makeAnchoredForm( $pageId );
+
+			$this->assertSame( get_permalink( $pageId ), $this->submitAnchored( $form ) );
+
+			wp_update_post(
+				[
+					'ID'        => $pageId,
+					'post_name' => 'thank-you-renamed',
+				]
+			);
+
+			$this->assertStringContainsString( 'thank-you-renamed', (string) get_permalink( $pageId ) );
+			$this->assertSame( get_permalink( $pageId ), $this->submitAnchored( $form ) );
+		} finally {
+			$this->set_permalink_structure( $original );
+		}
+	}
+
+	/**
+	 * The anchor wins over a configured redirect URL.
+	 */
+	public function testRedirectAnchorTakesPrecedenceOverTheUrl(): void {
+		$pageId = self::factory()->post->create(
+			[
+				'post_type'  => 'page',
+				'post_title' => 'Thank You',
+			]
+		);
+
+		$form = $this->makeAnchoredForm( $pageId, 'https://example.com/legacy' );
+
+		$this->assertSame( get_permalink( $pageId ), $this->submitAnchored( $form ) );
+	}
+
+	/**
+	 * Submit valid data for a form and capture the redirect target.
+	 *
+	 * @param Form $form Form to submit.
+	 */
+	private function submitAnchored( Form $form ): string {
+		$_POST = [
+			'action'                => 'sentinel_forms_submit',
+			'_sentinel_form_id'     => $form->id,
+			'_sentinel_form_nonce'  => wp_create_nonce( 'sentinel_form_' . $form->id ),
+			'sentinel_field_f_name' => 'Ada Lovelace',
+		];
+
+		return $this->frontendSubmitAndCaptureRedirect();
+	}
+
+	/**
+	 * Create a published form with one field and a redirect anchor.
+	 *
+	 * @param int    $pageId Redirect anchor page ID.
+	 * @param string $url    Stored redirect URL.
+	 */
+	private function makeAnchoredForm( int $pageId, string $url = '' ): Form {
+		$repository = new FormRepository();
+
+		$schema = FormSchema::empty( 'Anchored' )
+			->withFields(
+				[
+					[
+						'id'       => 'f_name',
+						'type'     => 'text',
+						'label'    => 'Name',
+						'required' => true,
+					],
+				]
+			)
+			->withConfirmation( '', $url, $pageId );
+
+		$id = $repository->create( 'Anchored', $schema, 'published' );
+
+		return $repository->find( $id );
+	}
+
+	/**
 	 * Run the front-end handler and capture the redirect target.
 	 */
 	private function frontendSubmitAndCaptureRedirect(): string {

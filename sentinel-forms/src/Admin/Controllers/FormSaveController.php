@@ -46,11 +46,24 @@ final class FormSaveController {
 			$status = 'draft';
 		}
 
+		$repository = new FormRepository();
+		$existing   = $formId > 0 ? $repository->find( $formId ) : null;
+
 		$fields = self::parseFields( $raw['sentinel_fields'] ?? [] );
 
-		$emails   = self::parseLines( (string) ( $raw['notification_emails'] ?? '' ) );
-		$message  = sanitize_textarea_field( (string) ( $raw['confirmation_message'] ?? '' ) );
-		$redirect = esc_url_raw( (string) ( $raw['redirect_url'] ?? '' ) );
+		$emails  = self::parseLines( (string) ( $raw['notification_emails'] ?? '' ) );
+		$message = sanitize_textarea_field( (string) ( $raw['confirmation_message'] ?? '' ) );
+
+		// Redirect URL and page/post anchor mirror each other: the URL input is
+		// disabled (and therefore not submitted) while an anchor is selected, so
+		// a missing key keeps the stored value instead of clearing it.
+		$redirect = array_key_exists( 'redirect_url', $raw )
+			? esc_url_raw( (string) $raw['redirect_url'] )
+			: ( null !== $existing ? $existing->schema->redirectUrl() : '' );
+
+		$redirectPage = array_key_exists( 'redirect_page', $raw )
+			? absint( $raw['redirect_page'] )
+			: ( null !== $existing ? $existing->schema->redirectPageId() : 0 );
 
 		$aiPolicy = [
 			'enabled' => ! empty( $raw['ai_enabled'] ),
@@ -61,7 +74,7 @@ final class FormSaveController {
 			->withName( $name )
 			->withFields( $fields )
 			->withNotifications( $emails )
-			->withConfirmation( $message, $redirect )
+			->withConfirmation( $message, $redirect, $redirectPage )
 			->withAiPolicy( $aiPolicy );
 
 		$errors = [];
@@ -79,8 +92,6 @@ final class FormSaveController {
 				[ 'response' => 400 ]
 			);
 		}
-
-		$repository = new FormRepository();
 
 		if ( $formId > 0 ) {
 			$repository->update( $formId, $name, $schema, $status );
