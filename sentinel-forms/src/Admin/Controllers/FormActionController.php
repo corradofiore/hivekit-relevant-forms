@@ -13,6 +13,9 @@ use SentinelForms\Forms\FormRepository;
 
 /**
  * Handles duplicate/archive actions from the forms list.
+ *
+ * Row actions are nonce-signed links (native list-table pattern), so the
+ * request parameters may arrive as GET on admin-post.php.
  */
 final class FormActionController {
 
@@ -31,7 +34,7 @@ final class FormActionController {
 			wp_die( esc_html__( 'You do not have permission to perform this action.', 'sentinel-forms' ), '', [ 'response' => 403 ] );
 		}
 
-		$raw    = wp_unslash( $_POST );
+		$raw    = wp_unslash( $_REQUEST );
 		$action = sanitize_key( (string) ( $raw['form_action'] ?? '' ) );
 		$formId = isset( $raw['form_id'] ) ? absint( $raw['form_id'] ) : 0;
 

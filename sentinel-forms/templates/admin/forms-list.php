@@ -50,7 +50,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 					</th>
 					<th scope="col"><?php esc_html_e( 'Shortcode', 'sentinel-forms' ); ?></th>
 					<th scope="col"><?php esc_html_e( 'Updated', 'sentinel-forms' ); ?></th>
-					<th scope="col"><?php esc_html_e( 'Actions', 'sentinel-forms' ); ?></th>
 				</tr>
 			</thead>
 			<tbody>
@@ -58,6 +57,23 @@ if ( ! defined( 'ABSPATH' ) ) {
 					<tr>
 						<td>
 							<strong><?php echo esc_html( $form->name ); ?></strong>
+							<div class="row-actions">
+								<span class="edit">
+									<a href="<?php echo esc_url( admin_url( 'admin.php?page=sentinel-form-new&form_id=' . $form->id ) ); ?>"><?php esc_html_e( 'Edit', 'sentinel-forms' ); ?></a> |
+								</span>
+								<span class="duplicate">
+									<a href="<?php echo esc_url( wp_nonce_url( admin_url( 'admin-post.php?action=sentinel_forms_action&form_action=duplicate&form_id=' . $form->id ), 'sentinel_form_action_duplicate_' . $form->id ) ); ?>"><?php esc_html_e( 'Duplicate', 'sentinel-forms' ); ?></a>
+									<?php
+									if ( 'archived' !== $form->status ) :
+										?>
+										|<?php endif; ?>
+								</span>
+								<?php if ( 'archived' !== $form->status ) : ?>
+									<span class="archive">
+										<a href="<?php echo esc_url( wp_nonce_url( admin_url( 'admin-post.php?action=sentinel_forms_action&form_action=archive&form_id=' . $form->id ), 'sentinel_form_action_archive_' . $form->id ) ); ?>"><?php esc_html_e( 'Archive', 'sentinel-forms' ); ?></a>
+									</span>
+								<?php endif; ?>
+							</div>
 						</td>
 						<td>
 							<span class="sentinel-forms-status sentinel-forms-status--<?php echo esc_attr( $form->status ); ?>">
@@ -115,27 +131,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 							<code>[sentinel_form id="<?php echo esc_html( (string) $form->id ); ?>"]</code>
 						</td>
 						<td><?php echo esc_html( $form->updatedAt ); ?></td>
-						<td>
-							<a class="button button-small" href="<?php echo esc_url( admin_url( 'admin.php?page=sentinel-form-new&form_id=' . $form->id ) ); ?>">
-								<?php esc_html_e( 'Edit', 'sentinel-forms' ); ?>
-							</a>
-							<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" style="display:inline">
-								<input type="hidden" name="action" value="sentinel_forms_action">
-								<input type="hidden" name="form_action" value="duplicate">
-								<input type="hidden" name="form_id" value="<?php echo esc_attr( (string) $form->id ); ?>">
-								<?php wp_nonce_field( 'sentinel_form_action_duplicate_' . $form->id ); ?>
-								<button type="submit" class="button button-small"><?php esc_html_e( 'Duplicate', 'sentinel-forms' ); ?></button>
-							</form>
-							<?php if ( 'archived' !== $form->status ) : ?>
-								<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" style="display:inline">
-									<input type="hidden" name="action" value="sentinel_forms_action">
-									<input type="hidden" name="form_action" value="archive">
-									<input type="hidden" name="form_id" value="<?php echo esc_attr( (string) $form->id ); ?>">
-									<?php wp_nonce_field( 'sentinel_form_action_archive_' . $form->id ); ?>
-									<button type="submit" class="button button-small"><?php esc_html_e( 'Archive', 'sentinel-forms' ); ?></button>
-								</form>
-							<?php endif; ?>
-						</td>
 					</tr>
 				<?php endforeach; ?>
 			</tbody>
