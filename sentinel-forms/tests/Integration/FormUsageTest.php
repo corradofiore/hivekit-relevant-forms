@@ -148,9 +148,9 @@ final class FormUsageTest extends TestCase {
 		$this->assertStringContainsString( 'id="sentinel-forms-usage-' . $multi . '"', $html );
 		$this->assertStringContainsString( 'Solo', $html );
 
-		// The header carries a native dashicons hint documenting the limitation.
-		$this->assertStringContainsString( 'dashicons-editor-help', $html );
-		$this->assertStringContainsString( 'title="Only forms embedded with the [sentinel_form] shortcode', $html );
+		// The header hint opens a card explainer documenting the limitation.
+		$this->assertStringContainsString( 'sentinel-forms-used-on__hint', $html );
+		$this->assertStringContainsString( 'About the &quot;Used on&quot; column', $html );
 		$this->assertStringContainsString( 'sentinel_forms_render() are not listed', $html );
 
 		// Native controls: link-styled View all button and core card panel.

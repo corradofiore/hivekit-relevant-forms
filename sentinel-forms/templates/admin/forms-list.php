@@ -45,8 +45,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 						$usageHint = __( 'Only forms embedded with the [sentinel_form] shortcode in post content are detected — pages, posts and other post types. Forms rendered from theme templates with sentinel_forms_render() are not listed.', 'sentinel-forms' );
 						?>
 						<?php esc_html_e( 'Used on', 'sentinel-forms' ); ?>
-						<span class="dashicons dashicons-editor-help sentinel-forms-used-on__hint" title="<?php echo esc_attr( $usageHint ); ?>" aria-hidden="true"></span>
-						<span class="screen-reader-text"><?php echo esc_html( $usageHint ); ?></span>
+						<button type="button" class="sentinel-forms-used-on__hint">
+							<span aria-hidden="true">?</span>
+							<span class="screen-reader-text"><?php esc_html_e( 'About the "Used on" column', 'sentinel-forms' ); ?></span>
+						</button>
+						<div class="card sentinel-forms-used-on__popover" hidden>
+							<p><?php echo esc_html( $usageHint ); ?></p>
+						</div>
 					</th>
 					<th scope="col"><?php esc_html_e( 'Shortcode', 'sentinel-forms' ); ?></th>
 					<th scope="col"><?php esc_html_e( 'Updated', 'sentinel-forms' ); ?></th>
