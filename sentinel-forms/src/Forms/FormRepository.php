@@ -144,8 +144,7 @@ final class FormRepository {
 			return (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM ' . $wpdb->prefix . 'sentinel_forms WHERE status = %s', (string) $args['status'] ) );
 		}
 
-		// phpcs:ignore WordPress.DB.PreparedSQLPlaceholders.UnnecessaryPrepare -- prepare() keeps the internal table name traceable to static analysis.
-		return (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM ' . $wpdb->prefix . 'sentinel_forms' ) );
+		return (int) $wpdb->get_var( 'SELECT COUNT(*) FROM ' . $wpdb->prefix . 'sentinel_forms' );
 	}
 
 	/**

@@ -135,8 +135,7 @@ final class EntryRepository {
 			return (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM ' . $wpdb->prefix . 'sentinel_entries WHERE form_id = %d', $formId ) );
 		}
 
-		// phpcs:ignore WordPress.DB.PreparedSQLPlaceholders.UnnecessaryPrepare -- prepare() keeps the internal table name traceable to static analysis.
-		return (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM ' . $wpdb->prefix . 'sentinel_entries' ) );
+		return (int) $wpdb->get_var( 'SELECT COUNT(*) FROM ' . $wpdb->prefix . 'sentinel_entries' );
 	}
 
 	/**

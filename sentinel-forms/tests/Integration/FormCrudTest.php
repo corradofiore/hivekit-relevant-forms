@@ -9,6 +9,7 @@ declare(strict_types=1);
 
 namespace SentinelForms\Tests\Integration;
 
+use SentinelForms\Entries\EntryRepository;
 use SentinelForms\Forms\FormRepository;
 use SentinelForms\Forms\FormSchema;
 
@@ -83,5 +84,27 @@ final class FormCrudTest extends TestCase {
 
 		$this->assertGreaterThan( 0, $version1 );
 		$this->assertGreaterThan( $version1, $version2 );
+	}
+
+	/**
+	 * Unfiltered counts must run without wpdb "doing it wrong" notices
+	 * (prepare() requires at least one placeholder).
+	 */
+	public function testUnfilteredCountsRunWithoutDoingItWrongNotices(): void {
+		$violations = [];
+
+		add_action(
+			'doing_it_wrong_run',
+			static function ( string $function_name, string $message ) use ( &$violations ): void {
+				$violations[] = $function_name . ': ' . $message;
+			},
+			10,
+			3
+		);
+
+		( new FormRepository() )->count();
+		( new EntryRepository() )->count();
+
+		$this->assertSame( [], $violations );
 	}
 }
