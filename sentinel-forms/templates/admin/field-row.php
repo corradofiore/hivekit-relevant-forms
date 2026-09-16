@@ -1,6 +1,6 @@
 <?php
 /**
- * Single field row in the form builder.
+ * Single field editor panel (right column of the fields editor).
  *
  * @package SentinelForms
  *
@@ -18,17 +18,8 @@ $fieldId  = (string) $definition['id'];
 $isChoice = in_array( (string) $definition['type'], [ 'select', 'radio', 'checkbox' ], true );
 $isHidden = 'hidden' === (string) $definition['type'];
 ?>
-<div class="sf-field" data-type="<?php echo esc_attr( (string) $definition['type'] ); ?>">
-	<div class="sf-field-head">
-		<strong class="sf-field-title"><?php echo esc_html( $field_type->label() ); ?></strong>
-		<span class="sf-field-actions">
-			<button type="button" class="button button-small sf-move-up" title="<?php esc_attr_e( 'Move up', 'sentinel-forms' ); ?>">&uarr;</button>
-			<button type="button" class="button button-small sf-move-down" title="<?php esc_attr_e( 'Move down', 'sentinel-forms' ); ?>">&darr;</button>
-			<button type="button" class="button button-small sf-remove" title="<?php esc_attr_e( 'Remove field', 'sentinel-forms' ); ?>">&times;</button>
-		</span>
-	</div>
-
-	<div class="sf-field-body">
+<div class="sf-field-editor" data-for="<?php echo esc_attr( $fieldId ); ?>" data-type="<?php echo esc_attr( (string) $definition['type'] ); ?>">
+	<div class="sf-field-editor__body">
 		<input type="hidden" name="sentinel_fields[<?php echo esc_attr( $fieldId ); ?>][id]" value="<?php echo esc_attr( $fieldId ); ?>">
 		<input type="hidden" name="sentinel_fields[<?php echo esc_attr( $fieldId ); ?>][type]" value="<?php echo esc_attr( (string) $definition['type'] ); ?>">
 

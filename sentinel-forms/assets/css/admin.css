@@ -47,28 +47,114 @@
 	text-align: center;
 }
 
-/* Form builder. */
+/* Form builder: fields list on the left, selected field editor on the right. */
 
-.sf-field {
-	background: #fff;
-	border: 1px solid #c3c4c7;
-	margin-bottom: 0.75rem;
+.sf-fields-columns {
+	align-items: start;
+	display: grid;
+	gap: 1.5em;
+	grid-template-columns: 34fr 66fr;
 }
 
-.sf-field-head {
+.sf-fields-add {
+	margin: 0 0 0.75em;
+}
+
+.sf-fields-add select {
+	width: 100%;
+}
+
+.sf-fields-list {
+	background: #fff;
+	border: 1px solid #c3c4c7;
+	max-height: 300px;
+	overflow-y: auto;
+}
+
+.sf-field-item {
 	align-items: center;
 	border-bottom: 1px solid #dcdcde;
+	cursor: grab;
 	display: flex;
-	justify-content: space-between;
+	gap: 0.5em;
 	padding: 0.5rem 0.75rem;
 }
 
-.sf-field-body {
-	padding: 0.75rem;
+.sf-field-item:last-child {
+	border-bottom: 0;
 }
 
-.sf-field-body p {
+.sf-field-item:hover {
+	background: #f6f7f7;
+}
+
+.sf-field-item:focus-visible {
+	outline: 2px solid #2271b1;
+	outline-offset: -2px;
+}
+
+.sf-field-item--active {
+	background: #f0f6fc;
+	box-shadow: inset 3px 0 0 #2271b1;
+}
+
+.sf-field-item--dragging {
+	opacity: 0.5;
+}
+
+.sf-field-item__handle {
+	background-image: radial-gradient(circle, #787c82 1px, transparent 1.5px);
+	background-size: 6px 6px;
+	flex: 0 0 auto;
+	height: 12px;
+	width: 12px;
+}
+
+.sf-field-item__name {
+	flex: 1 1 auto;
+	font-weight: 600;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.sf-field-item__type {
+	color: #646970;
+	flex: 0 0 auto;
+	font-size: 12px;
+}
+
+.sf-field-item .sf-remove {
+	flex: 0 0 auto;
+	padding: 0 0.25em;
+}
+
+.sf-field-item .sf-remove:hover,
+.sf-field-item .sf-remove:focus {
+	color: #b32d2e;
+}
+
+.sf-field-editor {
+	background: #fff;
+	border: 1px solid #c3c4c7;
+}
+
+.sf-field-editor__body {
+	padding: 0.75rem 1rem;
+}
+
+.sf-field-editor__body p {
 	margin: 0.5rem 0;
+}
+
+.sf-fields-empty {
+	color: #646970;
+}
+
+@media screen and (max-width: 782px) {
+	.sf-fields-columns {
+		grid-template-columns: 1fr;
+	}
 }
 
 /* Forms list: "Used on" column. */

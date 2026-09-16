@@ -13,68 +13,238 @@
 		return 'f_' + Math.random().toString( 36 ).slice( 2, 9 );
 	}
 
+	/*
+	 * Fields editor: a draggable list on the left, the selected field's
+	 * editor on the right. Reordering moves the list item AND its editor
+	 * panel so the submitted order (sentinel_fields) follows the list.
+	 */
+	var fieldList = document.getElementById( 'sf-fields-list' );
+	var fieldEditors = document.getElementById( 'sf-fields-editors' );
+	var fieldsEmpty = document.getElementById( 'sf-fields-empty' );
+	var draggedItem = null;
+	var fieldStrings = window.sentinelFormsAdmin && window.sentinelFormsAdmin.fieldStrings
+		? window.sentinelFormsAdmin.fieldStrings
+		: {};
+
 	/**
-	 * Add a new field row from the type template.
+	 * Select one field: highlight its list item and show its editor.
+	 *
+	 * @param {string} id Field id ('' clears the selection).
+	 */
+	function selectField( id ) {
+		fieldList.querySelectorAll( '.sf-field-item' ).forEach( function ( item ) {
+			var active = item.getAttribute( 'data-for' ) === id;
+
+			item.classList.toggle( 'sf-field-item--active', active );
+			item.setAttribute( 'aria-selected', active ? 'true' : 'false' );
+		} );
+
+		fieldEditors.querySelectorAll( '.sf-field-editor' ).forEach( function ( editor ) {
+			editor.hidden = editor.getAttribute( 'data-for' ) !== id;
+		} );
+
+		if ( fieldsEmpty ) {
+			fieldsEmpty.hidden = id !== '';
+		}
+	}
+
+	/**
+	 * Keep the editor panels in the same order as the dragged list.
+	 *
+	 * @param {Element} item   Dragged list item.
+	 * @param {Element} target Item it was moved around.
+	 * @param {boolean} after  Whether the item landed after the target.
+	 */
+	function moveEditorWithItem( item, target, after ) {
+		var editor = fieldEditors.querySelector( '[data-for="' + item.getAttribute( 'data-for' ) + '"]' );
+		var targetEditor = fieldEditors.querySelector( '[data-for="' + target.getAttribute( 'data-for' ) + '"]' );
+
+		if ( ! editor || ! targetEditor ) {
+			return;
+		}
+
+		fieldEditors.insertBefore( editor, after ? targetEditor.nextSibling : targetEditor );
+	}
+
+	/**
+	 * Remove one field: its list item and its editor panel.
+	 *
+	 * @param {Element} item List item to remove.
+	 */
+	function removeField( item ) {
+		var id = item.getAttribute( 'data-for' );
+		var editor = fieldEditors.querySelector( '[data-for="' + id + '"]' );
+		var wasActive = item.classList.contains( 'sf-field-item--active' );
+
+		item.remove();
+
+		if ( editor ) {
+			editor.remove();
+		}
+
+		if ( wasActive ) {
+			var next = fieldList.querySelector( '.sf-field-item' );
+
+			selectField( next ? next.getAttribute( 'data-for' ) : '' );
+		}
+	}
+
+	/**
+	 * Add a new field from the type template (list item + editor panel).
 	 *
 	 * @param {string} type Field type.
 	 */
 	function addField( type ) {
 		var template = document.getElementById( 'sf-field-template-' + type );
-		var container = document.getElementById( 'sf-fields' );
+		var id, wrapper, item, editor, labelInput;
 
-		if ( ! template || ! container ) {
+		if ( ! template || ! fieldList || ! fieldEditors ) {
 			return;
 		}
 
-		var id = generateId();
-		var wrapper = document.createElement( 'div' );
+		id = generateId();
+		wrapper = document.createElement( 'div' );
 		wrapper.innerHTML = template.innerHTML.replace( /\{ID\}/g, id );
 
-		while ( wrapper.firstChild ) {
-			container.appendChild( wrapper.firstChild );
-		}
+		item = wrapper.querySelector( '.sf-field-item' );
+		editor = wrapper.querySelector( '.sf-field-editor' );
 
-		container.lastElementChild.scrollIntoView( { behavior: 'smooth', block: 'nearest' } );
-	}
-
-	/**
-	 * Move a field row one position in the requested direction.
-	 *
-	 * @param {Element} row  Field row element.
-	 * @param {number}  step -1 (up) or +1 (down).
-	 */
-	function move( row, step ) {
-		var sibling = step < 0 ? row.previousElementSibling : row.nextElementSibling;
-
-		if ( ! sibling || ! sibling.classList.contains( 'sf-field' ) ) {
+		if ( ! item || ! editor ) {
 			return;
 		}
 
-		row.parentNode.insertBefore( step < 0 ? row : sibling.nextSibling, step < 0 ? sibling : row );
+		fieldList.appendChild( item );
+		fieldEditors.appendChild( editor );
+
+		selectField( id );
+		item.scrollIntoView( { behavior: 'smooth', block: 'nearest' } );
+
+		labelInput = editor.querySelector( '.sf-input-label' );
+
+		if ( labelInput ) {
+			labelInput.focus();
+		}
 	}
 
 	document.addEventListener( 'click', function ( event ) {
-		var target = event.target.closest( 'button' );
-		var row;
+		var button = event.target.closest( 'button.sf-remove' );
+		var item;
 
-		if ( ! target ) {
+		if ( ! button ) {
 			return;
 		}
 
-		row = target.closest( '.sf-field' );
+		item = button.closest( '.sf-field-item' );
 
-		if ( ! row ) {
-			return;
-		}
-
-		if ( target.classList.contains( 'sf-remove' ) ) {
-			row.remove();
-		} else if ( target.classList.contains( 'sf-move-up' ) ) {
-			move( row, -1 );
-		} else if ( target.classList.contains( 'sf-move-down' ) ) {
-			move( row, 1 );
+		if ( item ) {
+			removeField( item );
 		}
 	} );
+
+	if ( fieldList && fieldEditors ) {
+		fieldList.addEventListener( 'click', function ( event ) {
+			var item = event.target.closest( '.sf-field-item' );
+
+			if ( item ) {
+				selectField( item.getAttribute( 'data-for' ) );
+			}
+		} );
+
+		fieldList.addEventListener( 'keydown', function ( event ) {
+			var item = event.target.closest( '.sf-field-item' );
+
+			if ( item && ( event.key === 'Enter' || event.key === ' ' ) ) {
+				event.preventDefault();
+				selectField( item.getAttribute( 'data-for' ) );
+			}
+		} );
+
+		fieldList.addEventListener( 'dragstart', function ( event ) {
+			var item = event.target.closest( '.sf-field-item' );
+
+			if ( ! item ) {
+				return;
+			}
+
+			draggedItem = item;
+			item.classList.add( 'sf-field-item--dragging' );
+
+			if ( event.dataTransfer ) {
+				event.dataTransfer.effectAllowed = 'move';
+				// Firefox needs data for the drag to start.
+				event.dataTransfer.setData( 'text/plain', item.getAttribute( 'data-for' ) );
+			}
+		} );
+
+		fieldList.addEventListener( 'dragover', function ( event ) {
+			var target = event.target.closest( '.sf-field-item' );
+			var rect, after;
+
+			if ( ! draggedItem || ! target || target === draggedItem ) {
+				return;
+			}
+
+			event.preventDefault();
+
+			if ( event.dataTransfer ) {
+				event.dataTransfer.dropEffect = 'move';
+			}
+
+			rect = target.getBoundingClientRect();
+			after = event.clientY > rect.top + ( rect.height / 2 );
+
+			fieldList.insertBefore( draggedItem, after ? target.nextSibling : target );
+			moveEditorWithItem( draggedItem, target, after );
+		} );
+
+		fieldList.addEventListener( 'drop', function ( event ) {
+			event.preventDefault();
+		} );
+
+		fieldList.addEventListener( 'dragend', function () {
+			if ( draggedItem ) {
+				draggedItem.classList.remove( 'sf-field-item--dragging' );
+				draggedItem = null;
+			}
+		} );
+
+		// The list item shows the field name: keep it in sync with the label.
+		fieldEditors.addEventListener( 'input', function ( event ) {
+			var input = event.target;
+			var editor, item, name;
+
+			if ( ! input.name || input.name.indexOf( '[label]' ) === -1 ) {
+				return;
+			}
+
+			editor = input.closest( '.sf-field-editor' );
+
+			if ( ! editor ) {
+				return;
+			}
+
+			item = fieldList.querySelector( '[data-for="' + editor.getAttribute( 'data-for' ) + '"]' );
+
+			if ( ! item ) {
+				return;
+			}
+
+			name = item.querySelector( '.sf-field-item__name' );
+
+			if ( name ) {
+				name.textContent = input.value.trim() || fieldStrings.untitled || 'Untitled field';
+			}
+		} );
+
+		// Select the first field (or show the empty state) on load.
+		var firstItem = fieldList.querySelector( '.sf-field-item' );
+
+		if ( firstItem ) {
+			selectField( firstItem.getAttribute( 'data-for' ) );
+		} else if ( fieldsEmpty ) {
+			fieldsEmpty.hidden = false;
+		}
+	}
 
 	var addSelect = document.getElementById( 'sf-add-field' );
 

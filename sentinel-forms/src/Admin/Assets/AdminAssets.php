@@ -68,6 +68,9 @@ final class AdminAssets {
 					'devCode'       => __( 'Dev code:', 'sentinel-forms' ),
 					'requestFailed' => __( 'The request failed. Try again.', 'sentinel-forms' ),
 				],
+				'fieldStrings'   => [
+					'untitled' => __( 'Untitled field', 'sentinel-forms' ),
+				],
 			]
 		);
 	}

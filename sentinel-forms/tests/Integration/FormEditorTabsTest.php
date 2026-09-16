@@ -43,7 +43,6 @@ final class FormEditorTabsTest extends TestCase {
 			(int) strpos( $html, 'id="sf-panel-settings"' )
 		);
 	}
-
 	/**
 	 * Both tab panels stay inside the save form so every section is
 	 * submitted regardless of which tab is visible.
@@ -64,9 +63,10 @@ final class FormEditorTabsTest extends TestCase {
 		$this->assertStringContainsString( 'name="ai_spam"', $settings );
 		$this->assertStringContainsString( 'sentinel-forms-ai-panel', $settings );
 		$this->assertStringContainsString( 'AI evaluates meaning, relevance, intent and urgency.', $settings );
-		$this->assertStringNotContainsString( 'id="sf-fields"', $settings );
+		$this->assertStringNotContainsString( 'id="sf-fields-list"', $settings );
 
-		$this->assertStringContainsString( 'id="sf-fields"', $fields );
+		$this->assertStringContainsString( 'id="sf-fields-list"', $fields );
+		$this->assertStringContainsString( 'id="sf-fields-editors"', $fields );
 		$this->assertStringContainsString( 'id="sf-add-field"', $fields );
 		$this->assertStringNotContainsString( 'name="form_name"', $fields );
 	}

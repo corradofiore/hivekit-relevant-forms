@@ -210,26 +210,47 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 		<h2><?php esc_html_e( 'Fields', 'sentinel-forms' ); ?></h2>
 
-		<div id="sf-fields">
-			<?php
-			foreach ( $form->schema->fields() as $definition ) {
-				$field_type = SentinelForms\Forms\Fields\FieldTypeRegistry::get( (string) $definition['type'] );
-				if ( null === $field_type ) {
-					continue;
-				}
-				require SENTINEL_FORMS_PATH . 'templates/admin/field-row.php';
-			}
-			?>
+		<?php $builder_fields = $form->schema->fields(); ?>
+		<div class="sf-fields-columns">
+			<div class="sf-fields-column sf-fields-column--list">
+				<p class="sf-fields-add">
+					<select id="sf-add-field">
+						<option value=""><?php esc_html_e( 'Add a field…', 'sentinel-forms' ); ?></option>
+						<?php foreach ( $types as $field_type ) : ?>
+							<option value="<?php echo esc_attr( $field_type->type() ); ?>"><?php echo esc_html( $field_type->label() ); ?></option>
+						<?php endforeach; ?>
+					</select>
+				</p>
+				<div id="sf-fields-list" class="sf-fields-list" role="listbox" aria-label="<?php esc_attr_e( 'Form fields', 'sentinel-forms' ); ?>">
+					<?php
+					$builder_index = 0;
+					foreach ( $builder_fields as $definition ) {
+						$field_type = SentinelForms\Forms\Fields\FieldTypeRegistry::get( (string) $definition['type'] );
+						if ( null === $field_type ) {
+							continue;
+						}
+						$is_first = 0 === $builder_index;
+						require SENTINEL_FORMS_PATH . 'templates/admin/field-list-item.php';
+						++$builder_index;
+					}
+					?>
+				</div>
+			</div>
+			<div class="sf-fields-column sf-fields-column--editor">
+				<p id="sf-fields-empty" class="sf-fields-empty"<?php echo [] === $builder_fields ? '' : ' hidden'; ?>><?php esc_html_e( 'Select a field to edit it, or add a new one.', 'sentinel-forms' ); ?></p>
+				<div id="sf-fields-editors">
+					<?php
+					foreach ( $builder_fields as $definition ) {
+						$field_type = SentinelForms\Forms\Fields\FieldTypeRegistry::get( (string) $definition['type'] );
+						if ( null === $field_type ) {
+							continue;
+						}
+						require SENTINEL_FORMS_PATH . 'templates/admin/field-row.php';
+					}
+					?>
+				</div>
+			</div>
 		</div>
-
-		<p>
-			<select id="sf-add-field">
-				<option value=""><?php esc_html_e( 'Add a field…', 'sentinel-forms' ); ?></option>
-				<?php foreach ( $types as $field_type ) : ?>
-					<option value="<?php echo esc_attr( $field_type->type() ); ?>"><?php echo esc_html( $field_type->label() ); ?></option>
-				<?php endforeach; ?>
-			</select>
-		</p>
 		</div><!-- #sf-panel-fields -->
 
 		<?php submit_button( $isEditing ? __( 'Save Form', 'sentinel-forms' ) : __( 'Create Form', 'sentinel-forms' ) ); ?>
@@ -248,6 +269,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 				'default_value' => '',
 				'choices'       => [],
 			];
+			$is_first   = false;
+			require SENTINEL_FORMS_PATH . 'templates/admin/field-list-item.php';
 			require SENTINEL_FORMS_PATH . 'templates/admin/field-row.php';
 			?>
 		</template>
