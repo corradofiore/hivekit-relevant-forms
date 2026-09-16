@@ -130,8 +130,15 @@
 	z-index: 20;
 }
 
-.sentinel-forms-used-on:hover .sentinel-forms-used-on__popover,
-.sentinel-forms-used-on:focus-within .sentinel-forms-used-on__popover {
+/* Header tooltip: opens on the hint badge itself, not on the header text. */
+.sentinel-forms-used-on__hint:hover + .sentinel-forms-used-on__popover,
+.sentinel-forms-used-on__hint:focus + .sentinel-forms-used-on__popover {
+	display: block;
+}
+
+/* Row page list: opens while hovering the cell or focusing the View all control. */
+td.sentinel-forms-used-on:hover .sentinel-forms-used-on__popover,
+td.sentinel-forms-used-on:focus-within .sentinel-forms-used-on__popover {
 	display: block;
 }
 
