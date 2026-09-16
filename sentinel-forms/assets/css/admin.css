@@ -181,8 +181,8 @@ td.sentinel-forms-used-on .sentinel-forms-used-on__popover:target {
 /* Form editor: AI classification callout. */
 
 .sentinel-forms-ai-panel {
-	background: #fffbdc;
-	border: 1px solid #f0e29f;
+	background: #fff6ab;
+	border: 1px solid #eede85;
 	border-radius: 4px;
 	margin-top: 1.5em;
 	padding: 1em 1.25em;
