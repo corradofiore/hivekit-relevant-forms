@@ -40,7 +40,11 @@ final class FormSaveController {
 
 		$formId = isset( $raw['form_id'] ) ? absint( $raw['form_id'] ) : 0;
 		$name   = sanitize_text_field( (string) ( $raw['form_name'] ?? '' ) );
-		$status = 'published' === (string) ( $raw['form_status'] ?? '' ) ? 'published' : 'draft';
+		$status = (string) ( $raw['form_status'] ?? '' );
+
+		if ( ! in_array( $status, [ 'draft', 'published', 'archived' ], true ) ) {
+			$status = 'draft';
+		}
 
 		$fields = self::parseFields( $raw['sentinel_fields'] ?? [] );
 

@@ -42,6 +42,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 					<select id="sentinel-form-status" name="form_status">
 						<option value="draft" <?php selected( $form->status, 'draft' ); ?>><?php esc_html_e( 'Draft', 'sentinel-forms' ); ?></option>
 						<option value="published" <?php selected( $form->status, 'published' ); ?>><?php esc_html_e( 'Published', 'sentinel-forms' ); ?></option>
+						<option value="archived" <?php selected( $form->status, 'archived' ); ?>><?php esc_html_e( 'Archived', 'sentinel-forms' ); ?></option>
 					</select>
 					<p class="description"><?php esc_html_e( 'Only published forms can be rendered on the front end.', 'sentinel-forms' ); ?></p>
 				</td>
