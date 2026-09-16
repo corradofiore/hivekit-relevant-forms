@@ -85,7 +85,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 			<tr id="sf-confirmation-url-row">
 				<th scope="row"><label for="sentinel-redirect-url"><?php esc_html_e( 'Redirect URL', 'sentinel-forms' ); ?></label></th>
 				<td>
-					<input type="url" class="regular-text" id="sentinel-redirect-url" name="redirect_url" value="<?php echo esc_attr( $form->schema->redirectUrl() ); ?>">
+					<input type="url" class="regular-text" id="sentinel-redirect-url" name="redirect_url" value="<?php echo esc_attr( $form->schema->redirectUrl() ); ?>" placeholder="https://...">
 					<p class="description"><?php esc_html_e( 'Where to send visitors after a successful submission.', 'sentinel-forms' ); ?></p>
 				</td>
 			</tr>

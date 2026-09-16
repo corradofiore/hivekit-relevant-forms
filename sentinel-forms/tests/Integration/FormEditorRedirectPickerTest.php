@@ -56,6 +56,7 @@ final class FormEditorRedirectPickerTest extends TestCase {
 
 		// The URL field stays editable while no anchor is selected.
 		$this->assertDoesNotMatchRegularExpression( '/<input type="url"[^>]*disabled/', $html );
+		$this->assertStringContainsString( 'placeholder="https://..."', $html );
 	}
 
 	/**
