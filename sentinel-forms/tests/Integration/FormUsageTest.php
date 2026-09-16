@@ -148,6 +148,10 @@ final class FormUsageTest extends TestCase {
 		$this->assertStringContainsString( 'aria-controls="sentinel-forms-usage-' . $multi . '"', $html );
 		$this->assertStringContainsString( 'Solo', $html );
 
+		// The header explainer documents the discovery limitation.
+		$this->assertStringContainsString( 'aria-controls="sentinel-forms-used-on-explainer"', $html );
+		$this->assertStringContainsString( 'sentinel_forms_render() are not listed', $html );
+
 		// Only the multi-embed form gets the "View all" toggle.
 		$this->assertSame( 1, substr_count( $html, 'View all' ) );
 	}

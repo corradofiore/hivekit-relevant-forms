@@ -40,7 +40,16 @@ if ( ! defined( 'ABSPATH' ) ) {
 				<tr>
 					<th scope="col"><?php esc_html_e( 'Name', 'sentinel-forms' ); ?></th>
 					<th scope="col"><?php esc_html_e( 'Status', 'sentinel-forms' ); ?></th>
-					<th scope="col"><?php esc_html_e( 'Used on', 'sentinel-forms' ); ?></th>
+					<th scope="col" class="sentinel-forms-used-on">
+						<?php esc_html_e( 'Used on', 'sentinel-forms' ); ?>
+						<button type="button" class="sentinel-forms-used-on__toggle sentinel-forms-used-on__info-toggle" aria-expanded="false" aria-controls="sentinel-forms-used-on-explainer">
+							<span class="screen-reader-text"><?php esc_html_e( 'About the "Used on" column', 'sentinel-forms' ); ?></span>
+							<span aria-hidden="true">?</span>
+						</button>
+						<div id="sentinel-forms-used-on-explainer" class="sentinel-forms-used-on__popover sentinel-forms-used-on__popover--info" hidden>
+							<p><?php esc_html_e( 'Only forms embedded with the [sentinel_form] shortcode in post content are detected — pages, posts and other post types. Forms rendered from theme templates with sentinel_forms_render() are not listed.', 'sentinel-forms' ); ?></p>
+						</div>
+					</th>
 					<th scope="col"><?php esc_html_e( 'Shortcode', 'sentinel-forms' ); ?></th>
 					<th scope="col"><?php esc_html_e( 'Updated', 'sentinel-forms' ); ?></th>
 					<th scope="col"><?php esc_html_e( 'Actions', 'sentinel-forms' ); ?></th>
