@@ -68,19 +68,21 @@ final class CloudConnection {
 	 * /v1/sites/connect call.
 	 *
 	 * @param array<string, mixed> $capabilities Server-reported capabilities.
+	 * @param string|null          $dashboardUrl Dashboard deep link reported by the server (D8).
 	 */
-	public function connect( string $siteId, string $siteUrl, string $siteName, array $capabilities = [] ): void {
+	public function connect( string $siteId, string $siteUrl, string $siteName, array $capabilities = [], ?string $dashboardUrl = null ): void {
 		$this->save(
 			[
-				'state'        => self::STATE_ACCOUNT_CONNECTED,
-				'site_id'      => $siteId,
-				'site_url'     => $siteUrl,
-				'site_name'    => $siteName,
-				'connected_at' => current_time( 'mysql', true ),
-				'enabled'      => [],
-				'capabilities' => $capabilities,
-				'subscription' => [],
-				'usage'        => [],
+				'state'         => self::STATE_ACCOUNT_CONNECTED,
+				'site_id'       => $siteId,
+				'site_url'      => $siteUrl,
+				'site_name'     => $siteName,
+				'connected_at'  => current_time( 'mysql', true ),
+				'enabled'       => [],
+				'capabilities'  => $capabilities,
+				'subscription'  => [],
+				'usage'         => [],
+				'dashboard_url' => $dashboardUrl,
 			]
 		);
 	}
@@ -193,6 +195,17 @@ final class CloudConnection {
 		$data = $this->get();
 
 		return '' !== (string) ( $data['site_id'] ?? '' ) ? (string) $data['site_id'] : null;
+	}
+
+	/**
+	 * Dashboard deep link for this site, if the server reported one.
+	 * Billing actions live in the dashboard (D8).
+	 */
+	public function dashboardUrl(): ?string {
+		$data = $this->get();
+		$url  = (string) ( $data['dashboard_url'] ?? '' );
+
+		return '' !== $url ? $url : null;
 	}
 
 	/**

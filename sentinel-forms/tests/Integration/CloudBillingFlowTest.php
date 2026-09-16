@@ -1,6 +1,6 @@
 <?php
 /**
- * Cloud subscription flow integration tests (Phase 8).
+ * Cloud billing deep-link integration tests (Phase 8; dashboard deep link in D8).
  *
  * @package SentinelForms
  */
@@ -14,21 +14,22 @@ use SentinelForms\Http\CloudBillingController;
 use SentinelForms\Tests\Integration\Support\RedirectedException;
 
 /**
- * Checkout / portal redirects to provider-hosted sessions.
+ * Manage billing deep-links into the Sentinel Cloud dashboard with the
+ * site context; WordPress never contacts the payment provider itself.
  *
  * @group integration
  */
 final class CloudBillingFlowTest extends TestCase {
 
 	/**
-	 * Requests captured by the fake Cloud.
+	 * Outbound HTTP requests seen during the test (must stay empty).
 	 *
-	 * @var array<int, array<string, mixed>>
+	 * @var array<int, string>
 	 */
 	private array $requests = [];
 
 	/**
-	 * Run as an administrator and install the fake Cloud endpoints.
+	 * Run as an administrator with a connected site.
 	 */
 	public function setUp(): void {
 		parent::setUp();
@@ -47,24 +48,20 @@ final class CloudBillingFlowTest extends TestCase {
 		);
 
 		$connection = new CloudConnection();
-		$connection->connect( 'site-uuid-1', 'https://a.example', 'Acme' );
+		$connection->connect(
+			'site-uuid-1',
+			'https://a.example',
+			'Acme',
+			[],
+			'https://cloud.example.com/app/sites/site-uuid-1/billing'
+		);
 
+		// Tripwire: the deep link must not require any backend call.
 		add_filter(
 			'pre_http_request',
 			function ( mixed $pre, array $args, string $url ): array {
-				unset( $pre );
-				$this->requests[] = [
-					'url'  => $url,
-					'args' => $args,
-				];
-
-				if ( str_contains( $url, '/billing/portal' ) ) {
-					return $this->json( [ 'portal_url' => 'https://billing.example/portal/session_1' ] );
-				}
-
-				if ( str_contains( $url, '/billing/checkout' ) ) {
-					return $this->json( [ 'checkout_url' => 'https://billing.example/checkout/session_1' ] );
-				}
+				unset( $pre, $args );
+				$this->requests[] = $url;
 
 				return [
 					'response' => [ 'code' => 502 ],
@@ -77,30 +74,14 @@ final class CloudBillingFlowTest extends TestCase {
 	}
 
 	/**
-	 * Subscribe opens the provider-hosted checkout session.
+	 * Manage billing opens the subscription page in the client dashboard
+	 * without any provider call from WordPress.
 	 */
-	public function testCheckoutRedirectsToTheHostedSession(): void {
-		$url = $this->billing( 'checkout' );
+	public function testManageBillingDeepLinksToTheDashboard(): void {
+		$url = $this->billing();
 
-		$this->assertSame( 'https://billing.example/checkout/session_1', $url );
-
-		$this->assertCount( 1, $this->requests );
-		$this->assertStringContainsString( '/api/v1/billing/checkout', (string) $this->requests[0]['url'] );
-
-		$payload = json_decode( (string) $this->requests[0]['args']['body'], true );
-		$this->assertSame( 'cloud', $payload['plan'] );
-		$this->assertStringContainsString( 'page=sentinel-settings', (string) $payload['success_url'] );
-		$this->assertStringContainsString( 'billing=return', (string) $payload['success_url'] );
-	}
-
-	/**
-	 * Manage billing opens the provider-hosted customer portal.
-	 */
-	public function testPortalRedirectsToTheHostedPortal(): void {
-		$url = $this->billing( 'portal' );
-
-		$this->assertSame( 'https://billing.example/portal/session_1', $url );
-		$this->assertStringContainsString( '/api/v1/billing/portal?return_url=', (string) $this->requests[0]['url'] );
+		$this->assertSame( 'https://cloud.example.com/app/sites/site-uuid-1/billing', $url );
+		$this->assertCount( 0, $this->requests );
 	}
 
 	/**
@@ -110,7 +91,7 @@ final class CloudBillingFlowTest extends TestCase {
 		$connection = new CloudConnection();
 		$connection->disconnect();
 
-		$url = $this->billing( 'checkout' );
+		$url = $this->billing();
 
 		$this->assertStringContainsString( 'page=sentinel-settings', $url );
 		$this->assertStringContainsString( 'billing=not_connected', $url );
@@ -118,40 +99,33 @@ final class CloudBillingFlowTest extends TestCase {
 	}
 
 	/**
-	 * Backend failures degrade to a settings notice, never a broken flow.
+	 * Account-less connections (legacy config keys) have no dashboard yet.
 	 */
-	public function testBackendFailuresRedirectBackWithANotice(): void {
-		remove_all_filters( 'pre_http_request' );
-		add_filter(
-			'pre_http_request',
-			function ( mixed $pre, array $args, string $url ): array {
-				unset( $pre, $args, $url );
+	public function testConnectionsWithoutADashboardLinkGetANotice(): void {
+		$connection = new CloudConnection();
+		$connection->connect( 'site-uuid-1', 'https://a.example', 'Acme' );
 
-				return [
-					'response' => [ 'code' => 502 ],
-					'body'     => '{"success":false}',
-				];
-			},
-			10,
-			3
-		);
+		$url = $this->billing();
 
-		$url = $this->billing( 'checkout' );
+		$this->assertStringContainsString( 'billing=unavailable', $url );
+	}
 
-		$this->assertStringContainsString( 'billing=failed', $url );
+	/**
+	 * Unconfigured Cloud credentials keep the connection guard.
+	 */
+	public function testUnconfiguredCloudGetsANotice(): void {
+		update_option( 'sentinel_forms_settings', [] );
+
+		$url = $this->billing();
+
+		$this->assertStringContainsString( 'billing=not_configured', $url );
 	}
 
 	/**
 	 * Simulate the billing admin action with a nonce.
-	 *
-	 * @param string $mode checkout|portal.
 	 */
-	private function billing( string $mode ): string {
-		$_POST                = [
-			'action' => 'sentinel_forms_cloud_billing',
-			'mode'   => $mode,
-			'plan'   => 'cloud',
-		];
+	private function billing(): string {
+		$_POST                = [ 'action' => 'sentinel_forms_cloud_billing' ];
 		$_REQUEST['_wpnonce'] = wp_create_nonce( 'sentinel_cloud_billing' );
 
 		add_filter(
@@ -171,24 +145,6 @@ final class CloudBillingFlowTest extends TestCase {
 			remove_all_filters( 'sentinel_forms_redirect' );
 			unset( $_REQUEST['_wpnonce'] );
 		}
-	}
-
-	/**
-	 * JSON envelope for the fake Cloud.
-	 *
-	 * @param array<string, mixed> $data Payload.
-	 * @return array<string, mixed>
-	 */
-	private function json( array $data ): array {
-		return [
-			'response' => [ 'code' => 200 ],
-			'body'     => (string) wp_json_encode(
-				[
-					'success' => true,
-					'data'    => $data,
-				]
-			),
-		];
 	}
 
 	/**

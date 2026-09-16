@@ -171,3 +171,27 @@ it(
 		expect( $connection->subscription()['entitled'] )->toBeTrue();
 	}
 );
+
+it(
+	'stores the dashboard deep link reported by the connect response',
+	function () {
+		$connection = new CloudConnection();
+
+		expect( $connection->dashboardUrl() )->toBeNull();
+
+		$connection->connect(
+			'site-uuid-1',
+			'https://a.example',
+			'Acme',
+			[],
+			'https://cloud.example.com/app/sites/site-uuid-1/billing'
+		);
+
+		expect( $connection->dashboardUrl() )->toBe( 'https://cloud.example.com/app/sites/site-uuid-1/billing' );
+
+		// Reconnecting without a link (legacy config key) clears a stale value.
+		$connection->connect( 'site-uuid-1', 'https://a.example', 'Acme' );
+
+		expect( $connection->dashboardUrl() )->toBeNull();
+	}
+);

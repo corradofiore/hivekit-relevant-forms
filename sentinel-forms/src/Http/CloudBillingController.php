@@ -1,6 +1,6 @@
 <?php
 /**
- * Cloud subscription actions (Phase 8): hosted checkout and portal.
+ * Cloud billing deep link (Phase 8; dashboard deep link since D8).
  *
  * @package SentinelForms
  */
@@ -9,14 +9,14 @@ declare(strict_types=1);
 
 namespace SentinelForms\Http;
 
-use SentinelForms\Cloud\CloudClient;
 use SentinelForms\Cloud\CloudConfig;
 use SentinelForms\Cloud\CloudConnection;
 
 /**
- * Redirects the administrator to the provider-hosted billing session
- * created by our backend. No billing data ever lives in WordPress; the
- * site only holds the app-side connection state.
+ * Redirects the administrator to the site's subscription page in the
+ * Sentinel Cloud dashboard. Billing actions (checkout, plan changes,
+ * invoices) live there — WordPress only deep-links with the site
+ * context and never talks to the payment provider itself.
  */
 final class CloudBillingController {
 
@@ -28,7 +28,7 @@ final class CloudBillingController {
 	}
 
 	/**
-	 * Handle a checkout or portal request.
+	 * Deep-link into the client dashboard for this site.
 	 */
 	public static function handle(): void {
 		if ( ! current_user_can( 'manage_options' ) ) {
@@ -37,8 +37,6 @@ final class CloudBillingController {
 
 		check_admin_referer( 'sentinel_cloud_billing' );
 
-		$raw         = wp_unslash( $_POST );
-		$mode        = sanitize_key( (string) ( $raw['mode'] ?? 'checkout' ) );
 		$settingsUrl = admin_url( 'admin.php?page=sentinel-settings' );
 
 		if ( ! CloudConfig::isConfigured() ) {
@@ -51,31 +49,17 @@ final class CloudBillingController {
 			self::redirect( $settingsUrl . '&billing=not_connected' );
 		}
 
-		$client = new CloudClient( CloudConfig::url(), CloudConfig::key() );
-		$url    = '';
+		// Deep link reported by /v1/sites/connect; absent for account-less
+		// (legacy config-key) sites, which have no dashboard yet.
+		$url = $connection->dashboardUrl();
 
-		if ( 'portal' === $mode ) {
-			$data = $client->billingPortal( $settingsUrl . '&billing=return' );
-			$url  = is_array( $data ) ? (string) ( $data['portal_url'] ?? '' ) : '';
-		} else {
-			$plan = sanitize_key( (string) ( $raw['plan'] ?? 'cloud' ) );
-
-			if ( '' === $plan ) {
-				$plan = 'cloud';
-			}
-
-			$data = $client->billingCheckout( $plan, $settingsUrl . '&billing=return', $settingsUrl . '&billing=cancel' );
-			$url  = is_array( $data ) ? (string) ( $data['checkout_url'] ?? '' ) : '';
-		}
-
-		// Only secure URLs returned by our own backend are followed.
-		if ( '' === $url || ! str_starts_with( $url, 'https://' ) ) {
-			self::redirect( $settingsUrl . '&billing=failed' );
+		if ( null === $url ) {
+			self::redirect( $settingsUrl . '&billing=unavailable' );
 		}
 
 		$url = (string) apply_filters( 'sentinel_forms_redirect', $url, 0 );
 
-		// phpcs:ignore WordPress.Security.SafeRedirect.wp_redirect_wp_redirect -- external hosted billing session returned by our backend.
+		// phpcs:ignore WordPress.Security.SafeRedirect.wp_redirect_wp_redirect -- deep link into the Sentinel Cloud dashboard reported by our backend.
 		wp_redirect( $url );
 		exit;
 	}

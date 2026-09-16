@@ -282,17 +282,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 	// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only status marker set by our own redirect.
 	$billingNotice = isset( $_GET['billing'] ) ? sanitize_key( wp_unslash( $_GET['billing'] ) ) : '';
 
-	if ( 'return' === $billingNotice ) :
+	if ( 'not_connected' === $billingNotice ) :
 		?>
-		<div class="notice notice-success is-dismissible"><p><?php esc_html_e( 'Billing session finished. Subscription changes appear below after the payment provider confirms them.', 'sentinel-forms' ); ?></p></div>
-	<?php elseif ( 'cancel' === $billingNotice ) : ?>
-		<div class="notice notice-info is-dismissible"><p><?php esc_html_e( 'Billing session cancelled. No changes were made.', 'sentinel-forms' ); ?></p></div>
-	<?php elseif ( 'failed' === $billingNotice ) : ?>
-		<div class="notice notice-error is-dismissible"><p><?php esc_html_e( 'Could not open the billing session. Please try again or contact support.', 'sentinel-forms' ); ?></p></div>
-	<?php elseif ( 'not_connected' === $billingNotice ) : ?>
 		<div class="notice notice-error is-dismissible"><p><?php esc_html_e( 'Connect this site to Sentinel Cloud before managing a subscription.', 'sentinel-forms' ); ?></p></div>
 	<?php elseif ( 'not_configured' === $billingNotice ) : ?>
 		<div class="notice notice-error is-dismissible"><p><?php esc_html_e( 'Cloud URL and API key are required before managing a subscription.', 'sentinel-forms' ); ?></p></div>
+	<?php elseif ( 'unavailable' === $billingNotice ) : ?>
+		<div class="notice notice-error is-dismissible"><p><?php esc_html_e( 'This connection has no Sentinel Cloud dashboard link yet. Reconnect with a dashboard-issued API key to manage billing.', 'sentinel-forms' ); ?></p></div>
 	<?php endif; ?>
 
 	<h2><?php esc_html_e( 'Subscription', 'sentinel-forms' ); ?></h2>
@@ -326,20 +322,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 			<tr>
 				<th scope="row"><?php esc_html_e( 'Billing', 'sentinel-forms' ); ?></th>
 				<td>
-					<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" style="display:inline-block;margin-right:.5em;">
-						<input type="hidden" name="action" value="sentinel_forms_cloud_billing">
-						<input type="hidden" name="mode" value="checkout">
-						<input type="hidden" name="plan" value="cloud">
-						<?php wp_nonce_field( 'sentinel_cloud_billing' ); ?>
-						<button type="submit" class="button button-primary"><?php esc_html_e( 'Subscribe / upgrade', 'sentinel-forms' ); ?></button>
-					</form>
 					<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" style="display:inline-block;">
 						<input type="hidden" name="action" value="sentinel_forms_cloud_billing">
-						<input type="hidden" name="mode" value="portal">
 						<?php wp_nonce_field( 'sentinel_cloud_billing' ); ?>
-						<button type="submit" class="button"><?php esc_html_e( 'Manage billing', 'sentinel-forms' ); ?></button>
+						<button type="submit" class="button button-primary"><?php esc_html_e( 'Manage billing', 'sentinel-forms' ); ?></button>
 					</form>
-					<p class="description"><?php esc_html_e( 'Payments, invoices and receipts are handled by the billing provider (merchant of record); card data never touches this site.', 'sentinel-forms' ); ?></p>
+					<p class="description"><?php esc_html_e( 'Plan changes, payment details and invoices live in the Sentinel Cloud dashboard; the subscription state shown here is read-only.', 'sentinel-forms' ); ?></p>
 				</td>
 			</tr>
 		</table>
