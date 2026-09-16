@@ -29,14 +29,66 @@ final class FormEditPage {
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only view parameter.
 		$formId = isset( $_GET['form_id'] ) ? absint( wp_unslash( $_GET['form_id'] ) ) : 0;
 
-		$form      = $formId > 0 ? ( new FormRepository() )->find( $formId ) : null;
-		$types     = FieldTypeRegistry::all();
-		$isEditing = null !== $form;
+		$form            = $formId > 0 ? ( new FormRepository() )->find( $formId ) : null;
+		$types           = FieldTypeRegistry::all();
+		$redirectTargets = self::redirectTargets();
+		$isEditing       = null !== $form;
 
 		if ( null === $form ) {
 			$form = new Form( 0, '', 'draft', \SentinelForms\Forms\FormSchema::empty(), '', '' );
 		}
 
 		require SENTINEL_FORMS_PATH . 'templates/admin/form-edit.php';
+	}
+
+	/**
+	 * Published pages and posts for the redirect picker, grouped by type.
+	 *
+	 * @return array<int, array{label: string, items: array<int, array{title: string, url: string}>}>
+	 */
+	private static function redirectTargets(): array {
+		$groups = [];
+
+		foreach (
+			[
+				'page' => __( 'Pages', 'sentinel-forms' ),
+				'post' => __( 'Posts', 'sentinel-forms' ),
+			] as $postType => $label
+		) {
+			$posts = get_posts(
+				[
+					'post_type'      => $postType,
+					'post_status'    => 'publish',
+					'posts_per_page' => 100,
+					'orderby'        => 'title',
+					'order'          => 'ASC',
+					'no_found_rows'  => true,
+				]
+			);
+
+			$items = [];
+
+			foreach ( $posts as $post ) {
+				$title = get_the_title( $post );
+
+				if ( '' === $title ) {
+					$title = __( '(no title)', 'sentinel-forms' );
+				}
+
+				$items[] = [
+					'title' => $title,
+					'url'   => (string) get_permalink( $post ),
+				];
+			}
+
+			if ( [] !== $items ) {
+				$groups[] = [
+					'label' => $label,
+					'items' => $items,
+				];
+			}
+		}
+
+		return $groups;
 	}
 }

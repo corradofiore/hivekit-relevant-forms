@@ -87,6 +87,22 @@
 		} );
 	}
 
+	/*
+	 * Redirect picker: choosing a page or post copies its permalink into the
+	 * Redirect URL field, which stays the single saved value.
+	 */
+	var redirectPicker = document.getElementById( 'sf-redirect-page' );
+	var redirectInput = document.getElementById( 'sentinel-redirect-url' );
+
+	if ( redirectPicker && redirectInput ) {
+		redirectPicker.addEventListener( 'change', function () {
+			if ( this.value ) {
+				redirectInput.value = this.value;
+				this.value = '';
+			}
+		} );
+	}
+
 	/**
 	 * Toggle the form editor tabs (settings / fields).
 	 *
