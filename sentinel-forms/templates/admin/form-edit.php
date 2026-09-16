@@ -79,7 +79,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 				<th scope="row"><label for="sentinel-confirmation-message"><?php esc_html_e( 'Message', 'sentinel-forms' ); ?></label></th>
 				<td>
 					<textarea class="sentinel-forms-textarea" id="sentinel-confirmation-message" name="confirmation_message" rows="4"><?php echo esc_textarea( $form->schema->confirmationMessage() ); ?></textarea>
-					<p class="description"><?php esc_html_e( 'Shown on the page after a successful submission.', 'sentinel-forms' ); ?></p>
+					<p class="description sentinel-forms-textarea-caption"><?php esc_html_e( 'Shown on the page after a successful submission.', 'sentinel-forms' ); ?></p>
 				</td>
 			</tr>
 			<tr id="sf-confirmation-url-row">
@@ -127,7 +127,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 				<th scope="row"><label for="sentinel-notification-emails"><?php esc_html_e( 'Email recipients', 'sentinel-forms' ); ?></label></th>
 				<td>
 					<textarea class="sentinel-forms-textarea" id="sentinel-notification-emails" name="notification_emails" rows="6" placeholder="<?php esc_attr_e( 'one address per line', 'sentinel-forms' ); ?>"><?php echo esc_textarea( implode( "\n", $form->schema->notificationEmails() ) ); ?></textarea>
-					<p class="description"><?php esc_html_e( 'Leave empty to use the site administrator email.', 'sentinel-forms' ); ?></p>
+					<p class="description sentinel-forms-textarea-caption"><?php esc_html_e( 'Leave empty to use the site administrator email.', 'sentinel-forms' ); ?></p>
 				</td>
 			</tr>
 		</table>
@@ -151,14 +151,14 @@ if ( ! defined( 'ABSPATH' ) ) {
 				<th scope="row"><label for="sentinel-ai-purpose"><?php esc_html_e( 'Form purpose', 'sentinel-forms' ); ?></label></th>
 				<td>
 					<textarea class="sentinel-forms-textarea" id="sentinel-ai-purpose" name="ai_purpose" rows="4"><?php echo esc_textarea( (string) ( $ai_policy['purpose'] ?? '' ) ); ?></textarea>
-					<p class="description"><?php esc_html_e( 'Tell our Sentinel AI what a relevant submission looks like, e.g. "Requests for quotes from homeowners", "RSVP for training events", etc.', 'sentinel-forms' ); ?></p>
+					<p class="description sentinel-forms-textarea-caption"><?php esc_html_e( 'Tell our Sentinel AI what a relevant submission looks like, e.g. "Requests for quotes from homeowners", "RSVP for training events", etc.', 'sentinel-forms' ); ?></p>
 				</td>
 			</tr>
 			<tr>
 				<th scope="row"><label for="sentinel-ai-spam"><?php esc_html_e( 'What counts as spam', 'sentinel-forms' ); ?></label></th>
 				<td>
 					<textarea class="sentinel-forms-textarea" id="sentinel-ai-spam" name="ai_spam" rows="4"><?php echo esc_textarea( (string) ( $ai_policy['spam'] ?? '' ) ); ?></textarea>
-					<p class="description"><?php esc_html_e( 'Describe messages this form should treat as spam, e.g. "Automated sales pitches and link drops", "Comments not relevant to (insert your site\'s topic) or very generic". One category per line.', 'sentinel-forms' ); ?></p>
+					<p class="description sentinel-forms-textarea-caption"><?php esc_html_e( 'Describe messages this form should treat as spam, e.g. "Automated sales pitches and link drops", "Comments not relevant to (insert your site\'s topic) or very generic". One category per line.', 'sentinel-forms' ); ?></p>
 				</td>
 			</tr>
 		</table>

@@ -166,14 +166,26 @@ td.sentinel-forms-used-on .sentinel-forms-used-on__popover:target {
 /*
  * Form editor: half-width textareas on desktop, full width on small screens
  * (core's admin breakpoint) — also outranks core's .form-table td textarea.
+ * Captions that describe a textarea match the field width so each row reads
+ * as one block.
  */
 
-.sentinel-forms-builder textarea.sentinel-forms-textarea {
+.sentinel-forms-builder textarea.sentinel-forms-textarea,
+.sentinel-forms-builder .sentinel-forms-textarea-caption {
 	width: 50%;
 }
 
+/* Form editor: right-align the row labels in the left column (desktop). */
+
+@media screen and (min-width: 783px) {
+	.sentinel-forms-builder .form-table th {
+		text-align: right;
+	}
+}
+
 @media screen and (max-width: 782px) {
-	.sentinel-forms-builder textarea.sentinel-forms-textarea {
+	.sentinel-forms-builder textarea.sentinel-forms-textarea,
+	.sentinel-forms-builder .sentinel-forms-textarea-caption {
 		width: 100%;
 	}
 }
