@@ -152,3 +152,13 @@ td.sentinel-forms-used-on .sentinel-forms-used-on__popover:target {
 .sentinel-forms-used-on__popover li:last-child {
 	margin-bottom: 0;
 }
+
+/* Form editor tabs (core .nav-tab-wrapper provides the tab chrome). */
+
+.sentinel-forms-tabs {
+	margin-top: 1em;
+}
+
+.sentinel-forms-tabs__panel {
+	margin-top: 1em;
+}

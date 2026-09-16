@@ -86,4 +86,68 @@
 			}
 		} );
 	}
+
+	/**
+	 * Toggle the form editor tabs (settings / fields).
+	 *
+	 * Both panels stay in the DOM so no input is ever dropped from a save
+	 * request, and the current tab is reflected in the URL hash so reloading
+	 * the editor keeps the section the user was on.
+	 */
+	function initTabs() {
+		var tabs = Array.prototype.slice.call( document.querySelectorAll( '.sentinel-forms-tabs .nav-tab' ) );
+		var items = [];
+
+		if ( ! tabs.length ) {
+			return;
+		}
+
+		tabs.forEach( function ( tab ) {
+			var panel = document.getElementById( tab.getAttribute( 'href' ).slice( 1 ) );
+
+			if ( panel ) {
+				items.push( { tab: tab, panel: panel } );
+			}
+		} );
+
+		/**
+		 * Show the panel for the given hash and mark its tab active.
+		 *
+		 * @param {string} hash Panel hash, e.g. "#sf-panel-fields".
+		 */
+		function activate( hash ) {
+			items.forEach( function ( item ) {
+				var isActive = item.tab.getAttribute( 'href' ) === hash;
+
+				item.tab.classList.toggle( 'nav-tab-active', isActive );
+				item.panel.hidden = ! isActive;
+
+				if ( isActive ) {
+					item.tab.setAttribute( 'aria-current', 'true' );
+				} else {
+					item.tab.removeAttribute( 'aria-current' );
+				}
+			} );
+		}
+
+		items.forEach( function ( item ) {
+			item.tab.addEventListener( 'click', function ( event ) {
+				event.preventDefault();
+				activate( item.tab.getAttribute( 'href' ) );
+
+				if ( window.history && window.history.replaceState ) {
+					window.history.replaceState( null, '', item.tab.getAttribute( 'href' ) );
+				}
+			} );
+		} );
+
+		var initial = window.location.hash;
+		var known = items.some( function ( item ) {
+			return item.tab.getAttribute( 'href' ) === initial;
+		} );
+
+		activate( known ? initial : items[ 0 ].tab.getAttribute( 'href' ) );
+	}
+
+	initTabs();
 } )();

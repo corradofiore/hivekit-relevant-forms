@@ -29,6 +29,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 		<input type="hidden" name="form_id" value="<?php echo esc_attr( (string) $form->id ); ?>">
 		<?php wp_nonce_field( 'sentinel_form_save' ); ?>
 
+		<nav class="nav-tab-wrapper sentinel-forms-tabs" aria-label="<?php esc_attr_e( 'Form editor sections', 'sentinel-forms' ); ?>">
+			<a class="nav-tab nav-tab-active sentinel-forms-tabs__tab" href="<?php echo esc_url( '#sf-panel-settings' ); ?>"><?php esc_html_e( 'Form settings', 'sentinel-forms' ); ?></a>
+			<a class="nav-tab sentinel-forms-tabs__tab" href="<?php echo esc_url( '#sf-panel-fields' ); ?>"><?php esc_html_e( 'Form fields', 'sentinel-forms' ); ?></a>
+		</nav>
+
+		<div id="sf-panel-settings" class="sentinel-forms-tabs__panel">
+
 		<table class="form-table" role="presentation">
 			<tr>
 				<th scope="row"><label for="sentinel-form-name"><?php esc_html_e( 'Form name', 'sentinel-forms' ); ?></label></th>
@@ -48,29 +55,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 				</td>
 			</tr>
 		</table>
-
-		<h2><?php esc_html_e( 'Fields', 'sentinel-forms' ); ?></h2>
-
-		<div id="sf-fields">
-			<?php
-			foreach ( $form->schema->fields() as $definition ) {
-				$field_type = SentinelForms\Forms\Fields\FieldTypeRegistry::get( (string) $definition['type'] );
-				if ( null === $field_type ) {
-					continue;
-				}
-				require SENTINEL_FORMS_PATH . 'templates/admin/field-row.php';
-			}
-			?>
-		</div>
-
-		<p>
-			<select id="sf-add-field">
-				<option value=""><?php esc_html_e( 'Add a field…', 'sentinel-forms' ); ?></option>
-				<?php foreach ( $types as $field_type ) : ?>
-					<option value="<?php echo esc_attr( $field_type->type() ); ?>"><?php echo esc_html( $field_type->label() ); ?></option>
-				<?php endforeach; ?>
-			</select>
-		</p>
 
 		<h2><?php esc_html_e( 'Confirmation', 'sentinel-forms' ); ?></h2>
 		<table class="form-table" role="presentation">
@@ -121,6 +105,33 @@ if ( ! defined( 'ABSPATH' ) ) {
 				</td>
 			</tr>
 		</table>
+		</div><!-- #sf-panel-settings -->
+
+		<div id="sf-panel-fields" class="sentinel-forms-tabs__panel">
+
+		<h2><?php esc_html_e( 'Fields', 'sentinel-forms' ); ?></h2>
+
+		<div id="sf-fields">
+			<?php
+			foreach ( $form->schema->fields() as $definition ) {
+				$field_type = SentinelForms\Forms\Fields\FieldTypeRegistry::get( (string) $definition['type'] );
+				if ( null === $field_type ) {
+					continue;
+				}
+				require SENTINEL_FORMS_PATH . 'templates/admin/field-row.php';
+			}
+			?>
+		</div>
+
+		<p>
+			<select id="sf-add-field">
+				<option value=""><?php esc_html_e( 'Add a field…', 'sentinel-forms' ); ?></option>
+				<?php foreach ( $types as $field_type ) : ?>
+					<option value="<?php echo esc_attr( $field_type->type() ); ?>"><?php echo esc_html( $field_type->label() ); ?></option>
+				<?php endforeach; ?>
+			</select>
+		</p>
+		</div><!-- #sf-panel-fields -->
 
 		<?php submit_button( $isEditing ? __( 'Save Form', 'sentinel-forms' ) : __( 'Create Form', 'sentinel-forms' ) ); ?>
 	</form>

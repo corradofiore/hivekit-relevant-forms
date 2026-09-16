@@ -9,6 +9,8 @@ declare(strict_types=1);
 
 namespace SentinelForms\Admin\Assets;
 
+use SentinelForms\Support\AssetVersion;
+
 /**
  * Registers admin styles and scripts; pages enqueue them lazily.
  */
@@ -35,14 +37,14 @@ final class AdminAssets {
 			'sentinel-forms-admin',
 			SENTINEL_FORMS_URL . 'assets/css/admin.css',
 			[],
-			SENTINEL_FORMS_VERSION
+			AssetVersion::get( 'assets/css/admin.css' )
 		);
 
 		wp_enqueue_script(
 			'sentinel-forms-admin',
 			SENTINEL_FORMS_URL . 'assets/js/admin.js',
 			[],
-			SENTINEL_FORMS_VERSION,
+			AssetVersion::get( 'assets/js/admin.js' ),
 			true
 		);
 	}

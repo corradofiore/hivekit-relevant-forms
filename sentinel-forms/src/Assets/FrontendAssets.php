@@ -9,6 +9,8 @@ declare(strict_types=1);
 
 namespace SentinelForms\Assets;
 
+use SentinelForms\Support\AssetVersion;
+
 /**
  * Registers the public form stylesheet. Enqueued lazily by the renderer so
  * ordinary pages are not slowed down (doc §70).
@@ -30,14 +32,14 @@ final class FrontendAssets {
 			'sentinel-forms',
 			SENTINEL_FORMS_URL . 'assets/css/frontend.css',
 			[],
-			SENTINEL_FORMS_VERSION
+			AssetVersion::get( 'assets/css/frontend.css' )
 		);
 
 		wp_register_script(
 			'sentinel-forms-upload',
 			SENTINEL_FORMS_URL . 'assets/js/frontend-upload.js',
 			[],
-			SENTINEL_FORMS_VERSION,
+			AssetVersion::get( 'assets/js/frontend-upload.js' ),
 			true
 		);
 	}
