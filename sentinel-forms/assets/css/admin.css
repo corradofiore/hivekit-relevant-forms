@@ -72,12 +72,26 @@
 }
 
 .sf-field-item {
-	align-items: center;
 	border-bottom: 1px solid #dcdcde;
 	cursor: grab;
+	padding: 0.5rem 0.75rem;
+}
+
+.sf-field-item__main {
+	align-items: center;
 	display: flex;
 	gap: 0.5em;
-	padding: 0.5rem 0.75rem;
+}
+
+.sf-field-item__actions {
+	display: flex;
+	gap: 0.75em;
+	margin-top: 0.2em;
+}
+
+.sf-field-item__actions .button-link {
+	cursor: pointer;
+	font-size: 12px;
 }
 
 .sf-field-item:last-child {
@@ -111,11 +125,6 @@
 }
 
 .sf-field-item__name {
-	flex: 1 1 auto;
-	font-weight: 600;
-	overflow: hidden;
-	text-overflow: ellipsis;
-	white-space: nowrap;
 }
 
 .sf-field-item__type {

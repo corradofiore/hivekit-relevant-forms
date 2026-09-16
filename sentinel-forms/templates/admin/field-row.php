@@ -24,6 +24,15 @@ $isHidden = 'hidden' === (string) $definition['type'];
 $sample   = $isHidden
 	? '<p class="description">' . esc_html__( 'Hidden fields are not visible on the front end.', 'sentinel-forms' ) . '</p>'
 	: $field_type->render( $definition, null, null, (string) $form->id );
+
+// The preview must never take part in the save form: pointing its controls
+// at a non-existent form id leaves them without a form owner, so browser
+// validation (required etc.) and submission skip them entirely.
+$sample = (string) preg_replace(
+	'/<(input|select|textarea)\b/',
+	'<$1 form="sentinel-forms-preview"',
+	$sample
+);
 ?>
 <div class="sf-field-editor" data-for="<?php echo esc_attr( $fieldId ); ?>" data-type="<?php echo esc_attr( (string) $definition['type'] ); ?>">
 	<p class="sf-field-editor__type"><?php echo esc_html( $field_type->label() ); ?></p>

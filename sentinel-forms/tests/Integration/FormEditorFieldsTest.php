@@ -72,8 +72,7 @@ final class FormEditorFieldsTest extends TestCase {
 		$this->assertStringContainsString( '<span class="sf-field-item__name">Email</span>', $html );
 
 		// Scope to the list: the type templates repeat the same markup.
-		$list = substr( $html, (int) strpos( $html, 'id="sf-fields-list"' ) );
-		$list = substr( $list, 0, (int) strpos( $list, 'id="sf-fields-editors"' ) );
+		$list = $this->listRegion( $html );
 		$this->assertSame( 2, substr_count( $list, 'sf-field-item__type' ) );
 
 		// Editor panels mirror the list via data-for and keep every input.
@@ -106,6 +105,14 @@ final class FormEditorFieldsTest extends TestCase {
 		$this->assertStringContainsString( 'sentinel-forms-field sentinel-forms-field--text', $html );
 		$this->assertStringContainsString( 'sentinel-forms-field sentinel-forms-field--email', $html );
 		$this->assertStringContainsString( 'id="sentinel-field-' . $formId . '-f_name"', $html );
+
+		// Preview controls have no form owner: browser validation (required)
+		// and submission must skip them, or the save form cannot submit.
+		$this->assertStringContainsString( 'form="sentinel-forms-preview"', $html );
+		$this->assertMatchesRegularExpression(
+			'/<input form="sentinel-forms-preview"[^>]*name="sentinel_field_f_name"/',
+			$html
+		);
 	}
 
 	/**
@@ -144,6 +151,33 @@ final class FormEditorFieldsTest extends TestCase {
 
 		AdminAssets::enqueue( 'sentinel-forms_page_sentinel-form-new' );
 		$this->assertTrue( wp_style_is( 'sentinel-forms-preview', 'enqueued' ) );
+	}
+
+	/**
+	 * Each list item has a second row with the Duplicate and Delete actions.
+	 */
+	public function testEachItemShowsDuplicateAndDeleteActions(): void {
+		wp_set_current_user( self::factory()->user->create( [ 'role' => 'administrator' ] ) );
+
+		$formId = $this->makeForm();
+
+		$html = $this->renderEditor( $formId );
+		$list = $this->listRegion( $html );
+
+		$this->assertSame( 2, substr_count( $list, 'sf-field-item__actions' ) );
+		$this->assertSame( 2, substr_count( $list, 'class="button-link sf-duplicate">Duplicate</button>' ) );
+		$this->assertSame( 2, substr_count( $list, 'class="button-link sf-remove">Delete</button>' ) );
+	}
+
+	/**
+	 * The list region of the rendered editor (before the editors column).
+	 *
+	 * @param string $html Rendered editor page.
+	 */
+	private function listRegion( string $html ): string {
+		$list = substr( $html, (int) strpos( $html, 'id="sf-fields-list"' ) );
+
+		return substr( $list, 0, (int) strpos( $list, 'id="sf-fields-editors"' ) );
 	}
 
 	/**

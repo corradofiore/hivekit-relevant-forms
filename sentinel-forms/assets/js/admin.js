@@ -90,6 +90,55 @@
 	}
 
 	/**
+	 * Rewrite every reference to a field id inside a cloned fragment
+	 * (data-for, input names, sample ids/names, for/aria attributes).
+	 *
+	 * @param {Element} root  Cloned item or editor.
+	 * @param {string}  oldId Original field id.
+	 * @param {string}  newId Fresh field id.
+	 */
+	function reidentify( root, oldId, newId ) {
+		var elements = [ root ].concat( Array.prototype.slice.call( root.querySelectorAll( '*' ) ) );
+
+		elements.forEach( function ( element ) {
+			Array.prototype.slice.call( element.attributes ).forEach( function ( attribute ) {
+				if ( attribute.value.indexOf( oldId ) !== -1 ) {
+					element.setAttribute( attribute.name, attribute.value.split( oldId ).join( newId ) );
+				}
+			} );
+		} );
+	}
+
+	/**
+	 * Duplicate one field: the same definition under a fresh id, inserted
+	 * right after the original in the list and the editors column.
+	 *
+	 * @param {Element} item List item to duplicate.
+	 */
+	function duplicateField( item ) {
+		var id = item.getAttribute( 'data-for' );
+		var editor = fieldEditors.querySelector( '[data-for="' + id + '"]' );
+		var newId = generateId();
+		var newItem, newEditor;
+
+		if ( ! editor ) {
+			return;
+		}
+
+		newItem = item.cloneNode( true );
+		newEditor = editor.cloneNode( true );
+
+		reidentify( newItem, id, newId );
+		reidentify( newEditor, id, newId );
+
+		item.parentNode.insertBefore( newItem, item.nextSibling );
+		editor.parentNode.insertBefore( newEditor, editor.nextSibling );
+
+		selectField( newId );
+		newItem.scrollIntoView( { behavior: 'smooth', block: 'nearest' } );
+	}
+
+	/**
 	 * Add a new field from the type template (list item + editor panel).
 	 *
 	 * @param {string} type Field type.
@@ -127,17 +176,26 @@
 	}
 
 	document.addEventListener( 'click', function ( event ) {
-		var button = event.target.closest( 'button.sf-remove' );
+		var duplicate = event.target.closest( 'button.sf-duplicate' );
+		var remove = event.target.closest( 'button.sf-remove' );
 		var item;
 
-		if ( ! button ) {
+		if ( duplicate ) {
+			item = duplicate.closest( '.sf-field-item' );
+
+			if ( item ) {
+				duplicateField( item );
+			}
+
 			return;
 		}
 
-		item = button.closest( '.sf-field-item' );
+		if ( remove ) {
+			item = remove.closest( '.sf-field-item' );
 
-		if ( item ) {
-			removeField( item );
+			if ( item ) {
+				removeField( item );
+			}
 		}
 	} );
 
