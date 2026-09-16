@@ -234,9 +234,9 @@
 	 * Confirmation modes: only the row for the selected mechanism is shown.
 	 * Every row stays in the DOM, so saving always carries all three values.
 	 */
-	var confirmationModes = document.querySelectorAll( 'input[name="confirmation_mode"]' );
+	var confirmationMode = document.getElementById( 'sentinel-confirmation-mode' );
 
-	if ( confirmationModes.length ) {
+	if ( confirmationMode ) {
 		var confirmationRows = {
 			message: document.getElementById( 'sf-confirmation-message-row' ),
 			url: document.getElementById( 'sf-confirmation-url-row' ),
@@ -244,21 +244,17 @@
 		};
 
 		/**
-		 * Show the row that matches the checked confirmation mode.
+		 * Show the row that matches the selected confirmation mode.
 		 */
 		function syncConfirmationRows() {
 			Object.keys( confirmationRows ).forEach( function ( mode ) {
-				var radio = document.querySelector( 'input[name="confirmation_mode"][value="' + mode + '"]' );
-
 				if ( confirmationRows[ mode ] ) {
-					confirmationRows[ mode ].hidden = ! ( radio && radio.checked );
+					confirmationRows[ mode ].hidden = mode !== confirmationMode.value;
 				}
 			} );
 		}
 
-		Array.prototype.forEach.call( confirmationModes, function ( radio ) {
-			radio.addEventListener( 'change', syncConfirmationRows );
-		} );
+		confirmationMode.addEventListener( 'change', syncConfirmationRows );
 
 		syncConfirmationRows();
 	}

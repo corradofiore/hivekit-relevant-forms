@@ -64,31 +64,21 @@ if ( ! defined( 'ABSPATH' ) ) {
 		<h2><?php esc_html_e( 'Confirmation', 'sentinel-forms' ); ?></h2>
 		<table class="form-table" role="presentation">
 			<tr>
-				<th scope="row"><?php esc_html_e( 'After a successful submission', 'sentinel-forms' ); ?></th>
+				<th scope="row"><label for="sentinel-confirmation-mode"><?php esc_html_e( 'After a successful submission', 'sentinel-forms' ); ?></label></th>
 				<td>
-					<fieldset class="sentinel-forms-confirmation-modes">
-						<legend class="screen-reader-text"><?php esc_html_e( 'Choose what happens after a successful submission', 'sentinel-forms' ); ?></legend>
-						<label>
-							<input type="radio" name="confirmation_mode" value="message" <?php checked( $confirmation_mode, 'message' ); ?>>
-							<?php esc_html_e( 'Show a confirmation message', 'sentinel-forms' ); ?>
-						</label>
-						<label>
-							<input type="radio" name="confirmation_mode" value="url" <?php checked( $confirmation_mode, 'url' ); ?>>
-							<?php esc_html_e( 'Redirect to a URL', 'sentinel-forms' ); ?>
-						</label>
+					<select id="sentinel-confirmation-mode" name="confirmation_mode">
+						<option value="message" <?php selected( $confirmation_mode, 'message' ); ?>><?php esc_html_e( 'Show a confirmation message', 'sentinel-forms' ); ?></option>
+						<option value="url" <?php selected( $confirmation_mode, 'url' ); ?>><?php esc_html_e( 'Redirect to a URL', 'sentinel-forms' ); ?></option>
 						<?php if ( $redirect_picker_available ) : ?>
-							<label>
-								<input type="radio" name="confirmation_mode" value="page" <?php checked( $confirmation_mode, 'page' ); ?>>
-								<?php esc_html_e( 'Redirect to a page or post', 'sentinel-forms' ); ?>
-							</label>
+							<option value="page" <?php selected( $confirmation_mode, 'page' ); ?>><?php esc_html_e( 'Redirect to a page or post', 'sentinel-forms' ); ?></option>
 						<?php endif; ?>
-					</fieldset>
+					</select>
 				</td>
 			</tr>
 			<tr id="sf-confirmation-message-row">
 				<th scope="row"><label for="sentinel-confirmation-message"><?php esc_html_e( 'Message', 'sentinel-forms' ); ?></label></th>
 				<td>
-					<textarea class="large-text" id="sentinel-confirmation-message" name="confirmation_message" rows="2"><?php echo esc_textarea( $form->schema->confirmationMessage() ); ?></textarea>
+					<textarea class="sentinel-forms-textarea" id="sentinel-confirmation-message" name="confirmation_message" rows="4"><?php echo esc_textarea( $form->schema->confirmationMessage() ); ?></textarea>
 					<p class="description"><?php esc_html_e( 'Shown on the page after a successful submission.', 'sentinel-forms' ); ?></p>
 				</td>
 			</tr>
@@ -136,7 +126,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 			<tr>
 				<th scope="row"><label for="sentinel-notification-emails"><?php esc_html_e( 'Email recipients', 'sentinel-forms' ); ?></label></th>
 				<td>
-					<textarea class="large-text" id="sentinel-notification-emails" name="notification_emails" rows="3" placeholder="<?php esc_attr_e( 'one address per line', 'sentinel-forms' ); ?>"><?php echo esc_textarea( implode( "\n", $form->schema->notificationEmails() ) ); ?></textarea>
+					<textarea class="sentinel-forms-textarea" id="sentinel-notification-emails" name="notification_emails" rows="6" placeholder="<?php esc_attr_e( 'one address per line', 'sentinel-forms' ); ?>"><?php echo esc_textarea( implode( "\n", $form->schema->notificationEmails() ) ); ?></textarea>
 					<p class="description"><?php esc_html_e( 'Leave empty to use the site administrator email.', 'sentinel-forms' ); ?></p>
 				</td>
 			</tr>
@@ -158,7 +148,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 			<tr>
 				<th scope="row"><label for="sentinel-ai-purpose"><?php esc_html_e( 'Form purpose', 'sentinel-forms' ); ?></label></th>
 				<td>
-					<textarea class="large-text" id="sentinel-ai-purpose" name="ai_purpose" rows="2"><?php echo esc_textarea( (string) ( $ai_policy['purpose'] ?? '' ) ); ?></textarea>
+					<textarea class="sentinel-forms-textarea" id="sentinel-ai-purpose" name="ai_purpose" rows="4"><?php echo esc_textarea( (string) ( $ai_policy['purpose'] ?? '' ) ); ?></textarea>
 					<p class="description"><?php esc_html_e( 'What a relevant submission looks like, e.g. "Requests for quotes from homeowners".', 'sentinel-forms' ); ?></p>
 				</td>
 			</tr>
