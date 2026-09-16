@@ -145,12 +145,17 @@ final class FormUsageTest extends TestCase {
 		$this->assertStringContainsString( 'Used on', $html );
 		$this->assertStringContainsString( 'Contact', $html );
 		$this->assertStringContainsString( '+1 more', $html );
-		$this->assertStringContainsString( 'aria-controls="sentinel-forms-usage-' . $multi . '"', $html );
+		$this->assertStringContainsString( 'id="sentinel-forms-usage-' . $multi . '"', $html );
 		$this->assertStringContainsString( 'Solo', $html );
 
-		// The header explainer documents the discovery limitation.
-		$this->assertStringContainsString( 'aria-controls="sentinel-forms-used-on-explainer"', $html );
+		// The header carries a native dashicons hint documenting the limitation.
+		$this->assertStringContainsString( 'dashicons-editor-help', $html );
+		$this->assertStringContainsString( 'title="Only forms embedded with the [sentinel_form] shortcode', $html );
 		$this->assertStringContainsString( 'sentinel_forms_render() are not listed', $html );
+
+		// Native controls: link-styled View all button and core card panel.
+		$this->assertStringContainsString( 'class="button-link"', $html );
+		$this->assertStringContainsString( 'class="card sentinel-forms-used-on__popover"', $html );
 
 		// Only the multi-embed form gets the "View all" toggle.
 		$this->assertSame( 1, substr_count( $html, 'View all' ) );

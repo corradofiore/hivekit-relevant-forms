@@ -41,14 +41,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 					<th scope="col"><?php esc_html_e( 'Name', 'sentinel-forms' ); ?></th>
 					<th scope="col"><?php esc_html_e( 'Status', 'sentinel-forms' ); ?></th>
 					<th scope="col" class="sentinel-forms-used-on">
+						<?php
+						$usageHint = __( 'Only forms embedded with the [sentinel_form] shortcode in post content are detected — pages, posts and other post types. Forms rendered from theme templates with sentinel_forms_render() are not listed.', 'sentinel-forms' );
+						?>
 						<?php esc_html_e( 'Used on', 'sentinel-forms' ); ?>
-						<button type="button" class="sentinel-forms-used-on__toggle sentinel-forms-used-on__info-toggle" aria-expanded="false" aria-controls="sentinel-forms-used-on-explainer">
-							<span class="screen-reader-text"><?php esc_html_e( 'About the "Used on" column', 'sentinel-forms' ); ?></span>
-							<span aria-hidden="true">?</span>
-						</button>
-						<div id="sentinel-forms-used-on-explainer" class="sentinel-forms-used-on__popover sentinel-forms-used-on__popover--info" hidden>
-							<p><?php esc_html_e( 'Only forms embedded with the [sentinel_form] shortcode in post content are detected — pages, posts and other post types. Forms rendered from theme templates with sentinel_forms_render() are not listed.', 'sentinel-forms' ); ?></p>
-						</div>
+						<span class="dashicons dashicons-editor-help sentinel-forms-used-on__hint" title="<?php echo esc_attr( $usageHint ); ?>" aria-hidden="true"></span>
+						<span class="screen-reader-text"><?php echo esc_html( $usageHint ); ?></span>
 					</th>
 					<th scope="col"><?php esc_html_e( 'Shortcode', 'sentinel-forms' ); ?></th>
 					<th scope="col"><?php esc_html_e( 'Updated', 'sentinel-forms' ); ?></th>
@@ -88,10 +86,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 										);
 										?>
 									</span>
-									<button type="button" class="sentinel-forms-used-on__toggle" aria-expanded="false" aria-controls="sentinel-forms-usage-<?php echo esc_attr( (string) $form->id ); ?>">
+									<button type="button" class="button-link">
 										<?php esc_html_e( 'View all', 'sentinel-forms' ); ?>
 									</button>
-									<div id="sentinel-forms-usage-<?php echo esc_attr( (string) $form->id ); ?>" class="sentinel-forms-used-on__popover" hidden>
+									<div id="sentinel-forms-usage-<?php echo esc_attr( (string) $form->id ); ?>" class="card sentinel-forms-used-on__popover" hidden>
 										<ul>
 											<?php foreach ( $usagePages as $usagePage ) : ?>
 												<li>
@@ -104,7 +102,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 														<span class="sentinel-forms-used-on__status"><?php echo esc_html( $usagePage['status_label'] ); ?></span>
 													<?php endif; ?>
 													<?php if ( '' !== $usagePage['view_url'] ) : ?>
-														<a class="sentinel-forms-used-on__view" href="<?php echo esc_url( $usagePage['view_url'] ); ?>"><?php esc_html_e( 'View', 'sentinel-forms' ); ?></a>
+																<a href="<?php echo esc_url( $usagePage['view_url'] ); ?>"><?php esc_html_e( 'View', 'sentinel-forms' ); ?></a>
 													<?php endif; ?>
 												</li>
 											<?php endforeach; ?>
