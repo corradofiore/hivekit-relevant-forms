@@ -19,6 +19,12 @@ use SentinelForms\Forms\FormRepository;
 final class FormEditPage {
 
 	/**
+	 * Above this many published pages and posts the redirect picker becomes a
+	 * search selector instead of a plain drop-down.
+	 */
+	private const REDIRECT_SEARCH_THRESHOLD = 30;
+
+	/**
 	 * Render the page.
 	 */
 	public static function render(): void {
@@ -29,16 +35,52 @@ final class FormEditPage {
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only view parameter.
 		$formId = isset( $_GET['form_id'] ) ? absint( wp_unslash( $_GET['form_id'] ) ) : 0;
 
-		$form            = $formId > 0 ? ( new FormRepository() )->find( $formId ) : null;
-		$types           = FieldTypeRegistry::all();
-		$redirectTargets = self::redirectTargets();
-		$isEditing       = null !== $form;
+		$form      = $formId > 0 ? ( new FormRepository() )->find( $formId ) : null;
+		$types     = FieldTypeRegistry::all();
+		$isEditing = null !== $form;
 
 		if ( null === $form ) {
 			$form = new Form( 0, '', 'draft', \SentinelForms\Forms\FormSchema::empty(), '', '' );
 		}
 
+		$redirectSearch   = self::useRedirectSearch();
+		$redirectTargets  = $redirectSearch ? [] : self::redirectTargets();
+		$redirectSelected = self::selectedRedirectTarget( $form->schema->redirectPageId(), $redirectSearch );
+
 		require SENTINEL_FORMS_PATH . 'templates/admin/form-edit.php';
+	}
+
+	/**
+	 * Whether the site has enough published pages/posts to warrant a search
+	 * selector instead of a plain drop-down.
+	 */
+	private static function useRedirectSearch(): bool {
+		$pages = (array) wp_count_posts( 'page' );
+		$posts = (array) wp_count_posts( 'post' );
+
+		$total = (int) ( $pages['publish'] ?? 0 ) + (int) ( $posts['publish'] ?? 0 );
+
+		return $total > self::REDIRECT_SEARCH_THRESHOLD;
+	}
+
+	/**
+	 * The current redirect anchor as a displayable item (search mode).
+	 *
+	 * @param int  $anchorId Current redirect anchor ID.
+	 * @param bool $search   Whether the search selector is used.
+	 * @return array{id: int, title: string}|null
+	 */
+	private static function selectedRedirectTarget( int $anchorId, bool $search ): ?array {
+		if ( ! $search || $anchorId <= 0 ) {
+			return null;
+		}
+
+		$title = get_the_title( $anchorId );
+
+		return [
+			'id'    => $anchorId,
+			'title' => '' === $title ? __( '(no title)', 'sentinel-forms' ) : $title,
+		];
 	}
 
 	/**

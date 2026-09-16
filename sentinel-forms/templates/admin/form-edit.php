@@ -7,7 +7,9 @@
  * @var SentinelForms\Forms\Form                     $form      Form being edited.
  * @var array<string, SentinelForms\Forms\Fields\FieldType> $types Available field types.
  * @var bool                                         $isEditing Whether editing an existing form.
- * @var array<int, array{label: string, items: array<int, array{id: int, title: string}>}> $redirectTargets Published pages/posts for the redirect picker.
+ * @var array<int, array{label: string, items: array<int, array{id: int, title: string}>}> $redirectTargets Published pages/posts for the plain picker.
+ * @var bool                                         $redirectSearch   Whether to use the search selector instead of a drop-down.
+ * @var array{id: int, title: string}|null           $redirectSelected Current anchor shown in the search selector.
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -69,11 +71,26 @@ if ( ! defined( 'ABSPATH' ) ) {
 			<tr>
 				<th scope="row"><label for="sentinel-redirect-url"><?php esc_html_e( 'Redirect URL', 'sentinel-forms' ); ?></label></th>
 				<td>
-					<input type="url" class="regular-text" id="sentinel-redirect-url" name="redirect_url" value="<?php echo esc_attr( $form->schema->redirectUrl() ); ?>" <?php disabled( [] !== $redirectTargets && $form->schema->redirectPageId() > 0 ); ?>>
+					<input type="url" class="regular-text" id="sentinel-redirect-url" name="redirect_url" value="<?php echo esc_attr( $form->schema->redirectUrl() ); ?>" <?php disabled( $form->schema->redirectPageId() > 0 && ( $redirectSearch || [] !== $redirectTargets ) ); ?>>
 					<p class="description"><?php esc_html_e( 'Where to send visitors after a successful submission. Disabled while a page or post is selected.', 'sentinel-forms' ); ?></p>
 				</td>
 			</tr>
-			<?php if ( [] !== $redirectTargets ) : ?>
+			<?php if ( $redirectSearch ) : ?>
+				<tr>
+					<th scope="row"><label for="sf-redirect-search"><?php esc_html_e( 'Page or post', 'sentinel-forms' ); ?></label></th>
+					<td>
+						<input type="search" id="sf-redirect-search" class="regular-text" value="<?php echo esc_attr( null !== $redirectSelected ? $redirectSelected['title'] : '' ); ?>" placeholder="<?php esc_attr_e( 'Search pages and posts…', 'sentinel-forms' ); ?>" autocomplete="off">
+						<select id="sf-redirect-page" name="redirect_page">
+							<option value=""><?php esc_html_e( 'Select a page or post…', 'sentinel-forms' ); ?></option>
+							<?php if ( null !== $redirectSelected ) : ?>
+								<option value="<?php echo esc_attr( (string) $redirectSelected['id'] ); ?>" selected><?php echo esc_html( $redirectSelected['title'] ); ?></option>
+							<?php endif; ?>
+						</select>
+						<p class="description"><?php esc_html_e( 'Start typing to search. Redirects to the selected item even if its URL changes.', 'sentinel-forms' ); ?></p>
+						<noscript><p class="description"><?php esc_html_e( 'Enable JavaScript to search pages and posts.', 'sentinel-forms' ); ?></p></noscript>
+					</td>
+				</tr>
+			<?php elseif ( [] !== $redirectTargets ) : ?>
 				<tr>
 					<th scope="row"><label for="sf-redirect-page"><?php esc_html_e( 'Page or post', 'sentinel-forms' ); ?></label></th>
 					<td>

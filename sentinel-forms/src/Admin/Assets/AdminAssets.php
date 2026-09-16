@@ -9,6 +9,7 @@ declare(strict_types=1);
 
 namespace SentinelForms\Admin\Assets;
 
+use SentinelForms\Admin\Controllers\RedirectTargetSearchController;
 use SentinelForms\Support\AssetVersion;
 
 /**
@@ -46,6 +47,16 @@ final class AdminAssets {
 			[],
 			AssetVersion::get( 'assets/js/admin.js' ),
 			true
+		);
+
+		wp_localize_script(
+			'sentinel-forms-admin',
+			'sentinelFormsAdmin',
+			[
+				'ajaxUrl'     => admin_url( 'admin-ajax.php' ),
+				'searchNonce' => wp_create_nonce( RedirectTargetSearchController::ACTION ),
+				'noResults'   => __( 'No pages or posts found.', 'sentinel-forms' ),
+			]
 		);
 	}
 }

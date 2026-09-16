@@ -16,6 +16,7 @@ use SentinelForms\Admin\Controllers\EntryStatusController;
 use SentinelForms\Admin\Controllers\FormActionController;
 use SentinelForms\Admin\Controllers\FormSaveController;
 use SentinelForms\Admin\Controllers\ImportController;
+use SentinelForms\Admin\Controllers\RedirectTargetSearchController;
 use SentinelForms\Admin\Pages\SettingsPage;
 use SentinelForms\Assets\FrontendAssets;
 use SentinelForms\Compat\WpForms\CompatLayer;
@@ -54,6 +55,7 @@ final class Plugin {
 		EntryStatusController::register();
 		EntryCorrectionController::register();
 		ImportController::register();
+		RedirectTargetSearchController::register();
 
 		// WPForms hook compatibility (Phase 7.5): active only when WPForms is absent.
 		CompatLayer::register();

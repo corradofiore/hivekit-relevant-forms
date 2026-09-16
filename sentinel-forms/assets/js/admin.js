@@ -96,10 +96,155 @@
 	var redirectPicker = document.getElementById( 'sf-redirect-page' );
 	var redirectInput = document.getElementById( 'sentinel-redirect-url' );
 
+	/**
+	 * Mirror the picker selection onto the redirect URL field.
+	 */
+	function syncRedirectUrl() {
+		if ( redirectPicker && redirectInput ) {
+			redirectInput.disabled = '' !== redirectPicker.value;
+		}
+	}
+
 	if ( redirectPicker && redirectInput ) {
-		redirectPicker.addEventListener( 'change', function () {
-			redirectInput.disabled = '' !== this.value;
-		} );
+		redirectPicker.addEventListener( 'change', syncRedirectUrl );
+	}
+
+	/*
+	 * Large sites: the picker ships with only the current selection and is
+	 * filled by an AJAX search, so the drop-down shows just the matches for
+	 * the search key.
+	 */
+	var redirectSearch = document.getElementById( 'sf-redirect-search' );
+
+	if ( redirectPicker && redirectSearch && window.sentinelFormsAdmin ) {
+		( function () {
+			var settings = window.sentinelFormsAdmin;
+			var placeholder = redirectPicker.options[ 0 ];
+			var timer = null;
+			var sequence = 0;
+
+			/**
+			 * The currently selected item, if any.
+			 *
+			 * @return {Object|null} Selection as {value, label}.
+			 */
+			function selection() {
+				if ( redirectPicker.value === '' ) {
+					return null;
+				}
+
+				return {
+					value: redirectPicker.value,
+					label: redirectPicker.options[ redirectPicker.selectedIndex ].textContent
+				};
+			}
+
+			/**
+			 * Rebuild the drop-down: placeholder + current selection + matches.
+			 *
+			 * @param {Array}  matches Search results as [{id, title}].
+			 * @param {string} query   Search term the matches belong to.
+			 */
+			function render( matches, query ) {
+				var selected = selection();
+				var fragment = document.createDocumentFragment();
+
+				while ( redirectPicker.firstChild ) {
+					redirectPicker.removeChild( redirectPicker.firstChild );
+				}
+
+				fragment.appendChild( placeholder );
+
+				if ( selected ) {
+					// Keep the selection visible (and submitted) while filtering.
+					var kept = document.createElement( 'option' );
+					kept.value = selected.value;
+					kept.textContent = selected.label;
+					fragment.appendChild( kept );
+				}
+
+				matches.forEach( function ( match ) {
+					if ( selected && String( match.id ) === selected.value ) {
+						return;
+					}
+
+					var option = document.createElement( 'option' );
+					option.value = String( match.id );
+					option.textContent = match.title;
+					fragment.appendChild( option );
+				} );
+
+				if ( query !== '' && matches.length === 0 ) {
+					var none = document.createElement( 'option' );
+					none.disabled = true;
+					none.textContent = settings.noResults;
+					fragment.appendChild( none );
+				}
+
+				redirectPicker.appendChild( fragment );
+				redirectPicker.value = selected ? selected.value : '';
+			}
+
+			/**
+			 * Fetch matches for a search term.
+			 *
+			 * @param {string} query Search term.
+			 */
+			function search( query ) {
+				var token = ++sequence;
+				var url = settings.ajaxUrl
+					+ '?action=sentinel_forms_search_redirect_targets'
+					+ '&_wpnonce=' + encodeURIComponent( settings.searchNonce )
+					+ '&search=' + encodeURIComponent( query );
+
+				window.fetch( url )
+					.then( function ( response ) {
+						return response.json();
+					} )
+					.then( function ( body ) {
+						if ( token !== sequence ) {
+							return;
+						}
+
+						render( body && body.data && body.data.results ? body.data.results : [], query );
+					} )
+					.catch( function () {} );
+			}
+
+			redirectSearch.addEventListener( 'input', function () {
+				var query = this.value.trim();
+
+				if ( timer ) {
+					window.clearTimeout( timer );
+				}
+
+				if ( query === '' ) {
+					// Clearing the search clears the anchor selection.
+					redirectPicker.value = '';
+					render( [], '' );
+					syncRedirectUrl();
+					return;
+				}
+
+				if ( query.length < 2 ) {
+					return;
+				}
+
+				timer = window.setTimeout(
+					function () {
+						search( query );
+					},
+					250
+				);
+			} );
+
+			redirectPicker.addEventListener( 'change', function () {
+				var selected = selection();
+
+				redirectSearch.value = selected ? selected.label : '';
+				render( [], '' );
+			} );
+		} )();
 	}
 
 	/**

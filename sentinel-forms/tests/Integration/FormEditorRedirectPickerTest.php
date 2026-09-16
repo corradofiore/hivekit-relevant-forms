@@ -1,8 +1,8 @@
 <?php
 /**
- * Form editor redirect picker integration tests: the Redirect URL field is
- * complemented by a picker listing published pages and posts whose permalink
- * fills the URL field.
+ * Form editor redirect picker integration tests: the picker anchors the
+ * redirect to a page/post ID, and switches to an AJAX search selector when
+ * the site has more than 30 published pages and posts.
  *
  * @package SentinelForms
  */
@@ -83,22 +83,91 @@ final class FormEditorRedirectPickerTest extends TestCase {
 	public function testPickerIsHiddenWhenThereIsNoPublishedContent(): void {
 		wp_set_current_user( self::factory()->user->create( [ 'role' => 'administrator' ] ) );
 
-		foreach (
-			get_posts(
-				[
-					'post_type'      => [ 'page', 'post' ],
-					'post_status'    => 'publish',
-					'posts_per_page' => -1,
-					'fields'         => 'ids',
-				]
-			) as $postId
-		) {
-			wp_delete_post( (int) $postId, true );
-		}
+		$this->removePublishedContent();
 
 		$html = $this->renderEditor();
 
 		$this->assertStringNotContainsString( 'sf-redirect-page', $html );
+		$this->assertStringNotContainsString( 'sf-redirect-search', $html );
+	}
+
+	/**
+	 * Above 30 published targets the picker becomes a search selector; at 30
+	 * and below it stays a plain grouped drop-down.
+	 */
+	public function testSearchSelectorKicksInAboveThirtyTargets(): void {
+		wp_set_current_user( self::factory()->user->create( [ 'role' => 'administrator' ] ) );
+
+		$this->removePublishedContent();
+
+		for ( $i = 1; $i <= 30; $i++ ) {
+			self::factory()->post->create(
+				[
+					'post_type'  => 'post',
+					'post_title' => 'Bulk ' . $i,
+				]
+			);
+		}
+
+		$html = $this->renderEditor();
+
+		$this->assertStringNotContainsString( 'sf-redirect-search', $html );
+		$this->assertStringContainsString( '<optgroup label="Posts">', $html );
+
+		self::factory()->post->create(
+			[
+				'post_type'  => 'post',
+				'post_title' => 'Bulk 31',
+			]
+		);
+
+		$html = $this->renderEditor();
+
+		$this->assertStringContainsString( 'id="sf-redirect-search"', $html );
+		$this->assertStringContainsString( 'type="search"', $html );
+		$this->assertStringNotContainsString( '<optgroup', $html );
+	}
+
+	/**
+	 * In search mode the current anchor is shown in the search box and the
+	 * drop-down ships only the placeholder and the selection.
+	 */
+	public function testSearchSelectorShowsTheCurrentAnchor(): void {
+		wp_set_current_user( self::factory()->user->create( [ 'role' => 'administrator' ] ) );
+
+		$anchorId = 0;
+
+		for ( $i = 1; $i <= 31; $i++ ) {
+			$createdId = self::factory()->post->create(
+				[
+					'post_type'  => 'post',
+					'post_title' => 'Bulk ' . $i,
+				]
+			);
+
+			if ( 5 === $i ) {
+				$anchorId = $createdId;
+			}
+		}
+
+		$repository = new FormRepository();
+		$schema     = FormSchema::empty( 'Anchored' )->withConfirmation( '', '', $anchorId );
+
+		$_GET['form_id'] = $repository->create( 'Anchored', $schema, 'published' );
+
+		ob_start();
+		FormEditPage::render();
+		$html = (string) ob_get_clean();
+
+		$this->assertStringContainsString( 'id="sf-redirect-search"', $html );
+		$this->assertStringContainsString( 'value="Bulk 5"', $html );
+		$this->assertMatchesRegularExpression( '/value="' . $anchorId . '"[^>]*selected/', $html );
+
+		// The drop-down ships only the placeholder and the selection.
+		$this->assertSame( 1, preg_match( '/<select id="sf-redirect-page" name="redirect_page">(.*?)<\/select>/s', $html, $matches ) );
+		$this->assertSame( 2, substr_count( $matches[1], '<option' ) );
+
+		$this->assertMatchesRegularExpression( '/<input type="url"[^>]*disabled/', $html );
 	}
 
 	/**
@@ -182,6 +251,24 @@ final class FormEditorRedirectPickerTest extends TestCase {
 			return $redirected->url;
 		} finally {
 			remove_all_filters( 'wp_redirect' );
+		}
+	}
+
+	/**
+	 * Trash and delete every published page and post.
+	 */
+	private function removePublishedContent(): void {
+		foreach (
+			get_posts(
+				[
+					'post_type'      => [ 'page', 'post' ],
+					'post_status'    => 'publish',
+					'posts_per_page' => -1,
+					'fields'         => 'ids',
+				]
+			) as $postId
+		) {
+			wp_delete_post( (int) $postId, true );
 		}
 	}
 
