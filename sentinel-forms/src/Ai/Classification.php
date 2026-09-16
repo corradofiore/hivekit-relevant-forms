@@ -83,7 +83,8 @@ final class Classification {
 			$urgency,
 			mb_substr( trim( (string) ( $data['intent'] ?? '' ) ), 0, 64 ),
 			mb_substr( trim( (string) ( $data['category'] ?? '' ) ), 0, 64 ),
-			mb_substr( trim( (string) ( $data['summary'] ?? '' ) ), 0, 500 ),
+			// A 5-7 word subject phrase; the cap is the safety net.
+			mb_substr( trim( (string) ( $data['summary'] ?? '' ) ), 0, 120 ),
 			$reasonCode,
 			AttentionScore::calculate( $spam, $relevance, $urgency ),
 			$data,

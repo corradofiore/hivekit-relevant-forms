@@ -311,7 +311,7 @@ final class SubmissionHandler {
 		}
 
 		if ( Entry::STATUS_SPAM !== $entryStatus ) {
-			( new EmailNotification() )->send( $form, $values, $entryId );
+			( new EmailNotification() )->send( $form, $values, $entryId, $classification );
 		} else {
 			EventRecorder::record( $entryId, 'notification_skipped', [ 'reason' => 'spam' ] );
 		}

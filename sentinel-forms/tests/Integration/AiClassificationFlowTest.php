@@ -205,6 +205,39 @@ final class AiClassificationFlowTest extends TestCase {
 	}
 
 	/**
+	 * The AI summary (5-7 words) lands in the notification subject line.
+	 */
+	public function testEmailSubjectCarriesTheAiSummary(): void {
+		$this->enableConsent();
+
+		$this->classification['summary'] = 'Quote request from homeowner in Milan';
+
+		$form = $this->makeForm( true );
+
+		$emails = [];
+		add_filter(
+			'pre_wp_mail',
+			static function ( ?bool $short_circuit, array $args ) use ( &$emails ): bool {
+				$emails[] = $args;
+
+				return true;
+			},
+			10,
+			2
+		);
+
+		try {
+			$this->submit( $form->id, $this->fields() );
+		} finally {
+			remove_all_filters( 'pre_wp_mail' );
+		}
+
+		$this->assertNotEmpty( $emails );
+		$this->assertStringContainsString( 'Enquiry', $emails[0]['subject'] );
+		$this->assertStringContainsString( 'Quote request from homeowner in Milan', $emails[0]['subject'] );
+	}
+
+	/**
 	 * Provider failure: entry still stored, failure event recorded.
 	 */
 	public function testProviderFailureLeavesEntryIntact(): void {

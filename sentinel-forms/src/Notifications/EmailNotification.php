@@ -9,6 +9,7 @@ declare(strict_types=1);
 
 namespace SentinelForms\Notifications;
 
+use SentinelForms\Ai\Classification;
 use SentinelForms\Events\EventRecorder;
 use SentinelForms\Forms\Form;
 use SentinelForms\Support\Logger;
@@ -29,11 +30,12 @@ final class EmailNotification {
 	 * Failures never destroy the submission: they are logged and recorded as
 	 * a notification_failed event (doc §57).
 	 *
-	 * @param Form                 $form    Form the submission belongs to.
-	 * @param array<string, mixed> $values  Sanitized field values.
-	 * @param int|null             $entryId Related entry ID.
+	 * @param Form                 $form           Form the submission belongs to.
+	 * @param array<string, mixed> $values         Sanitized field values.
+	 * @param int|null             $entryId        Related entry ID.
+	 * @param Classification|null  $classification Validated AI classification (doc §16).
 	 */
-	public function send( Form $form, array $values, ?int $entryId = null ): bool {
+	public function send( Form $form, array $values, ?int $entryId = null, ?Classification $classification = null ): bool {
 		$recipients = $form->schema->notificationEmails();
 
 		if ( $recipients === [] ) {
@@ -52,13 +54,15 @@ final class EmailNotification {
 		}
 
 		$settings = (array) get_option( self::OPTION, [] );
-		$subject  = sprintf(
-			'[%s] %s',
-			wp_specialchars_decode( (string) get_bloginfo( 'name' ), ENT_QUOTES ),
-			$form->schema->name()
-		);
-		$body     = $this->buildBody( $form, $values );
-		$headers  = [ 'Content-Type: text/plain; charset=UTF-8' ];
+		$siteName = wp_specialchars_decode( (string) get_bloginfo( 'name' ), ENT_QUOTES );
+		$summary  = self::summarize( $classification );
+
+		// The AI summary leads the subject line so the inbox shows what it is.
+		$subject = '' !== $summary
+			? sprintf( '[%s] %s — %s', $siteName, $form->schema->name(), $summary )
+			: sprintf( '[%s] %s', $siteName, $form->schema->name() );
+		$body    = $this->buildBody( $form, $values );
+		$headers = [ 'Content-Type: text/plain; charset=UTF-8' ];
 
 		$senderName  = (string) ( $settings['notification_sender_name'] ?? '' );
 		$senderEmail = (string) ( $settings['notification_sender_email'] ?? '' );
@@ -91,6 +95,21 @@ final class EmailNotification {
 		EventRecorder::record( $entryId, $event, $context );
 
 		return (bool) $sent;
+	}
+
+	/**
+	 * One-line subject summary from a classification (5-7 words expected).
+	 *
+	 * Whitespace is collapsed so model output can never inject mail headers.
+	 *
+	 * @param Classification|null $classification Validated classification.
+	 */
+	private static function summarize( ?Classification $classification ): string {
+		if ( null === $classification ) {
+			return '';
+		}
+
+		return trim( (string) preg_replace( '/\s+/u', ' ', $classification->summary ) );
 	}
 
 	/**
