@@ -10,6 +10,7 @@ declare(strict_types=1);
 
 namespace SentinelForms\Tests\Integration;
 
+use SentinelForms\Admin\Assets\AdminAssets;
 use SentinelForms\Admin\Pages\FormEditPage;
 use SentinelForms\Forms\FormRepository;
 use SentinelForms\Forms\FormSchema;
@@ -82,6 +83,67 @@ final class FormEditorFieldsTest extends TestCase {
 		$this->assertStringContainsString( 'name="sentinel_fields[f_name][label]"', $html );
 		$this->assertStringContainsString( 'name="sentinel_fields[f_email][id]"', $html );
 		$this->assertStringContainsString( 'name="sentinel_fields[f_email][label]"', $html );
+	}
+
+	/**
+	 * Each panel prepends the field type as plain text and ends with a sample
+	 * rendering produced by the same renderer as the front end.
+	 */
+	public function testTheEditorPanelShowsTheTypeAndASample(): void {
+		wp_set_current_user( self::factory()->user->create( [ 'role' => 'administrator' ] ) );
+
+		$formId = $this->makeForm();
+
+		$html = $this->renderEditor( $formId );
+
+		// The field type as text (not an input), before the actual fields.
+		$this->assertStringContainsString( '<p class="sf-field-editor__type">Single-line text</p>', $html );
+		$this->assertStringContainsString( '<p class="sf-field-editor__type">Email</p>', $html );
+
+		// Sample rendering at the bottom of the panel.
+		$this->assertStringContainsString( 'sf-field-editor__sample', $html );
+		$this->assertStringContainsString( '>Sample</p>', $html );
+		$this->assertStringContainsString( 'sentinel-forms-field sentinel-forms-field--text', $html );
+		$this->assertStringContainsString( 'sentinel-forms-field sentinel-forms-field--email', $html );
+		$this->assertStringContainsString( 'id="sentinel-field-' . $formId . '-f_name"', $html );
+	}
+
+	/**
+	 * Hidden fields show a note instead of an invisible sample.
+	 */
+	public function testHiddenFieldsShowANoteInsteadOfASample(): void {
+		wp_set_current_user( self::factory()->user->create( [ 'role' => 'administrator' ] ) );
+
+		$repository = new FormRepository();
+		$schema     = FormSchema::empty( 'Hidden' )->withFields(
+			[
+				[
+					'id'    => 'f_token',
+					'type'  => 'hidden',
+					'label' => 'Token',
+				],
+			]
+		);
+		$formId     = $repository->create( 'Hidden', $schema, 'draft' );
+
+		$html = $this->renderEditor( $formId );
+
+		$this->assertStringContainsString( 'Hidden fields are not visible on the front end.', $html );
+		$this->assertStringNotContainsString( 'sentinel-forms-field--hidden', $html );
+	}
+
+	/**
+	 * The front-end stylesheet is enqueued on the editor page only, so the
+	 * samples look like the real front-end rendering.
+	 */
+	public function testThePreviewStylesheetLoadsOnTheEditorPageOnly(): void {
+		wp_set_current_user( self::factory()->user->create( [ 'role' => 'administrator' ] ) );
+
+		AdminAssets::enqueue( 'sentinel-forms_page_sentinel-entry' );
+		$this->assertFalse( wp_style_is( 'sentinel-forms-preview', 'enqueued' ) );
+
+		AdminAssets::enqueue( 'sentinel-forms_page_sentinel-form-new' );
+		$this->assertTrue( wp_style_is( 'sentinel-forms-preview', 'enqueued' ) );
 	}
 
 	/**

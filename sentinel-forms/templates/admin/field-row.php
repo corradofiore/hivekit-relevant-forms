@@ -2,10 +2,14 @@
 /**
  * Single field editor panel (right column of the fields editor).
  *
+ * The panel prepends the field type as plain text and ends with a sample
+ * rendering of the field, produced by the same renderer as the front end.
+ *
  * @package SentinelForms
  *
  * @var array<string, mixed> $definition Field definition.
  * @var SentinelForms\Forms\Fields\FieldType $field_type Field type instance.
+ * @var SentinelForms\Forms\Form $form Form being edited (for sample ids).
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -17,8 +21,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 $fieldId  = (string) $definition['id'];
 $isChoice = in_array( (string) $definition['type'], [ 'select', 'radio', 'checkbox' ], true );
 $isHidden = 'hidden' === (string) $definition['type'];
+$sample   = $isHidden
+	? '<p class="description">' . esc_html__( 'Hidden fields are not visible on the front end.', 'sentinel-forms' ) . '</p>'
+	: $field_type->render( $definition, null, null, (string) $form->id );
 ?>
 <div class="sf-field-editor" data-for="<?php echo esc_attr( $fieldId ); ?>" data-type="<?php echo esc_attr( (string) $definition['type'] ); ?>">
+	<p class="sf-field-editor__type"><?php echo esc_html( $field_type->label() ); ?></p>
 	<div class="sf-field-editor__body">
 		<input type="hidden" name="sentinel_fields[<?php echo esc_attr( $fieldId ); ?>][id]" value="<?php echo esc_attr( $fieldId ); ?>">
 		<input type="hidden" name="sentinel_fields[<?php echo esc_attr( $fieldId ); ?>][type]" value="<?php echo esc_attr( (string) $definition['type'] ); ?>">
@@ -100,5 +108,12 @@ $isHidden = 'hidden' === (string) $definition['type'];
 				<input type="text" class="widefat" name="sentinel_fields[<?php echo esc_attr( $fieldId ); ?>][default_value]" value="<?php echo esc_attr( (string) ( $definition['default_value'] ?? '' ) ); ?>">
 			</label>
 		</p>
+
+		<div class="sf-field-editor__sample" inert>
+			<p class="sf-field-editor__sample-title"><?php esc_html_e( 'Sample', 'sentinel-forms' ); ?></p>
+			<div class="sentinel-forms">
+				<?php echo $sample; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- field markup escaped by the field renderers. ?>
+			</div>
+		</div>
 	</div>
 </div>

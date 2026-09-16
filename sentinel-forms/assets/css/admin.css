@@ -147,6 +147,33 @@
 	margin: 0.5rem 0;
 }
 
+.sf-field-editor__type {
+	border-bottom: 1px solid #dcdcde;
+	font-weight: 600;
+	margin: 0;
+	padding: 0.5rem 1rem;
+}
+
+.sf-field-editor__sample {
+	background: #f6f7f7;
+	border-top: 1px solid #dcdcde;
+	margin: 1rem -1rem -0.75rem;
+	padding: 0.75rem 1rem;
+}
+
+.sf-field-editor__sample-title {
+	color: #646970;
+	font-size: 11px;
+	font-weight: 600;
+	letter-spacing: 0.04em;
+	margin: 0 0 0.5rem;
+	text-transform: uppercase;
+}
+
+.sf-field-editor__sample .description {
+	margin: 0;
+}
+
 .sf-fields-empty {
 	color: #646970;
 }
