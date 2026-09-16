@@ -167,13 +167,14 @@ final class FormEditorRedirectPickerTest extends TestCase {
 		$this->assertSame( 1, preg_match( '/<select id="sf-redirect-page" name="redirect_page">(.*?)<\/select>/s', $html, $matches ) );
 		$this->assertSame( 2, substr_count( $matches[1], '<option' ) );
 
-		$this->assertMatchesRegularExpression( '/<input type="url"[^>]*disabled/', $html );
+		$this->assertMatchesRegularExpression( '/name="confirmation_mode" value="page"[^>]*checked/', $html );
 	}
 
 	/**
-	 * A saved anchor preselects its item and disables the URL field.
+	 * A saved anchor preselects its item, checks the page/post mode and
+	 * leaves the URL field editable (the rows are hidden by JS, not disabled).
 	 */
-	public function testSavedAnchorPreselectsTheItemAndDisablesTheUrlField(): void {
+	public function testSavedAnchorPreselectsTheItem(): void {
 		wp_set_current_user( self::factory()->user->create( [ 'role' => 'administrator' ] ) );
 
 		$pageId = self::factory()->post->create(
@@ -193,7 +194,8 @@ final class FormEditorRedirectPickerTest extends TestCase {
 		$html = (string) ob_get_clean();
 
 		$this->assertMatchesRegularExpression( '/value="' . $pageId . '"[^>]*selected/', $html );
-		$this->assertMatchesRegularExpression( '/<input type="url"[^>]*disabled/', $html );
+		$this->assertMatchesRegularExpression( '/name="confirmation_mode" value="page"[^>]*checked/', $html );
+		$this->assertDoesNotMatchRegularExpression( '/<input type="url"[^>]*disabled/', $html );
 	}
 
 	/**
@@ -215,10 +217,11 @@ final class FormEditorRedirectPickerTest extends TestCase {
 		$formId     = $repository->create( 'Legacy', $schema, 'published' );
 
 		$_POST = [
-			'form_id'       => $formId,
-			'form_name'     => 'Legacy',
-			'form_status'   => 'published',
-			'redirect_page' => (string) $pageId,
+			'form_id'           => $formId,
+			'form_name'         => 'Legacy',
+			'form_status'       => 'published',
+			'confirmation_mode' => 'page',
+			'redirect_page'     => (string) $pageId,
 		];
 
 		$_REQUEST['_wpnonce'] = wp_create_nonce( 'sentinel_form_save' );
@@ -228,8 +231,37 @@ final class FormEditorRedirectPickerTest extends TestCase {
 		$this->assertStringContainsString( 'saved=1', $url );
 
 		$saved = $repository->find( $formId );
+		$this->assertSame( 'page', $saved->schema->confirmationMode() );
 		$this->assertSame( $pageId, $saved->schema->redirectPageId() );
 		$this->assertSame( 'https://example.com/legacy', $saved->schema->redirectUrl() );
+	}
+
+	/**
+	 * The confirmation section renders the three mutually exclusive modes as
+	 * radios, with "message" as the default for a new form.
+	 */
+	public function testConfirmationModesRenderAsRadios(): void {
+		wp_set_current_user( self::factory()->user->create( [ 'role' => 'administrator' ] ) );
+
+		self::factory()->post->create(
+			[
+				'post_type'  => 'page',
+				'post_title' => 'Thank You',
+			]
+		);
+
+		$html = $this->renderEditor();
+
+		$this->assertStringContainsString( 'Show a confirmation message', $html );
+		$this->assertStringContainsString( 'Redirect to a URL', $html );
+		$this->assertStringContainsString( 'Redirect to a page or post', $html );
+
+		$this->assertMatchesRegularExpression( '/name="confirmation_mode" value="message"[^>]*checked/', $html );
+		$this->assertSame( 3, substr_count( $html, 'name="confirmation_mode"' ) );
+
+		$this->assertStringContainsString( 'id="sf-confirmation-message-row"', $html );
+		$this->assertStringContainsString( 'id="sf-confirmation-url-row"', $html );
+		$this->assertStringContainsString( 'id="sf-confirmation-page-row"', $html );
 	}
 
 	/**

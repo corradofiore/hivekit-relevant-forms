@@ -156,6 +156,47 @@ it(
 );
 
 it(
+	'stores the confirmation mode and infers it for legacy schemas',
+	function () {
+		$schema = FormSchema::empty()->withConfirmation( 'Thanks!', '', 0, 'message' );
+
+		expect( $schema->confirmationMode() )->toBe( 'message' );
+
+		$legacyUrl = FormSchema::fromArray( [ 'confirmation' => [ 'redirect' => 'https://example.com' ] ] );
+
+		expect( $legacyUrl->confirmationMode() )->toBe( 'url' );
+
+		$legacyPage = FormSchema::fromArray( [ 'confirmation' => [ 'redirect_page' => 7 ] ] );
+
+		expect( $legacyPage->confirmationMode() )->toBe( 'page' );
+
+		$plain = FormSchema::fromArray( [] );
+
+		expect( $plain->confirmationMode() )->toBe( 'message' );
+	}
+);
+
+it(
+	'ignores invalid confirmation modes',
+	function () {
+		$schema = FormSchema::empty()->withConfirmation( '', 'https://example.com', 0, 'bogus' );
+
+		expect( $schema->confirmationMode() )->toBe( 'url' );
+
+		$restored = FormSchema::fromArray(
+			[
+				'confirmation' => [
+					'mode'          => 'nope',
+					'redirect_page' => 3,
+				],
+			]
+		);
+
+		expect( $restored->confirmationMode() )->toBe( 'page' );
+	}
+);
+
+it(
 	'rejects invalid notification emails',
 	function () {
 		$schema = FormSchema::empty()->withNotifications( [ 'not-an-email' ] );

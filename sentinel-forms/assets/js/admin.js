@@ -90,24 +90,8 @@
 	/*
 	 * Redirect picker: a selected page or post anchors the redirect by ID —
 	 * the permalink is resolved on submission, so slug changes keep working.
-	 * While an anchor is selected the URL field is disabled (and therefore
-	 * not submitted, which keeps any stored URL for when the anchor clears).
 	 */
 	var redirectPicker = document.getElementById( 'sf-redirect-page' );
-	var redirectInput = document.getElementById( 'sentinel-redirect-url' );
-
-	/**
-	 * Mirror the picker selection onto the redirect URL field.
-	 */
-	function syncRedirectUrl() {
-		if ( redirectPicker && redirectInput ) {
-			redirectInput.disabled = '' !== redirectPicker.value;
-		}
-	}
-
-	if ( redirectPicker && redirectInput ) {
-		redirectPicker.addEventListener( 'change', syncRedirectUrl );
-	}
 
 	/*
 	 * Large sites: the picker ships with only the current selection and is
@@ -222,7 +206,6 @@
 					// Clearing the search clears the anchor selection.
 					redirectPicker.value = '';
 					render( [], '' );
-					syncRedirectUrl();
 					return;
 				}
 
@@ -245,6 +228,39 @@
 				render( [], '' );
 			} );
 		} )();
+	}
+
+	/*
+	 * Confirmation modes: only the row for the selected mechanism is shown.
+	 * Every row stays in the DOM, so saving always carries all three values.
+	 */
+	var confirmationModes = document.querySelectorAll( 'input[name="confirmation_mode"]' );
+
+	if ( confirmationModes.length ) {
+		var confirmationRows = {
+			message: document.getElementById( 'sf-confirmation-message-row' ),
+			url: document.getElementById( 'sf-confirmation-url-row' ),
+			page: document.getElementById( 'sf-confirmation-page-row' )
+		};
+
+		/**
+		 * Show the row that matches the checked confirmation mode.
+		 */
+		function syncConfirmationRows() {
+			Object.keys( confirmationRows ).forEach( function ( mode ) {
+				var radio = document.querySelector( 'input[name="confirmation_mode"][value="' + mode + '"]' );
+
+				if ( confirmationRows[ mode ] ) {
+					confirmationRows[ mode ].hidden = ! ( radio && radio.checked );
+				}
+			} );
+		}
+
+		Array.prototype.forEach.call( confirmationModes, function ( radio ) {
+			radio.addEventListener( 'change', syncConfirmationRows );
+		} );
+
+		syncConfirmationRows();
 	}
 
 	/**

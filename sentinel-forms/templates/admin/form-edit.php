@@ -59,52 +59,73 @@ if ( ! defined( 'ABSPATH' ) ) {
 			</tr>
 		</table>
 
+		<?php $confirmation_mode = $form->schema->confirmationMode(); ?>
+		<?php $redirect_picker_available = $redirectSearch || [] !== $redirectTargets || $form->schema->redirectPageId() > 0; ?>
 		<h2><?php esc_html_e( 'Confirmation', 'sentinel-forms' ); ?></h2>
 		<table class="form-table" role="presentation">
 			<tr>
+				<th scope="row"><?php esc_html_e( 'After a successful submission', 'sentinel-forms' ); ?></th>
+				<td>
+					<fieldset class="sentinel-forms-confirmation-modes">
+						<legend class="screen-reader-text"><?php esc_html_e( 'Choose what happens after a successful submission', 'sentinel-forms' ); ?></legend>
+						<label>
+							<input type="radio" name="confirmation_mode" value="message" <?php checked( $confirmation_mode, 'message' ); ?>>
+							<?php esc_html_e( 'Show a confirmation message', 'sentinel-forms' ); ?>
+						</label>
+						<label>
+							<input type="radio" name="confirmation_mode" value="url" <?php checked( $confirmation_mode, 'url' ); ?>>
+							<?php esc_html_e( 'Redirect to a URL', 'sentinel-forms' ); ?>
+						</label>
+						<?php if ( $redirect_picker_available ) : ?>
+							<label>
+								<input type="radio" name="confirmation_mode" value="page" <?php checked( $confirmation_mode, 'page' ); ?>>
+								<?php esc_html_e( 'Redirect to a page or post', 'sentinel-forms' ); ?>
+							</label>
+						<?php endif; ?>
+					</fieldset>
+				</td>
+			</tr>
+			<tr id="sf-confirmation-message-row">
 				<th scope="row"><label for="sentinel-confirmation-message"><?php esc_html_e( 'Message', 'sentinel-forms' ); ?></label></th>
 				<td>
 					<textarea class="large-text" id="sentinel-confirmation-message" name="confirmation_message" rows="2"><?php echo esc_textarea( $form->schema->confirmationMessage() ); ?></textarea>
-					<p class="description"><?php esc_html_e( 'Shown after a successful submission when no redirect is set.', 'sentinel-forms' ); ?></p>
+					<p class="description"><?php esc_html_e( 'Shown on the page after a successful submission.', 'sentinel-forms' ); ?></p>
 				</td>
 			</tr>
-			<tr>
+			<tr id="sf-confirmation-url-row">
 				<th scope="row"><label for="sentinel-redirect-url"><?php esc_html_e( 'Redirect URL', 'sentinel-forms' ); ?></label></th>
 				<td>
-					<input type="url" class="regular-text" id="sentinel-redirect-url" name="redirect_url" value="<?php echo esc_attr( $form->schema->redirectUrl() ); ?>" <?php disabled( $form->schema->redirectPageId() > 0 && ( $redirectSearch || [] !== $redirectTargets ) ); ?>>
-					<p class="description"><?php esc_html_e( 'Where to send visitors after a successful submission. Disabled while a page or post is selected.', 'sentinel-forms' ); ?></p>
+					<input type="url" class="regular-text" id="sentinel-redirect-url" name="redirect_url" value="<?php echo esc_attr( $form->schema->redirectUrl() ); ?>">
+					<p class="description"><?php esc_html_e( 'Where to send visitors after a successful submission.', 'sentinel-forms' ); ?></p>
 				</td>
 			</tr>
-			<?php if ( $redirectSearch ) : ?>
-				<tr>
-					<th scope="row"><label for="sf-redirect-search"><?php esc_html_e( 'Page or post', 'sentinel-forms' ); ?></label></th>
+			<?php if ( $redirect_picker_available ) : ?>
+				<tr id="sf-confirmation-page-row">
+					<th scope="row"><label for="<?php echo esc_attr( $redirectSearch ? 'sf-redirect-search' : 'sf-redirect-page' ); ?>"><?php esc_html_e( 'Page or post', 'sentinel-forms' ); ?></label></th>
 					<td>
-						<input type="search" id="sf-redirect-search" class="regular-text" value="<?php echo esc_attr( null !== $redirectSelected ? $redirectSelected['title'] : '' ); ?>" placeholder="<?php esc_attr_e( 'Search pages and posts…', 'sentinel-forms' ); ?>" autocomplete="off">
-						<select id="sf-redirect-page" name="redirect_page">
-							<option value=""><?php esc_html_e( 'Select a page or post…', 'sentinel-forms' ); ?></option>
-							<?php if ( null !== $redirectSelected ) : ?>
-								<option value="<?php echo esc_attr( (string) $redirectSelected['id'] ); ?>" selected><?php echo esc_html( $redirectSelected['title'] ); ?></option>
-							<?php endif; ?>
-						</select>
-						<p class="description"><?php esc_html_e( 'Start typing to search. Redirects to the selected item even if its URL changes.', 'sentinel-forms' ); ?></p>
-						<noscript><p class="description"><?php esc_html_e( 'Enable JavaScript to search pages and posts.', 'sentinel-forms' ); ?></p></noscript>
-					</td>
-				</tr>
-			<?php elseif ( [] !== $redirectTargets ) : ?>
-				<tr>
-					<th scope="row"><label for="sf-redirect-page"><?php esc_html_e( 'Page or post', 'sentinel-forms' ); ?></label></th>
-					<td>
-						<select id="sf-redirect-page" name="redirect_page">
-							<option value=""><?php esc_html_e( 'Select a page or post…', 'sentinel-forms' ); ?></option>
-							<?php foreach ( $redirectTargets as $group ) : ?>
-								<optgroup label="<?php echo esc_attr( $group['label'] ); ?>">
-									<?php foreach ( $group['items'] as $item ) : ?>
-										<option value="<?php echo esc_attr( (string) $item['id'] ); ?>" <?php selected( $form->schema->redirectPageId(), $item['id'] ); ?>><?php echo esc_html( $item['title'] ); ?></option>
-									<?php endforeach; ?>
-								</optgroup>
-							<?php endforeach; ?>
-						</select>
-						<p class="description"><?php esc_html_e( 'Redirect to this item; it keeps working even if its URL changes.', 'sentinel-forms' ); ?></p>
+						<?php if ( $redirectSearch ) : ?>
+							<input type="search" id="sf-redirect-search" class="regular-text" value="<?php echo esc_attr( null !== $redirectSelected ? $redirectSelected['title'] : '' ); ?>" placeholder="<?php esc_attr_e( 'Search pages and posts…', 'sentinel-forms' ); ?>" autocomplete="off">
+							<select id="sf-redirect-page" name="redirect_page">
+								<option value=""><?php esc_html_e( 'Select a page or post…', 'sentinel-forms' ); ?></option>
+								<?php if ( null !== $redirectSelected ) : ?>
+									<option value="<?php echo esc_attr( (string) $redirectSelected['id'] ); ?>" selected><?php echo esc_html( $redirectSelected['title'] ); ?></option>
+								<?php endif; ?>
+							</select>
+							<p class="description"><?php esc_html_e( 'Start typing to search. Redirects to the selected item even if its URL changes.', 'sentinel-forms' ); ?></p>
+							<noscript><p class="description"><?php esc_html_e( 'Enable JavaScript to search pages and posts.', 'sentinel-forms' ); ?></p></noscript>
+						<?php else : ?>
+							<select id="sf-redirect-page" name="redirect_page">
+								<option value=""><?php esc_html_e( 'Select a page or post…', 'sentinel-forms' ); ?></option>
+								<?php foreach ( $redirectTargets as $group ) : ?>
+									<optgroup label="<?php echo esc_attr( $group['label'] ); ?>">
+										<?php foreach ( $group['items'] as $item ) : ?>
+											<option value="<?php echo esc_attr( (string) $item['id'] ); ?>" <?php selected( $form->schema->redirectPageId(), $item['id'] ); ?>><?php echo esc_html( $item['title'] ); ?></option>
+										<?php endforeach; ?>
+									</optgroup>
+								<?php endforeach; ?>
+							</select>
+							<p class="description"><?php esc_html_e( 'Redirect to this item; it keeps working even if its URL changes.', 'sentinel-forms' ); ?></p>
+						<?php endif; ?>
 					</td>
 				</tr>
 			<?php endif; ?>

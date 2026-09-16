@@ -186,9 +186,9 @@ final class FrontendSubmissionTest extends TestCase {
 	}
 
 	/**
-	 * The anchor wins over a configured redirect URL.
+	 * The URL mode wins over a stored anchor.
 	 */
-	public function testRedirectAnchorTakesPrecedenceOverTheUrl(): void {
+	public function testRedirectModeUrlWinsOverTheAnchor(): void {
 		$pageId = self::factory()->post->create(
 			[
 				'post_type'  => 'page',
@@ -196,9 +196,25 @@ final class FrontendSubmissionTest extends TestCase {
 			]
 		);
 
-		$form = $this->makeAnchoredForm( $pageId, 'https://example.com/legacy' );
+		$form = $this->makeAnchoredForm( $pageId, 'https://example.com/legacy', 'url' );
 
-		$this->assertSame( get_permalink( $pageId ), $this->submitAnchored( $form ) );
+		$this->assertSame( 'https://example.com/legacy', $this->submitAnchored( $form ) );
+	}
+
+	/**
+	 * The message mode ignores stored redirect values.
+	 */
+	public function testRedirectModeMessageIgnoresStoredRedirects(): void {
+		$pageId = self::factory()->post->create(
+			[
+				'post_type'  => 'page',
+				'post_title' => 'Thank You',
+			]
+		);
+
+		$form = $this->makeAnchoredForm( $pageId, 'https://example.com/legacy', 'message' );
+
+		$this->assertStringContainsString( 'sentinel_form_success=' . $form->id, $this->submitAnchored( $form ) );
 	}
 
 	/**
@@ -218,12 +234,13 @@ final class FrontendSubmissionTest extends TestCase {
 	}
 
 	/**
-	 * Create a published form with one field and a redirect anchor.
+	 * Create a published form with one field and a redirect configuration.
 	 *
-	 * @param int    $pageId Redirect anchor page ID.
-	 * @param string $url    Stored redirect URL.
+	 * @param int         $pageId Redirect anchor page ID.
+	 * @param string      $url    Stored redirect URL.
+	 * @param string|null $mode   Confirmation mode (inferred when omitted).
 	 */
-	private function makeAnchoredForm( int $pageId, string $url = '' ): Form {
+	private function makeAnchoredForm( int $pageId, string $url = '', ?string $mode = null ): Form {
 		$repository = new FormRepository();
 
 		$schema = FormSchema::empty( 'Anchored' )
@@ -237,7 +254,7 @@ final class FrontendSubmissionTest extends TestCase {
 					],
 				]
 			)
-			->withConfirmation( '', $url, $pageId );
+			->withConfirmation( '', $url, $pageId, $mode );
 
 		$id = $repository->create( 'Anchored', $schema, 'published' );
 

@@ -162,3 +162,10 @@ td.sentinel-forms-used-on .sentinel-forms-used-on__popover:target {
 .sentinel-forms-tabs__panel {
 	margin-top: 1em;
 }
+
+/* Form editor: confirmation mode choice. */
+
+.sentinel-forms-confirmation-modes label {
+	display: block;
+	margin-bottom: 0.35em;
+}

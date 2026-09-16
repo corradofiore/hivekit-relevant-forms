@@ -23,6 +23,12 @@ final class FormSchema implements JsonSerializable {
 	public const SCHEMA_VERSION = 1;
 
 	/**
+	 * Confirmation mechanisms: show a message inline, redirect to a URL, or
+	 * redirect to a page or post. They are mutually exclusive.
+	 */
+	public const CONFIRMATION_MODES = [ 'message', 'url', 'page' ];
+
+	/**
 	 * Normalized schema data.
 	 *
 	 * @var array<string, mixed>
@@ -51,6 +57,7 @@ final class FormSchema implements JsonSerializable {
 				'fields'         => [],
 				'notifications'  => [],
 				'confirmation'   => [
+					'mode'          => 'message',
 					'message'       => '',
 					'redirect'      => '',
 					'redirect_page' => 0,
@@ -70,6 +77,14 @@ final class FormSchema implements JsonSerializable {
 	public static function fromArray( array $data ): self {
 		$confirmation = is_array( $data['confirmation'] ?? null ) ? $data['confirmation'] : [];
 
+		$message      = isset( $confirmation['message'] ) ? (string) $confirmation['message'] : '';
+		$redirect     = isset( $confirmation['redirect'] ) ? (string) $confirmation['redirect'] : '';
+		$redirectPage = isset( $confirmation['redirect_page'] ) && is_scalar( $confirmation['redirect_page'] ) ? absint( $confirmation['redirect_page'] ) : 0;
+
+		$mode = isset( $confirmation['mode'] ) && is_string( $confirmation['mode'] ) && in_array( $confirmation['mode'], self::CONFIRMATION_MODES, true )
+			? $confirmation['mode']
+			: self::inferConfirmationMode( $redirect, $redirectPage );
+
 		return new self(
 			[
 				'schema_version' => self::SCHEMA_VERSION,
@@ -77,9 +92,10 @@ final class FormSchema implements JsonSerializable {
 				'fields'         => isset( $data['fields'] ) && is_array( $data['fields'] ) ? array_values( $data['fields'] ) : [],
 				'notifications'  => isset( $data['notifications'] ) && is_array( $data['notifications'] ) ? array_values( $data['notifications'] ) : [],
 				'confirmation'   => [
-					'message'       => isset( $confirmation['message'] ) ? (string) $confirmation['message'] : '',
-					'redirect'      => isset( $confirmation['redirect'] ) ? (string) $confirmation['redirect'] : '',
-					'redirect_page' => isset( $confirmation['redirect_page'] ) && is_scalar( $confirmation['redirect_page'] ) ? absint( $confirmation['redirect_page'] ) : 0,
+					'mode'          => $mode,
+					'message'       => $message,
+					'redirect'      => $redirect,
+					'redirect_page' => $redirectPage,
 				],
 				'ai_policy'      => is_array( $data['ai_policy'] ?? null ) ? $data['ai_policy'] : [],
 				'upload_policy'  => is_array( $data['upload_policy'] ?? null ) ? $data['upload_policy'] : [],
@@ -271,15 +287,54 @@ final class FormSchema implements JsonSerializable {
 	}
 
 	/**
+	 * Confirmation mechanism in use: 'message', 'url' or 'page'
+	 * (see CONFIRMATION_MODES). Legacy data without a mode is inferred from
+	 * the stored redirect values.
+	 */
+	public function confirmationMode(): string {
+		$mode = $this->data['confirmation']['mode'] ?? '';
+
+		if ( is_string( $mode ) && in_array( $mode, self::CONFIRMATION_MODES, true ) ) {
+			return $mode;
+		}
+
+		return self::inferConfirmationMode( $this->redirectUrl(), $this->redirectPageId() );
+	}
+
+	/**
+	 * Infer the confirmation mode from legacy redirect values.
+	 *
+	 * @param string $redirect     Redirect URL.
+	 * @param int    $redirectPage Redirect anchor ID.
+	 */
+	private static function inferConfirmationMode( string $redirect, int $redirectPage ): string {
+		if ( $redirectPage > 0 ) {
+			return 'page';
+		}
+
+		if ( '' !== $redirect ) {
+			return 'url';
+		}
+
+		return 'message';
+	}
+
+	/**
 	 * Copy with new confirmation settings.
 	 *
-	 * @param string $message      Confirmation message.
-	 * @param string $redirect     Redirect URL (may be empty).
-	 * @param int    $redirectPage Redirect anchor page/post ID (0 = none).
+	 * @param string      $message      Confirmation message.
+	 * @param string      $redirect     Redirect URL (may be empty).
+	 * @param int         $redirectPage Redirect anchor page/post ID (0 = none).
+	 * @param string|null $mode         Confirmation mode; inferred from the values when omitted or invalid.
 	 */
-	public function withConfirmation( string $message, string $redirect, int $redirectPage = 0 ): self {
+	public function withConfirmation( string $message, string $redirect, int $redirectPage = 0, ?string $mode = null ): self {
+		if ( null === $mode || ! in_array( $mode, self::CONFIRMATION_MODES, true ) ) {
+			$mode = self::inferConfirmationMode( $redirect, $redirectPage );
+		}
+
 		$copy                 = $this->data;
 		$copy['confirmation'] = [
+			'mode'          => $mode,
 			'message'       => $message,
 			'redirect'      => $redirect,
 			'redirect_page' => $redirectPage,

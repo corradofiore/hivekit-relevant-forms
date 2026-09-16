@@ -471,24 +471,35 @@ final class SubmissionHandler {
 	}
 
 	/**
-	 * Resolve the redirect target: the anchored page/post's current permalink
-	 * when one is set and still published (immutable across slug changes),
-	 * otherwise the configured redirect URL.
+	 * Resolve the redirect target for the active confirmation mode: the
+	 * anchored page/post's current permalink (immutable across slug changes)
+	 * or the configured URL. Message mode — and unresolvable targets — return
+	 * an empty string so the submission falls back to the on-page message.
 	 *
 	 * @param Form $form Form definition.
 	 */
 	private static function redirectTarget( Form $form ): string {
-		$pageId = $form->schema->redirectPageId();
+		$mode = $form->schema->confirmationMode();
 
-		if ( $pageId > 0 && 'publish' === get_post_status( $pageId ) ) {
-			$permalink = get_permalink( $pageId );
+		if ( 'page' === $mode ) {
+			$pageId = $form->schema->redirectPageId();
 
-			if ( is_string( $permalink ) && '' !== $permalink ) {
-				return $permalink;
+			if ( $pageId > 0 && 'publish' === get_post_status( $pageId ) ) {
+				$permalink = get_permalink( $pageId );
+
+				if ( is_string( $permalink ) && '' !== $permalink ) {
+					return $permalink;
+				}
 			}
+
+			return '';
 		}
 
-		return $form->schema->redirectUrl();
+		if ( 'url' === $mode ) {
+			return $form->schema->redirectUrl();
+		}
+
+		return '';
 	}
 
 	/**
