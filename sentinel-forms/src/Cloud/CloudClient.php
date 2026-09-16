@@ -124,6 +124,34 @@ final class CloudClient {
 	}
 
 	/**
+	 * POST /v1/sms/verifications — issue a 6-digit code to a number.
+	 *
+	 * @param string $phone Normalized E.164 number.
+	 * @return array{status: int, data: array<string, mixed>|null, error: array<string, mixed>|null}
+	 */
+	public function requestSmsVerification( string $phone ): array {
+		return $this->postEnvelope( '/api/v1/sms/verifications', [ 'phone' => $phone ], 15 );
+	}
+
+	/**
+	 * POST /v1/sms/verifications/verify — redeem the 6-digit code.
+	 *
+	 * @param int    $verificationId Verification id from the send step.
+	 * @param string $code           6-digit code.
+	 * @return array{status: int, data: array<string, mixed>|null, error: array<string, mixed>|null}
+	 */
+	public function verifySmsCode( int $verificationId, string $code ): array {
+		return $this->postEnvelope(
+			'/api/v1/sms/verifications/verify',
+			[
+				'verification_id' => $verificationId,
+				'code'            => $code,
+			],
+			15
+		);
+	}
+
+	/**
 	 * POST /v1/uploads/authorize — managed storage upload authorization.
 	 *
 	 * @param array<string, mixed> $payload Object key, filename, MIME, size.
@@ -253,6 +281,50 @@ final class CloudClient {
 		);
 
 		return $this->decode( $response, [ 200 ] );
+	}
+
+	/**
+	 * POST with the raw response envelope (status + data/error), so callers
+	 * can surface API error codes (invalid_code, rate_limited, ...) to the
+	 * form editor instead of a generic failure.
+	 *
+	 * @param string               $path    Absolute API path.
+	 * @param array<string, mixed> $payload JSON body.
+	 * @param int                  $timeout Timeout in seconds.
+	 * @return array{status: int, data: array<string, mixed>|null, error: array<string, mixed>|null}
+	 */
+	private function postEnvelope( string $path, array $payload, int $timeout ): array {
+		$response = wp_remote_post(
+			$this->baseUrl . $path,
+			[
+				'timeout' => $timeout,
+				'headers' => $this->headers(),
+				'body'    => wp_json_encode( $payload ),
+			]
+		);
+
+		if ( is_wp_error( $response ) ) {
+			Logger::warning( 'Cloud API request failed', [ 'message' => $response->get_error_message() ] );
+
+			return [
+				'status' => 0,
+				'data'   => null,
+				'error'  => [
+					'code'    => 'network_error',
+					'message' => $response->get_error_message(),
+				],
+			];
+		}
+
+		$status = (int) wp_remote_retrieve_response_code( $response );
+		$body   = json_decode( (string) wp_remote_retrieve_body( $response ), true );
+		$body   = is_array( $body ) ? $body : [];
+
+		return [
+			'status' => $status,
+			'data'   => is_array( $body['data'] ?? null ) ? $body['data'] : null,
+			'error'  => is_array( $body['error'] ?? null ) ? $body['error'] : null,
+		];
 	}
 
 	/**

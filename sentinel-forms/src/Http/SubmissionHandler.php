@@ -332,7 +332,7 @@ final class SubmissionHandler {
 	private static function notifySmsIfNeeded( Form $form, int $entryId, Classification $classification ): void {
 		$alert = new SmsAlert();
 
-		if ( ! $alert->shouldSend( $classification ) ) {
+		if ( ! $alert->shouldSend( $classification, $form ) ) {
 			return;
 		}
 

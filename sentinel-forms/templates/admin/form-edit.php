@@ -27,6 +27,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 		</div>
 	<?php endif; ?>
 
+	<?php if ( isset( $_GET['sms_error'] ) && 'unverified_phone' === sanitize_key( wp_unslash( (string) $_GET['sms_error'] ) ) ) : // phpcs:ignore WordPress.Security.NonceVerification.Recommended ?>
+		<div class="notice notice-error is-dismissible">
+			<p><?php esc_html_e( 'The phone number was not saved: verify it with the 6-digit code first, then save again.', 'sentinel-forms' ); ?></p>
+		</div>
+	<?php endif; ?>
+
 	<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
 		<input type="hidden" name="action" value="sentinel_forms_save_form">
 		<input type="hidden" name="form_id" value="<?php echo esc_attr( (string) $form->id ); ?>">
@@ -132,7 +138,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 			</tr>
 		</table>
 
-		<?php $ai_policy = $form->schema->aiPolicy(); ?>
+		<?php
+		$ai_policy    = $form->schema->aiPolicy();
+		$sms_alert_on = ! empty( $ai_policy['sms_alert'] );
+		$sms_phone    = (string) ( $ai_policy['sms_phone'] ?? '' );
+		?>
 		<div class="sentinel-forms-ai-panel">
 			<h2><?php esc_html_e( 'AI classification', 'sentinel-forms' ); ?></h2>
 			<p class="sentinel-forms-ai-panel__intro"><?php esc_html_e( 'AI evaluates meaning, relevance, intent and urgency. Important submissions receive a transparent attention score, so they do not look identical to every other email.', 'sentinel-forms' ); ?></p>
@@ -159,6 +169,28 @@ if ( ! defined( 'ABSPATH' ) ) {
 				<td>
 					<textarea class="sentinel-forms-textarea" id="sentinel-ai-spam" name="ai_spam" rows="4"><?php echo esc_textarea( (string) ( $ai_policy['spam'] ?? '' ) ); ?></textarea>
 					<p class="description sentinel-forms-textarea-caption"><?php esc_html_e( 'Describe messages this form should treat as spam, e.g. "Automated sales pitches and link drops", "Comments not relevant to (insert your site\'s topic) or very generic". One category per line.', 'sentinel-forms' ); ?></p>
+				</td>
+			</tr>
+			<tr>
+				<th scope="row"><?php esc_html_e( 'Priority SMS', 'sentinel-forms' ); ?></th>
+				<td>
+					<label>
+						<input type="checkbox" id="sentinel-ai-sms-alert" name="ai_sms_alert" value="1" <?php checked( $sms_alert_on ); ?>>
+						<?php esc_html_e( 'Receive an SMS when a submission is particularly relevant (e.g. a request for a quote).', 'sentinel-forms' ); ?>
+					</label>
+				</td>
+			</tr>
+			<tr>
+				<th scope="row"><label for="sentinel-ai-sms-phone"><?php esc_html_e( 'Priority SMS recipient', 'sentinel-forms' ); ?></label></th>
+				<td>
+					<input type="tel" class="regular-text" id="sentinel-ai-sms-phone" name="ai_sms_phone" value="<?php echo esc_attr( $sms_phone ); ?>" data-stored="<?php echo esc_attr( $sms_phone ); ?>" placeholder="+39 333 1234567" autocomplete="tel" <?php disabled( ! $sms_alert_on ); ?>>
+					<button type="button" class="button" id="sf-sms-send-code" <?php disabled( ! $sms_alert_on ); ?>><?php esc_html_e( 'Send code', 'sentinel-forms' ); ?></button>
+					<span class="sf-sms-status" id="sf-sms-status" role="status" aria-live="polite"><?php echo '' !== $sms_phone ? esc_html__( 'Verified', 'sentinel-forms' ) : ''; ?></span>
+					<p id="sf-sms-code-row" hidden>
+						<input type="text" class="small-text" id="sf-sms-code" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="one-time-code" placeholder="<?php esc_attr_e( '6-digit code', 'sentinel-forms' ); ?>">
+						<button type="button" class="button" id="sf-sms-verify-code"><?php esc_html_e( 'Verify code', 'sentinel-forms' ); ?></button>
+					</p>
+					<p class="description"><?php esc_html_e( 'We text a 6-digit code to this number. A new or changed number is only saved after the code is verified.', 'sentinel-forms' ); ?></p>
 				</td>
 			</tr>
 		</table>

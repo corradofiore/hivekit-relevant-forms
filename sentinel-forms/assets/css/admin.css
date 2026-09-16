@@ -209,3 +209,22 @@ td.sentinel-forms-used-on .sentinel-forms-used-on__popover:target {
 	margin: 0.35em 0 0.75em;
 	max-width: 60em;
 }
+
+/* Form editor: priority-SMS recipient verification. */
+
+.sf-sms-status {
+	margin-left: 0.5em;
+}
+
+.sf-sms-status--ok {
+	color: #1e6b22;
+	font-weight: 600;
+}
+
+.sf-sms-status--pending {
+	color: #646970;
+}
+
+#sf-sms-code-row {
+	margin: 0.5em 0;
+}

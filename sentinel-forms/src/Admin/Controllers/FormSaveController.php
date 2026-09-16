@@ -9,6 +9,7 @@ declare(strict_types=1);
 
 namespace SentinelForms\Admin\Controllers;
 
+use SentinelForms\Alerts\PhoneNumber;
 use SentinelForms\Forms\Fields\FieldTypeRegistry;
 use SentinelForms\Forms\FormRepository;
 use SentinelForms\Forms\FormSchema;
@@ -72,10 +73,33 @@ final class FormSaveController {
 			$mode = null;
 		}
 
+		$smsAlert = ! empty( $raw['ai_sms_alert'] );
+		$smsPhone = null !== $existing ? (string) ( $existing->schema->aiPolicy()['sms_phone'] ?? '' ) : '';
+		$smsError = '';
+
+		if ( $smsAlert ) {
+			$submitted  = trim( (string) ( $raw['ai_sms_phone'] ?? '' ) );
+			$normalized = PhoneNumber::normalize( $submitted );
+
+			if ( '' === $submitted ) {
+				// Option on without a recipient: the site default applies.
+				$smsPhone = '';
+			} elseif ( null !== $normalized && ( $normalized === $smsPhone || SmsVerificationController::isVerified( $normalized ) ) ) {
+				$smsPhone = $normalized;
+			} else {
+				// Inserting or changing a number requires a fresh 6-digit OTP
+				// proof (SmsVerificationController); the submitted number is not
+				// accepted and the stored value is kept.
+				$smsError = 'unverified_phone';
+			}
+		}
+
 		$aiPolicy = [
-			'enabled' => ! empty( $raw['ai_enabled'] ),
-			'purpose' => mb_substr( sanitize_textarea_field( (string) ( $raw['ai_purpose'] ?? '' ) ), 0, 500 ),
-			'spam'    => mb_substr( sanitize_textarea_field( (string) ( $raw['ai_spam'] ?? '' ) ), 0, 500 ),
+			'enabled'   => ! empty( $raw['ai_enabled'] ),
+			'purpose'   => mb_substr( sanitize_textarea_field( (string) ( $raw['ai_purpose'] ?? '' ) ), 0, 500 ),
+			'spam'      => mb_substr( sanitize_textarea_field( (string) ( $raw['ai_spam'] ?? '' ) ), 0, 500 ),
+			'sms_alert' => $smsAlert,
+			'sms_phone' => $smsPhone,
 		];
 
 		$schema = FormSchema::empty()
@@ -115,7 +139,12 @@ final class FormSaveController {
 			]
 		);
 
-		wp_safe_redirect( admin_url( 'admin.php?page=sentinel-form-new&form_id=' . $formId . '&saved=1' ) );
+		wp_safe_redirect(
+			admin_url(
+				'admin.php?page=sentinel-form-new&form_id=' . $formId . '&saved=1'
+				. ( '' !== $smsError ? '&sms_error=' . rawurlencode( $smsError ) : '' )
+			)
+		);
 		exit;
 	}
 

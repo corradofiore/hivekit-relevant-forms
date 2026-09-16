@@ -56,8 +56,10 @@ final class SmsAlert {
 
 	/**
 	 * Whether SMS alerts should run at all.
+	 *
+	 * @param Form|null $form Form entity, when the alert is form-scoped.
 	 */
-	public function isEnabled(): bool {
+	public function isEnabled( ?Form $form = null ): bool {
 		if ( ! CloudConfig::isConfigured() ) {
 			return false;
 		}
@@ -66,17 +68,29 @@ final class SmsAlert {
 			return false;
 		}
 
-		return '' !== $this->recipient();
+		return '' !== $this->recipient( $form );
 	}
 
 	/**
-	 * Recipient phone number (constant first, then settings).
+	 * Recipient phone number: the constant wins, then the form's verified
+	 * per-form number (when the editor option is on), then the site default.
+	 *
+	 * @param Form|null $form Form entity, when the alert is form-scoped.
 	 */
-	public function recipient(): string {
+	public function recipient( ?Form $form = null ): string {
 		$constant = defined( 'SENTINEL_SMS_RECIPIENT' ) ? (string) SENTINEL_SMS_RECIPIENT : '';
 
 		if ( '' !== trim( $constant ) ) {
 			return trim( $constant );
+		}
+
+		if ( null !== $form ) {
+			$policy = $form->schema->aiPolicy();
+			$phone  = trim( (string) ( $policy['sms_phone'] ?? '' ) );
+
+			if ( '' !== $phone && ! empty( $policy['sms_alert'] ) ) {
+				return $phone;
+			}
 		}
 
 		$settings = (array) get_option( self::OPTION, [] );
@@ -86,9 +100,12 @@ final class SmsAlert {
 
 	/**
 	 * Whether this classification deserves an interruption.
+	 *
+	 * @param Classification $classification Validated classification.
+	 * @param Form|null      $form           Form entity, when the alert is form-scoped.
 	 */
-	public function shouldSend( Classification $classification ): bool {
-		if ( ! $this->isEnabled() ) {
+	public function shouldSend( Classification $classification, ?Form $form = null ): bool {
+		if ( ! $this->isEnabled( $form ) ) {
 			return false;
 		}
 
@@ -110,7 +127,7 @@ final class SmsAlert {
 		$summary = trim( $classification->summary );
 
 		$payload = [
-			'recipient' => $this->recipient(),
+			'recipient' => $this->recipient( $form ),
 			'alert'     => [
 				'headline'        => mb_substr( $form->name, 0, 120 ),
 				'summary'         => mb_substr( '' !== $summary ? $summary : __( 'Priority submission received.', 'sentinel-forms' ), 0, 500 ),

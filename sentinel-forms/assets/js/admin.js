@@ -259,6 +259,184 @@
 		syncConfirmationRows();
 	}
 
+	/*
+	 * Priority SMS recipient: the field is active only while the option is
+	 * checked, and a new or changed number must pass a 6-digit code check
+	 * (the save handler refuses unverified numbers).
+	 */
+	var smsToggle = document.getElementById( 'sentinel-ai-sms-alert' );
+	var smsPhone = document.getElementById( 'sentinel-ai-sms-phone' );
+
+	if ( smsToggle && smsPhone && window.sentinelFormsAdmin ) {
+		( function () {
+			var settings = window.sentinelFormsAdmin;
+			var strings = settings.smsStrings || {};
+			var sendButton = document.getElementById( 'sf-sms-send-code' );
+			var verifyRow = document.getElementById( 'sf-sms-code-row' );
+			var codeInput = document.getElementById( 'sf-sms-code' );
+			var verifyButton = document.getElementById( 'sf-sms-verify-code' );
+			var status = document.getElementById( 'sf-sms-status' );
+
+			/**
+			 * Report the verification state next to the field.
+			 *
+			 * @param {string}  text  Message to show.
+			 * @param {boolean} valid Whether the number is verified.
+			 */
+			function setStatus( text, valid ) {
+				status.textContent = text || '';
+				status.classList.toggle( 'sf-sms-status--ok', !! valid );
+				status.classList.toggle( 'sf-sms-status--pending', ! valid && !! text );
+			}
+
+			/**
+			 * Mark the field verified only when it matches the stored number.
+			 */
+			function syncVerifiedState() {
+				var stored = smsPhone.getAttribute( 'data-stored' ) || '';
+				var current = smsPhone.value.trim();
+
+				if ( current !== '' && current === stored ) {
+					setStatus( strings.verified, true );
+				} else if ( current !== '' ) {
+					setStatus( strings.unverified, false );
+				} else {
+					setStatus( '', false );
+				}
+			}
+
+			/**
+			 * Enable the field only while the option is checked.
+			 */
+			function syncEnabled() {
+				var on = smsToggle.checked;
+
+				smsPhone.disabled = ! on;
+				sendButton.disabled = ! on;
+
+				if ( ! on ) {
+					verifyRow.hidden = true;
+					setStatus( '', false );
+					return;
+				}
+
+				syncVerifiedState();
+			}
+
+			/**
+			 * POST one admin-ajax action and parse the JSON envelope.
+			 *
+			 * @param {string} action Admin-ajax action.
+			 * @param {string} nonce  Nonce for the action.
+			 * @param {Object} extra  Additional fields.
+			 * @return {Promise} Parsed response body.
+			 */
+			function post( action, nonce, extra ) {
+				var body = new window.FormData();
+
+				body.append( 'action', action );
+				body.append( '_wpnonce', nonce );
+
+				Object.keys( extra ).forEach( function ( key ) {
+					body.append( key, extra[ key ] );
+				} );
+
+				return window.fetch( settings.ajaxUrl, {
+					method: 'POST',
+					credentials: 'same-origin',
+					body: body
+				} ).then( function ( response ) {
+					return response.json();
+				} );
+			}
+
+			/**
+			 * Error message from a failed envelope.
+			 *
+			 * @param {Object} body Parsed response body.
+			 * @return {string} Message to show.
+			 */
+			function errorText( body ) {
+				if ( body && body.data && body.data.message ) {
+					return body.data.message;
+				}
+
+				return strings.requestFailed;
+			}
+
+			smsToggle.addEventListener( 'change', syncEnabled );
+
+			smsPhone.addEventListener( 'input', function () {
+				verifyRow.hidden = true;
+				syncVerifiedState();
+			} );
+
+			sendButton.addEventListener( 'click', function () {
+				var phone = smsPhone.value.trim();
+
+				if ( phone === '' ) {
+					setStatus( strings.checkPhone, false );
+					return;
+				}
+
+				setStatus( strings.sending, false );
+
+				post( 'sentinel_forms_sms_send', settings.smsSendNonce, { phone: phone } )
+					.then( function ( body ) {
+						if ( ! body || ! body.success ) {
+							setStatus( errorText( body ), false );
+							return;
+						}
+
+						if ( body.data.phone ) {
+							smsPhone.value = body.data.phone;
+						}
+
+						var message = strings.codeSent;
+
+						if ( body.data.dev_code ) {
+							message += ' ' + strings.devCode + ' ' + body.data.dev_code;
+						}
+
+						setStatus( message, false );
+						verifyRow.hidden = false;
+						codeInput.value = '';
+						codeInput.focus();
+					} )
+					.catch( function () {
+						setStatus( strings.requestFailed, false );
+					} );
+			} );
+
+			verifyButton.addEventListener( 'click', function () {
+				post(
+					'sentinel_forms_sms_verify',
+					settings.smsVerifyNonce,
+					{ phone: smsPhone.value.trim(), code: codeInput.value.trim() }
+				)
+					.then( function ( body ) {
+						if ( ! body || ! body.success ) {
+							setStatus( errorText( body ), false );
+							return;
+						}
+
+						if ( body.data.phone ) {
+							smsPhone.value = body.data.phone;
+							smsPhone.setAttribute( 'data-stored', body.data.phone );
+						}
+
+						verifyRow.hidden = true;
+						setStatus( strings.verified, true );
+					} )
+					.catch( function () {
+						setStatus( strings.requestFailed, false );
+					} );
+			} );
+
+			syncEnabled();
+		} )();
+	}
+
 	/**
 	 * Toggle the form editor tabs (settings / fields).
 	 *
