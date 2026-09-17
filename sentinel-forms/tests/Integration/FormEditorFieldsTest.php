@@ -335,7 +335,8 @@ final class FormEditorFieldsTest extends TestCase {
 		// The type is offered in the add-field picker.
 		$this->assertStringContainsString( '<option value="section">Section separator</option>', $html );
 
-		// The editor shows a label row only.
+		// The editor shows a label row only, captioned as the section header.
+		$this->assertStringContainsString( '<label for="sf-field-f_sec-label">Section header</label>', $html );
 		$this->assertStringContainsString( 'name="sentinel_fields[f_sec][label]"', $html );
 		$this->assertStringNotContainsString( 'name="sentinel_fields[f_sec][required]"', $html );
 		$this->assertStringNotContainsString( 'name="sentinel_fields[f_sec][placeholder]"', $html );

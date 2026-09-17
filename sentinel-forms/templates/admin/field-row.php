@@ -42,7 +42,7 @@ $inputIdBase = 'sf-field-' . $fieldId;
 			</tr>
 			<?php if ( ! $isHidden ) : ?>
 				<tr>
-					<th scope="row"><label for="<?php echo esc_attr( $inputIdBase . '-label' ); ?>"><?php esc_html_e( 'Label', 'sentinel-forms' ); ?></label></th>
+					<th scope="row"><label for="<?php echo esc_attr( $inputIdBase . '-label' ); ?>"><?php echo esc_html( $isSection ? __( 'Section header', 'sentinel-forms' ) : __( 'Label', 'sentinel-forms' ) ); ?></label></th>
 					<td>
 						<input type="text" class="widefat sf-input-label" id="<?php echo esc_attr( $inputIdBase . '-label' ); ?>" name="sentinel_fields[<?php echo esc_attr( $fieldId ); ?>][label]" value="<?php echo esc_attr( (string) ( $definition['label'] ?? '' ) ); ?>">
 					</td>
