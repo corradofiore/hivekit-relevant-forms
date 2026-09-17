@@ -71,7 +71,7 @@ final class SectionField implements FieldType {
 	 */
 	public function defaults(): array {
 		return [
-			'label' => '',
+			'label' => __( 'A New Section', 'sentinel-forms' ),
 		];
 	}
 }

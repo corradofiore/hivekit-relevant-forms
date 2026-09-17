@@ -347,6 +347,15 @@ final class FormEditorFieldsTest extends TestCase {
 		$this->assertStringContainsString( 'sentinel-forms-field--section', $html );
 		$this->assertStringContainsString( '<h3 class="sentinel-forms-section-title">Billing details</h3>', $html );
 		$this->assertStringContainsString( '<hr class="sentinel-forms-section-separator">', $html );
+
+		// A fresh section starts with a default header in its template only.
+		$section_start    = (int) strpos( $html, '<template id="sf-field-template-section">' );
+		$section_template = substr( $html, $section_start );
+		$section_template = substr( $section_template, 0, (int) strpos( $section_template, '</template>' ) );
+
+		$this->assertStringContainsString( 'value="A New Section"', $section_template );
+		$this->assertStringContainsString( '<h3 class="sentinel-forms-section-title">A New Section</h3>', $section_template );
+		$this->assertStringNotContainsString( 'A New Section', substr( $html, 0, $section_start ) );
 	}
 
 	/**

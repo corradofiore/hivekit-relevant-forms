@@ -286,7 +286,7 @@ if ( $isEditing ) {
 			$definition = [
 				'id'            => '{ID}',
 				'type'          => $field_type->type(),
-				'label'         => '',
+				'label'         => 'section' === $field_type->type() ? __( 'A New Section', 'sentinel-forms' ) : '',
 				'required'      => false,
 				'placeholder'   => '',
 				'help_text'     => '',
