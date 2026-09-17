@@ -254,6 +254,28 @@
 			return;
 		}
 
+		// Section separators have no control: only the heading text is editable.
+		if ( 'section' === type ) {
+			var heading = wrapper.querySelector( '.sentinel-forms-section-title' );
+			var headingText = labelInput ? labelInput.value : '';
+
+			if ( '' === headingText ) {
+				if ( heading ) {
+					heading.remove();
+				}
+			} else {
+				if ( ! heading ) {
+					heading = document.createElement( 'h3' );
+					heading.className = 'sentinel-forms-section-title';
+					wrapper.insertBefore( heading, wrapper.firstChild );
+				}
+
+				heading.textContent = headingText;
+			}
+
+			return;
+		}
+
 		fieldset = wrapper.querySelector( 'fieldset' );
 		control = document.getElementById( baseId );
 		label = null;

@@ -18,9 +18,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 // phpcs:disable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- template scope variables.
 
-$fieldId  = (string) $definition['id'];
-$isChoice = in_array( (string) $definition['type'], [ 'select', 'radio', 'checkbox' ], true );
-$isHidden = 'hidden' === (string) $definition['type'];
+$fieldId   = (string) $definition['id'];
+$isChoice  = in_array( (string) $definition['type'], [ 'select', 'radio', 'checkbox' ], true );
+$isHidden  = 'hidden' === (string) $definition['type'];
+$isSection = 'section' === (string) $definition['type'];
 
 // Base DOM id of the preview controls, used by admin.js to update the
 // preview (label, required, placeholder, help text...) while typing.
@@ -46,6 +47,9 @@ $inputIdBase = 'sf-field-' . $fieldId;
 						<input type="text" class="widefat sf-input-label" id="<?php echo esc_attr( $inputIdBase . '-label' ); ?>" name="sentinel_fields[<?php echo esc_attr( $fieldId ); ?>][label]" value="<?php echo esc_attr( (string) ( $definition['label'] ?? '' ) ); ?>">
 					</td>
 				</tr>
+			<?php endif; ?>
+
+			<?php if ( ! $isHidden && ! $isSection ) : ?>
 				<tr>
 					<th scope="row"><label for="<?php echo esc_attr( $inputIdBase . '-required' ); ?>"><?php esc_html_e( 'Required', 'sentinel-forms' ); ?></label></th>
 					<td>
@@ -54,7 +58,7 @@ $inputIdBase = 'sf-field-' . $fieldId;
 				</tr>
 			<?php endif; ?>
 
-			<?php if ( ! $isHidden && ! in_array( (string) $definition['type'], [ 'consent' ], true ) ) : ?>
+			<?php if ( ! $isHidden && ! in_array( (string) $definition['type'], [ 'consent', 'section' ], true ) ) : ?>
 				<tr>
 					<th scope="row"><label for="<?php echo esc_attr( $inputIdBase . '-placeholder' ); ?>"><?php esc_html_e( 'Placeholder', 'sentinel-forms' ); ?></label></th>
 					<td>
@@ -122,12 +126,14 @@ $inputIdBase = 'sf-field-' . $fieldId;
 				</tr>
 			<?php endif; ?>
 
-			<tr>
-				<th scope="row"><label for="<?php echo esc_attr( $inputIdBase . '-default' ); ?>"><?php esc_html_e( 'Default value', 'sentinel-forms' ); ?></label></th>
-				<td>
-					<input type="text" class="widefat" id="<?php echo esc_attr( $inputIdBase . '-default' ); ?>" name="sentinel_fields[<?php echo esc_attr( $fieldId ); ?>][default_value]" value="<?php echo esc_attr( (string) ( $definition['default_value'] ?? '' ) ); ?>">
-				</td>
-			</tr>
+			<?php if ( ! $isSection ) : ?>
+				<tr>
+					<th scope="row"><label for="<?php echo esc_attr( $inputIdBase . '-default' ); ?>"><?php esc_html_e( 'Default value', 'sentinel-forms' ); ?></label></th>
+					<td>
+						<input type="text" class="widefat" id="<?php echo esc_attr( $inputIdBase . '-default' ); ?>" name="sentinel_fields[<?php echo esc_attr( $fieldId ); ?>][default_value]" value="<?php echo esc_attr( (string) ( $definition['default_value'] ?? '' ) ); ?>">
+					</td>
+				</tr>
+			<?php endif; ?>
 		</table>
 	</div>
 </div>

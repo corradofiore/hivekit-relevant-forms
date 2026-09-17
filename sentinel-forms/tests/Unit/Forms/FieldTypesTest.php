@@ -125,9 +125,9 @@ it(
 );
 
 it(
-	'registers all thirteen built-in types',
+	'registers all fourteen built-in types',
 	function () {
-		expect( FieldTypeRegistry::all() )->toHaveCount( 13 );
+		expect( FieldTypeRegistry::all() )->toHaveCount( 14 );
 	}
 );
 
@@ -162,5 +162,49 @@ it(
 
 		expect( $fileMarkup )->toContain( 'role="status"' );
 		expect( $fileMarkup )->toContain( 'aria-live="polite"' );
+	}
+);
+
+it(
+	'renders section separators without a value',
+	function () {
+		Monkey\Functions\when( 'esc_html' )->returnArg();
+		Monkey\Functions\when( 'esc_attr' )->returnArg();
+
+		$type = FieldTypeRegistry::get( 'section' );
+
+		// Sections carry no value: nothing to validate or store.
+		expect( $type->validate( [], '' ) )->toBeNull();
+		expect( $type->sanitize( [], '' ) )->toBeNull();
+
+		$markup = $type->render(
+			[
+				'id'    => 'f_sec',
+				'type'  => 'section',
+				'label' => 'Billing details',
+			],
+			null,
+			null,
+			'7'
+		);
+
+		expect( $markup )->toContain( 'sentinel-forms-field--section' );
+		expect( $markup )->toContain( '<h3 class="sentinel-forms-section-title">Billing details</h3>' );
+		expect( $markup )->toContain( '<hr class="sentinel-forms-section-separator">' );
+
+		// Without a label it is a bare separator.
+		$bare = $type->render(
+			[
+				'id'    => 'f_sec',
+				'type'  => 'section',
+				'label' => '',
+			],
+			null,
+			null,
+			'7'
+		);
+
+		expect( $bare )->not->toContain( 'sentinel-forms-section-title' );
+		expect( $bare )->toContain( '<hr class="sentinel-forms-section-separator">' );
 	}
 );

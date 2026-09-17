@@ -307,6 +307,48 @@ final class FormEditorFieldsTest extends TestCase {
 	}
 
 	/**
+	 * Section separators: offered in the picker, edited with only a label,
+	 * and rendered as a heading + hr in the preview.
+	 */
+	public function testSectionSeparatorsRenderAndEditAsHeadings(): void {
+		wp_set_current_user( self::factory()->user->create( [ 'role' => 'administrator' ] ) );
+
+		$repository = new FormRepository();
+		$schema     = FormSchema::empty( 'Sections' )->withFields(
+			[
+				[
+					'id'    => 'f_name',
+					'type'  => 'text',
+					'label' => 'Name',
+				],
+				[
+					'id'    => 'f_sec',
+					'type'  => 'section',
+					'label' => 'Billing details',
+				],
+			]
+		);
+		$formId     = $repository->create( 'Sections', $schema, 'draft' );
+
+		$html = $this->renderEditor( $formId );
+
+		// The type is offered in the add-field picker.
+		$this->assertStringContainsString( '<option value="section">Section separator</option>', $html );
+
+		// The editor shows a label row only.
+		$this->assertStringContainsString( 'name="sentinel_fields[f_sec][label]"', $html );
+		$this->assertStringNotContainsString( 'name="sentinel_fields[f_sec][required]"', $html );
+		$this->assertStringNotContainsString( 'name="sentinel_fields[f_sec][placeholder]"', $html );
+		$this->assertStringNotContainsString( 'name="sentinel_fields[f_sec][help_text]"', $html );
+		$this->assertStringNotContainsString( 'name="sentinel_fields[f_sec][default_value]"', $html );
+
+		// The preview renders the separator with its heading.
+		$this->assertStringContainsString( 'sentinel-forms-field--section', $html );
+		$this->assertStringContainsString( '<h3 class="sentinel-forms-section-title">Billing details</h3>', $html );
+		$this->assertStringContainsString( '<hr class="sentinel-forms-section-separator">', $html );
+	}
+
+	/**
 	 * The list region of the rendered editor (before the editors column).
 	 *
 	 * @param string $html Rendered editor page.

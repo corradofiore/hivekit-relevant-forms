@@ -72,3 +72,16 @@
 	top: auto;
 	width: 1px;
 }
+
+/* Section separator fields: an optional heading above a horizontal rule. */
+
+.sentinel-forms-section-title {
+	margin: 0 0 0.5em;
+}
+
+.sentinel-forms-section-separator {
+	border: 0;
+	border-top: 1px solid currentColor;
+	margin: 0.5em 0 0;
+	opacity: 0.4;
+}

@@ -201,7 +201,13 @@ final class SubmissionHandler {
 				continue;
 			}
 
-			$values[ $fieldId ] = $type->sanitize( $definition, $value );
+			$sanitized = $type->sanitize( $definition, $value );
+
+			// Fields that carry no value (section separators) are left out
+			// of the stored values entirely: no meta row, no email line.
+			if ( null !== $sanitized ) {
+				$values[ $fieldId ] = $sanitized;
+			}
 		}
 
 		// Compatibility gate (Phase 7.5): WPForms-style consumers may halt

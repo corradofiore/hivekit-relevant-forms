@@ -40,7 +40,8 @@ interface FieldType {
 	 *
 	 * @param array<string, mixed> $definition Field definition.
 	 * @param mixed                $value      Submitted value.
-	 * @return mixed Safe value (scalar or array of scalars).
+	 * @return mixed Safe value (scalar or array of scalars), or null for
+	 *               fields that carry no value (e.g. section separators).
 	 */
 	public function sanitize( array $definition, mixed $value ): mixed;
 

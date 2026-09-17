@@ -78,6 +78,7 @@ final class FieldTypeRegistry {
 			new RadioField(),
 			new CheckboxField(),
 			new ConsentField(),
+			new SectionField(),
 			new HiddenField(),
 			new DateField(),
 			new FileField(),
