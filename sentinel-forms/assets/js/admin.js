@@ -22,10 +22,25 @@
 	var fieldEditors = document.getElementById( 'sf-fields-editors' );
 	var fieldPreviews = document.getElementById( 'sf-fields-preview' );
 	var fieldsEmpty = document.getElementById( 'sf-fields-empty' );
+	var fieldsTitle = document.getElementById( 'sf-fields-title' );
+	var fieldsTitleDefault = fieldsTitle ? fieldsTitle.textContent : '';
 	var draggedItem = null;
 	var fieldStrings = window.sentinelFormsAdmin && window.sentinelFormsAdmin.fieldStrings
 		? window.sentinelFormsAdmin.fieldStrings
 		: {};
+
+	/**
+	 * Name shown for a field in the list ('' when there is none).
+	 *
+	 * @param {string} id Field id.
+	 * @return {string} Field name.
+	 */
+	function fieldDisplayName( id ) {
+		var item = id ? fieldList.querySelector( '.sf-field-item[data-for="' + id + '"]' ) : null;
+		var name = item ? item.querySelector( '.sf-field-item__name' ) : null;
+
+		return name ? name.textContent : '';
+	}
 
 	/**
 	 * Select one field: highlight its list item and show its editor.
@@ -52,6 +67,11 @@
 
 		if ( fieldsEmpty ) {
 			fieldsEmpty.hidden = id !== '';
+		}
+
+		// The section header carries the selected field's name.
+		if ( fieldsTitle ) {
+			fieldsTitle.textContent = fieldDisplayName( id ) || fieldsTitleDefault;
 		}
 	}
 
@@ -617,6 +637,10 @@
 
 				if ( name ) {
 					name.textContent = input.value.trim() || fieldStrings.untitled || 'Untitled field';
+
+					if ( fieldsTitle && item.classList.contains( 'sf-field-item--active' ) ) {
+						fieldsTitle.textContent = name.textContent;
+					}
 				}
 			}
 

@@ -17,9 +17,21 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // phpcs:disable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- template scope variables.
+
+$pageTitle = __( 'Add New Form', 'sentinel-forms' );
+
+if ( $isEditing ) {
+	$pageTitle = '' !== trim( $form->name )
+		? sprintf(
+			/* translators: %s: form name. */
+			__( 'Edit Form: %s', 'sentinel-forms' ),
+			$form->name
+		)
+		: __( 'Edit Form', 'sentinel-forms' );
+}
 ?>
 <div class="wrap sentinel-forms-builder">
-	<h1><?php $isEditing ? esc_html_e( 'Edit Form', 'sentinel-forms' ) : esc_html_e( 'Add New Form', 'sentinel-forms' ); ?></h1>
+	<h1><?php echo esc_html( $pageTitle ); ?></h1>
 
 	<?php if ( isset( $_GET['saved'] ) ) : // phpcs:ignore WordPress.Security.NonceVerification.Recommended ?>
 		<div class="notice notice-success is-dismissible">
@@ -208,7 +220,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 		<div id="sf-panel-fields" class="sentinel-forms-tabs__panel">
 
-		<h2><?php esc_html_e( 'Fields', 'sentinel-forms' ); ?></h2>
+		<h2 id="sf-fields-title"><?php esc_html_e( 'Fields', 'sentinel-forms' ); ?></h2>
 
 		<?php $builder_fields = $form->schema->fields(); ?>
 		<div class="sf-fields-columns">

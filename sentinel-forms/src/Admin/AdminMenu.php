@@ -16,6 +16,7 @@ use SentinelForms\Admin\Pages\FormEditPage;
 use SentinelForms\Admin\Pages\FormListPage;
 use SentinelForms\Admin\Pages\ImportPage;
 use SentinelForms\Admin\Pages\SettingsPage;
+use SentinelForms\Forms\FormRepository;
 
 /**
  * Registers the Sentinel Forms menu and submenu pages.
@@ -162,12 +163,24 @@ final class AdminMenu {
 	 */
 	public static function setEditorPageTitle(): void {
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only routing.
-		$is_editing = isset( $_GET['form_id'] ) && absint( wp_unslash( $_GET['form_id'] ) ) > 0;
+		$form_id = isset( $_GET['form_id'] ) ? absint( wp_unslash( $_GET['form_id'] ) ) : 0;
+
+		$title = __( 'Add New Form', 'sentinel-forms' );
+
+		if ( $form_id > 0 ) {
+			$form      = ( new FormRepository() )->find( $form_id );
+			$form_name = null !== $form ? trim( $form->name ) : '';
+			$title     = '' !== $form_name
+				? sprintf(
+					/* translators: %s: form name. */
+					__( 'Edit Form: %s', 'sentinel-forms' ),
+					$form_name
+				)
+				: __( 'Edit Form', 'sentinel-forms' );
+		}
 
 		// phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- hidden pages need the title global set manually.
-		$GLOBALS['title'] = $is_editing
-			? __( 'Edit Form', 'sentinel-forms' )
-			: __( 'Add New Form', 'sentinel-forms' );
+		$GLOBALS['title'] = $title;
 	}
 
 	/**

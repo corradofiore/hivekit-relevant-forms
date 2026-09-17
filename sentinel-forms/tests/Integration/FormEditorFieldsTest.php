@@ -47,6 +47,30 @@ final class FormEditorFieldsTest extends TestCase {
 	}
 
 	/**
+	 * The page header names the form being edited; the fields header is the
+	 * anchor JS renames to the selected field.
+	 */
+	public function testTheHeadersNameTheFormAndTheFieldsAnchor(): void {
+		wp_set_current_user( self::factory()->user->create( [ 'role' => 'administrator' ] ) );
+
+		$formId = $this->makeForm();
+
+		$html = $this->renderEditor( $formId );
+
+		$this->assertStringContainsString( '<h1>Edit Form: Contact</h1>', $html );
+		$this->assertStringContainsString( '<h2 id="sf-fields-title">Fields</h2>', $html );
+
+		// A new form has no name yet.
+		unset( $_GET['form_id'] );
+
+		ob_start();
+		FormEditPage::render();
+		$new_html = (string) ob_get_clean();
+
+		$this->assertStringContainsString( '<h1>Add New Form</h1>', $new_html );
+	}
+
+	/**
 	 * Every field renders a draggable list item (name + type) and a matching
 	 * editor panel that carries its inputs.
 	 */

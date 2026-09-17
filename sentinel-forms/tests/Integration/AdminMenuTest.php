@@ -40,9 +40,30 @@ final class AdminMenuTest extends TestCase {
 			'menu'              => $GLOBALS['menu'] ?? null,
 			'submenu'           => $GLOBALS['submenu'] ?? null,
 			'_registered_pages' => $GLOBALS['_registered_pages'] ?? null,
+			'title'             => $GLOBALS['title'] ?? null,
 		];
 
 		require_once ABSPATH . 'wp-admin/includes/plugin.php';
+	}
+
+	/**
+	 * The hidden editor page gets a browser title naming the form.
+	 */
+	public function testTheEditorPageTitleNamesTheForm(): void {
+		wp_set_current_user( self::factory()->user->create( [ 'role' => 'administrator' ] ) );
+
+		$repository = new FormRepository();
+		$formId     = $repository->create( 'Contact', FormSchema::empty( 'Contact' ), 'draft' );
+
+		$_GET['form_id'] = (string) $formId;
+		AdminMenu::setEditorPageTitle();
+
+		$this->assertSame( 'Edit Form: Contact', $GLOBALS['title'] );
+
+		unset( $_GET['form_id'] );
+		AdminMenu::setEditorPageTitle();
+
+		$this->assertSame( 'Add New Form', $GLOBALS['title'] );
 	}
 
 	/**
@@ -173,6 +194,7 @@ final class AdminMenuTest extends TestCase {
 		$this->restoreGlobal( 'menu', $this->backup['menu'] );
 		$this->restoreGlobal( 'submenu', $this->backup['submenu'] );
 		$this->restoreGlobal( '_registered_pages', $this->backup['_registered_pages'] );
+		$this->restoreGlobal( 'title', $this->backup['title'] );
 
 		parent::tearDown();
 	}
