@@ -15,9 +15,10 @@ namespace SentinelForms\Forms\Fields;
 final class TextField implements FieldType {
 
 	/**
-	 * Max length for single-line text.
+	 * Default maximum length for single-line text (used when the field
+	 * definition does not carry a max_length; 0 in the definition = no limit).
 	 */
-	private const MAX_LENGTH = 500;
+	public const MAX_LENGTH = 500;
 
 	/**
 	 * {@inheritDoc}
@@ -43,11 +44,13 @@ final class TextField implements FieldType {
 			return null;
 		}
 
-		if ( mb_strlen( $value ) > self::MAX_LENGTH ) {
+		$limit = self::limit( $definition );
+
+		if ( $limit > 0 && mb_strlen( $value ) > $limit ) {
 			return sprintf(
 				/* translators: %d: maximum length */
 				__( 'Text is too long (maximum %d characters).', 'sentinel-forms' ),
-				self::MAX_LENGTH
+				$limit
 			);
 		}
 
@@ -65,17 +68,31 @@ final class TextField implements FieldType {
 	 * {@inheritDoc}
 	 */
 	public function render( array $definition, mixed $value, ?string $error, string $formId ): string {
+		$limit   = self::limit( $definition );
 		$control = sprintf(
-			'<input type="text" name="%1$s" id="%2$s" value="%3$s" placeholder="%4$s"%5$s%6$s>',
+			'<input type="text" name="%1$s" id="%2$s" value="%3$s" placeholder="%4$s"%5$s%6$s%7$s>',
 			esc_attr( FieldMarkup::name( $definition ) ),
 			esc_attr( FieldMarkup::id( $definition, $formId ) ),
 			esc_attr( (string) $value ),
 			esc_attr( (string) ( $definition['placeholder'] ?? '' ) ),
 			! empty( $definition['required'] ) ? ' required' : '',
-			! empty( $definition['help_text'] ) ? ' aria-describedby="' . esc_attr( FieldMarkup::id( $definition, $formId ) ) . '-help"' : ''
+			! empty( $definition['help_text'] ) ? ' aria-describedby="' . esc_attr( FieldMarkup::id( $definition, $formId ) ) . '-help"' : '',
+			$limit > 0 ? ' maxlength="' . esc_attr( (string) $limit ) . '"' : ''
 		);
 
 		return FieldMarkup::wrap( $definition, $formId, $control, $error );
+	}
+
+	/**
+	 * Effective maximum length: the definition's max_length when present
+	 * (0 = no limit), otherwise the type default.
+	 *
+	 * @param array<string, mixed> $definition Field definition.
+	 */
+	private static function limit( array $definition ): int {
+		return array_key_exists( 'max_length', $definition )
+			? max( 0, (int) $definition['max_length'] )
+			: self::MAX_LENGTH;
 	}
 
 	/**
@@ -89,6 +106,7 @@ final class TextField implements FieldType {
 			'placeholder'   => '',
 			'help_text'     => '',
 			'default_value' => '',
+			'max_length'    => self::MAX_LENGTH,
 		];
 	}
 }

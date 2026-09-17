@@ -245,6 +245,7 @@
 		var placeholderInput = editor.querySelector( '[name$="[placeholder]"]' );
 		var helpInput = editor.querySelector( '[name$="[help_text]"]' );
 		var defaultInput = editor.querySelector( '[name$="[default_value]"]' );
+		var maxLengthInput = editor.querySelector( '[name$="[max_length]"]' );
 		var requiredInput = editor.querySelector( 'input[type="checkbox"][name$="[required]"]' );
 		var choicesInput = editor.querySelector( 'textarea[name$="[choices]"]' );
 		var required = !! ( requiredInput && requiredInput.checked );
@@ -333,8 +334,8 @@
 			}
 		}
 
-		// Placeholder and default value on the text-like controls.
-		if ( placeholderInput || defaultInput ) {
+		// Placeholder, default value and maxlength on the text-like controls.
+		if ( placeholderInput || defaultInput || maxLengthInput ) {
 			wrapper.querySelectorAll( 'input, textarea' ).forEach( function ( element ) {
 				var tag = element.tagName.toLowerCase();
 				var controlType = ( element.getAttribute( 'type' ) || '' ).toLowerCase();
@@ -358,6 +359,16 @@
 					} else {
 						element.setAttribute( 'value', defaultInput.value );
 						element.value = defaultInput.value;
+					}
+				}
+
+				if ( maxLengthInput ) {
+					var maxLength = parseInt( maxLengthInput.value, 10 );
+
+					if ( ! isNaN( maxLength ) && maxLength > 0 ) {
+						element.setAttribute( 'maxlength', String( maxLength ) );
+					} else {
+						element.removeAttribute( 'maxlength' );
 					}
 				}
 			} );

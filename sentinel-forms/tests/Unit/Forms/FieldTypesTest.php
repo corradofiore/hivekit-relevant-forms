@@ -166,6 +166,65 @@ it(
 );
 
 it(
+	'honours per-field maximum lengths with 0 meaning no limit',
+	function () {
+		$text     = FieldTypeRegistry::get( 'text' );
+		$textarea = FieldTypeRegistry::get( 'textarea' );
+
+		// Custom limit: rejected over the limit, accepted at it.
+		expect( $text->validate( [ 'max_length' => 10 ], str_repeat( 'a', 11 ) ) )->toContain( '10' );
+		expect( $text->validate( [ 'max_length' => 10 ], str_repeat( 'a', 10 ) ) )->toBeNull();
+
+		// Explicit 0 disables the cap entirely.
+		expect( $text->validate( [ 'max_length' => 0 ], str_repeat( 'a', 600 ) ) )->toBeNull();
+		expect( $textarea->validate( [ 'max_length' => 0 ], str_repeat( 'a', 10001 ) ) )->toBeNull();
+
+		// Definitions without the key keep the type defaults.
+		expect( $text->validate( [], str_repeat( 'a', 501 ) ) )->not->toBeNull();
+		expect( $textarea->validate( [], str_repeat( 'a', 10001 ) ) )->not->toBeNull();
+		expect( $textarea->validate( [ 'max_length' => 20 ], str_repeat( 'a', 21 ) ) )->not->toBeNull();
+	}
+);
+
+it(
+	'renders maxlength attributes for limited text fields',
+	function () {
+		Monkey\Functions\when( 'esc_attr' )->returnArg();
+		Monkey\Functions\when( 'esc_html' )->returnArg();
+		Monkey\Functions\when( 'esc_textarea' )->returnArg();
+
+		$text       = FieldTypeRegistry::get( 'text' );
+		$textarea   = FieldTypeRegistry::get( 'textarea' );
+		$definition = [
+			'id'         => 'f_x',
+			'type'       => 'text',
+			'label'      => 'X',
+			'max_length' => 25,
+		];
+
+		expect( $text->render( $definition, '', null, '7' ) )->toContain( 'maxlength="25"' );
+
+		$definition['max_length'] = 0;
+
+		expect( $text->render( $definition, '', null, '7' ) )->not->toContain( 'maxlength' );
+
+		$definition['max_length'] = 40;
+		$definition['type']       = 'textarea';
+
+		expect( $textarea->render( $definition, '', null, '7' ) )->toContain( 'maxlength="40"' );
+
+		// Definitions without the key fall back to the type default.
+		$legacy = [
+			'id'    => 'f_x',
+			'type'  => 'text',
+			'label' => 'X',
+		];
+
+		expect( $text->render( $legacy, '', null, '7' ) )->toContain( 'maxlength="500"' );
+	}
+);
+
+it(
 	'renders section separators without a value',
 	function () {
 		Monkey\Functions\when( 'esc_html' )->returnArg();

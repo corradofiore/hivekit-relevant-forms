@@ -293,7 +293,14 @@ if ( $isEditing ) {
 				'default_value' => '',
 				'choices'       => [],
 			];
-			$is_first   = false;
+
+			if ( 'text' === $field_type->type() ) {
+				$definition['max_length'] = SentinelForms\Forms\Fields\TextField::MAX_LENGTH;
+			} elseif ( 'textarea' === $field_type->type() ) {
+				$definition['max_length'] = SentinelForms\Forms\Fields\TextareaField::MAX_LENGTH;
+			}
+
+			$is_first = false;
 			require SENTINEL_FORMS_PATH . 'templates/admin/field-list-item.php';
 			require SENTINEL_FORMS_PATH . 'templates/admin/field-row.php';
 			require SENTINEL_FORMS_PATH . 'templates/admin/field-preview.php';

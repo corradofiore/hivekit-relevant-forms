@@ -183,6 +183,11 @@ final class FormSaveController {
 				'default_value' => sanitize_text_field( (string) ( $rawField['default_value'] ?? '' ) ),
 			];
 
+			if ( in_array( $type, [ 'text', 'textarea' ], true ) ) {
+				// 0 = no limit.
+				$definition['max_length'] = absint( $rawField['max_length'] ?? 0 );
+			}
+
 			if ( in_array( $type, [ 'select', 'radio', 'checkbox' ], true ) ) {
 				$definition['choices'] = self::parseLines( (string) ( $rawField['choices'] ?? '' ) );
 			}

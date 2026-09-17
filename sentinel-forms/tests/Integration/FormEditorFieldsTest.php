@@ -307,6 +307,32 @@ final class FormEditorFieldsTest extends TestCase {
 	}
 
 	/**
+	 * Text fields expose a configurable maximum length; other types do not,
+	 * and the template ships the type default.
+	 */
+	public function testTextFieldsExposeAConfigurableMaximumLength(): void {
+		wp_set_current_user( self::factory()->user->create( [ 'role' => 'administrator' ] ) );
+
+		$formId = $this->makeForm();
+
+		$html = $this->renderEditor( $formId );
+
+		// The text panel shows the row with the default limit (legacy fields
+		// without the key fall back to the type default).
+		$this->assertMatchesRegularExpression(
+			'/name="sentinel_fields\[f_name\]\[max_length\]" value="500"/',
+			$html
+		);
+		$this->assertStringContainsString( '<th scope="row"><label for="sf-field-f_name-max-length">Maximum characters</label></th>', $html );
+
+		// Other field types do not get the row.
+		$this->assertStringNotContainsString( 'sentinel_fields[f_email][max_length]', $html );
+
+		// Fresh text fields from the template start at the type default.
+		$this->assertStringContainsString( 'name="sentinel_fields[{ID}][max_length]" value="500"', $html );
+	}
+
+	/**
 	 * Section separators: offered in the picker, edited with only a label,
 	 * and rendered as a heading + hr in the preview.
 	 */
