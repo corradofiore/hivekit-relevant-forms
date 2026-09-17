@@ -11,6 +11,7 @@ namespace SentinelForms\Forms;
 
 use JsonSerializable;
 use SentinelForms\Forms\Fields\FieldTypeRegistry;
+use SentinelForms\Forms\Visibility\VisibilityRules;
 
 /**
  * Vendor-independent JSON representation of a form.
@@ -85,11 +86,14 @@ final class FormSchema implements JsonSerializable {
 			? $confirmation['mode']
 			: self::inferConfirmationMode( $redirect, $redirectPage );
 
+		$fields = isset( $data['fields'] ) && is_array( $data['fields'] ) ? array_values( $data['fields'] ) : [];
+		$fields = self::normalizeVisibility( $fields );
+
 		return new self(
 			[
 				'schema_version' => self::SCHEMA_VERSION,
 				'name'           => isset( $data['name'] ) ? (string) $data['name'] : '',
-				'fields'         => isset( $data['fields'] ) && is_array( $data['fields'] ) ? array_values( $data['fields'] ) : [],
+				'fields'         => $fields,
 				'notifications'  => isset( $data['notifications'] ) && is_array( $data['notifications'] ) ? array_values( $data['notifications'] ) : [],
 				'confirmation'   => [
 					'mode'          => $mode,
@@ -102,6 +106,32 @@ final class FormSchema implements JsonSerializable {
 				'metadata'       => is_array( $data['metadata'] ?? null ) ? $data['metadata'] : [],
 			]
 		);
+	}
+
+	/**
+	 * Canonicalize per-field visibility configs on read, so stored schemas
+	 * and imports always carry the normalized shape.
+	 *
+	 * @param array<int, mixed> $fields Raw field definitions.
+	 * @return array<int, mixed>
+	 */
+	private static function normalizeVisibility( array $fields ): array {
+		foreach ( $fields as $index => $field ) {
+			if ( ! is_array( $field ) ) {
+				continue;
+			}
+
+			$visibility = VisibilityRules::normalize( $field['visibility'] ?? null );
+
+			if ( [] === $visibility ) {
+				unset( $fields[ $index ]['visibility'] );
+				continue;
+			}
+
+			$fields[ $index ]['visibility'] = $visibility;
+		}
+
+		return $fields;
 	}
 
 	/**

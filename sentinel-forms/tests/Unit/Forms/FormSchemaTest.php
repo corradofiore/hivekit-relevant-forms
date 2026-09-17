@@ -49,6 +49,54 @@ it(
 );
 
 it(
+	'normalizes field visibility configs on read',
+	function () {
+		$schema = FormSchema::fromArray(
+			[
+				'name'   => 'Conditional',
+				'fields' => [
+					[
+						'id'         => 'f_extra',
+						'type'       => 'text',
+						'label'      => 'Extra',
+						'visibility' => [
+							'default' => 'hidden',
+							'groups'  => [
+								[
+									[
+										'field'    => 'f_plan',
+										'operator' => '==',
+										'value'    => 'pro',
+									],
+								],
+							],
+						],
+					],
+					[
+						'id'         => 'f_plain',
+						'type'       => 'text',
+						'label'      => 'Plain',
+						'visibility' => [
+							'default' => 'hidden',
+							'groups'  => [ [] ],
+						],
+					],
+				],
+			]
+		);
+
+		$fields = $schema->fields();
+
+		// Legacy operator spellings are canonicalized on read.
+		expect( $fields[0]['visibility']['default'] )->toBe( 'hidden' );
+		expect( $fields[0]['visibility']['groups'][0][0]['operator'] )->toBe( 'is' );
+
+		// Configurations without a complete group are dropped entirely.
+		expect( $fields[1] )->not->toHaveKey( 'visibility' );
+	}
+);
+
+it(
 	'round-trips through JSON',
 	function () {
 		$schema = FormSchema::empty( 'Round trip' )

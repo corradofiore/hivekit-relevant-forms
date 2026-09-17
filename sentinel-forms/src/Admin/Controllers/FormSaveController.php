@@ -13,6 +13,7 @@ use SentinelForms\Alerts\PhoneNumber;
 use SentinelForms\Forms\Fields\FieldTypeRegistry;
 use SentinelForms\Forms\FormRepository;
 use SentinelForms\Forms\FormSchema;
+use SentinelForms\Forms\Visibility\VisibilityRules;
 use SentinelForms\Support\Logger;
 
 /**
@@ -202,10 +203,59 @@ final class FormSaveController {
 				];
 			}
 
+			$visibility = self::parseVisibility( $rawField['visibility'] ?? null );
+
+			if ( [] !== $visibility ) {
+				$definition['visibility'] = $visibility;
+			}
+
 			$fields[] = $definition;
 		}
 
 		return $fields;
+	}
+
+	/**
+	 * Parse posted visibility rules into the normalized shape.
+	 *
+	 * @param mixed $raw The sentinel_fields[f_x][visibility] POST value.
+	 * @return array<string, mixed> Normalized configuration (empty when inactive).
+	 */
+	private static function parseVisibility( mixed $raw ): array {
+		if ( ! is_array( $raw ) ) {
+			return [];
+		}
+
+		$groups = [];
+
+		foreach ( (array) ( $raw['groups'] ?? [] ) as $rawGroup ) {
+			if ( ! is_array( $rawGroup ) ) {
+				continue;
+			}
+
+			$group = [];
+
+			foreach ( $rawGroup as $rawRule ) {
+				if ( ! is_array( $rawRule ) ) {
+					continue;
+				}
+
+				$group[] = [
+					'field'    => sanitize_key( (string) ( $rawRule['field'] ?? '' ) ),
+					'operator' => sanitize_text_field( (string) ( $rawRule['operator'] ?? '' ) ),
+					'value'    => sanitize_text_field( (string) ( $rawRule['value'] ?? '' ) ),
+				];
+			}
+
+			$groups[] = $group;
+		}
+
+		return VisibilityRules::normalize(
+			[
+				'default' => sanitize_key( (string) ( $raw['default'] ?? '' ) ),
+				'groups'  => $groups,
+			]
+		);
 	}
 
 	/**
