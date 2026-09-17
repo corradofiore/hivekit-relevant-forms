@@ -249,7 +249,7 @@
 		var requiredInput = editor.querySelector( 'input[type="checkbox"][name$="[required]"]' );
 		var choicesInput = editor.querySelector( 'textarea[name$="[choices]"]' );
 		var required = !! ( requiredInput && requiredInput.checked );
-		var fieldset, control, label, marker, help, anchor;
+		var fieldset, control, label, marker, help, anchor, counter;
 
 		if ( ! preview || ! wrapper || ! baseId ) {
 			return;
@@ -369,6 +369,20 @@
 						element.setAttribute( 'maxlength', String( maxLength ) );
 					} else {
 						element.removeAttribute( 'maxlength' );
+					}
+				}
+
+				// Paragraph fields carry a realtime counter: mirror the
+				// control's limit and current value into it.
+				counter = wrapper.querySelector( '.sentinel-forms-char-count[data-sf-count-for="' + element.id + '"]' );
+
+				if ( counter ) {
+					if ( element.maxLength > 0 ) {
+						counter.hidden = false;
+						counter.textContent = element.value.length + '/' + element.maxLength;
+					} else {
+						counter.hidden = true;
+						counter.textContent = String( element.value.length );
 					}
 				}
 			} );

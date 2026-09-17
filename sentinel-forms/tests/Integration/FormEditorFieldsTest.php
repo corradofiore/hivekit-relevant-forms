@@ -344,6 +344,42 @@ final class FormEditorFieldsTest extends TestCase {
 	}
 
 	/**
+	 * Paragraph previews carry the realtime character counter, wired to the
+	 * sample control id and showing the field's own limit.
+	 */
+	public function testPreviewShowsTheCharacterCounterForParagraphFields(): void {
+		wp_set_current_user( self::factory()->user->create( [ 'role' => 'administrator' ] ) );
+
+		$repository = new FormRepository();
+		$schema     = FormSchema::empty( 'Counter' )->withFields(
+			[
+				[
+					'id'         => 'f_msg',
+					'type'       => 'textarea',
+					'label'      => 'Message',
+					'max_length' => 300,
+				],
+			]
+		);
+		$formId     = $repository->create( 'Counter', $schema, 'draft' );
+
+		$html = $this->renderEditor( $formId );
+
+		// The preview counter is tied to the sample control, starts at 0 and
+		// shows the field's own limit.
+		$this->assertStringContainsString(
+			'<p class="sentinel-forms-char-count" data-sf-count-for="sentinel-field-' . $formId . '-f_msg">0/300</p>',
+			$html
+		);
+
+		// Fresh paragraph fields from the template start at the type default.
+		$this->assertStringContainsString(
+			'data-sf-count-for="sentinel-field-' . $formId . '-{ID}">0/10000</p>',
+			$html
+		);
+	}
+
+	/**
 	 * Section separators: offered in the picker, edited with only a label,
 	 * and rendered as a heading + hr in the preview.
 	 */

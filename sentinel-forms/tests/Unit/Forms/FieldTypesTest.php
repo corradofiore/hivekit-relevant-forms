@@ -225,6 +225,48 @@ it(
 );
 
 it(
+	'renders a character counter for limited paragraph fields',
+	function () {
+		Monkey\Functions\when( 'esc_attr' )->returnArg();
+		Monkey\Functions\when( 'esc_html' )->returnArg();
+		Monkey\Functions\when( 'esc_textarea' )->returnArg();
+
+		$textarea   = FieldTypeRegistry::get( 'textarea' );
+		$definition = [
+			'id'         => 'f_msg',
+			'type'       => 'textarea',
+			'label'      => 'Message',
+			'max_length' => 500,
+		];
+
+		// Empty field: the counter starts at zero against the limit.
+		expect( $textarea->render( $definition, '', null, '7' ) )
+			->toContain( '<p class="sentinel-forms-char-count" data-sf-count-for="sentinel-field-7-f_msg">0/500</p>' );
+
+		// Prefilled values (repopulated after a failed submission) count too.
+		expect( $textarea->render( $definition, 'Héllo!', null, '7' ) )
+			->toContain( '>6/500</p>' );
+
+		// Without a limit there is no total: hidden, count only.
+		$definition['max_length'] = 0;
+
+		expect( $textarea->render( $definition, 'Hi', null, '7' ) )
+			->toContain( '<p class="sentinel-forms-char-count" data-sf-count-for="sentinel-field-7-f_msg" hidden>2</p>' );
+
+		// Single-line text fields never carry a counter.
+		$text   = FieldTypeRegistry::get( 'text' );
+		$single = [
+			'id'    => 'f_t',
+			'type'  => 'text',
+			'label' => 'T',
+		];
+
+		expect( $text->render( $single, '', null, '7' ) )
+			->not->toContain( 'sentinel-forms-char-count' );
+	}
+);
+
+it(
 	'renders section separators without a value',
 	function () {
 		Monkey\Functions\when( 'esc_html' )->returnArg();

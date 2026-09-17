@@ -42,5 +42,13 @@ final class FrontendAssets {
 			AssetVersion::get( 'assets/js/frontend-upload.js' ),
 			true
 		);
+
+		wp_register_script(
+			'sentinel-forms-counter',
+			SENTINEL_FORMS_URL . 'assets/js/frontend-counter.js',
+			[],
+			AssetVersion::get( 'assets/js/frontend-counter.js' ),
+			true
+		);
 	}
 }

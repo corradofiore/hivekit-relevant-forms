@@ -69,6 +69,7 @@ final class TextareaField implements FieldType {
 	 */
 	public function render( array $definition, mixed $value, ?string $error, string $formId ): string {
 		$limit   = self::limit( $definition );
+		$used    = mb_strlen( (string) $value );
 		$control = sprintf(
 			'<textarea name="%1$s" id="%2$s" placeholder="%3$s" rows="4"%4$s%5$s>%6$s</textarea>',
 			esc_attr( FieldMarkup::name( $definition ) ),
@@ -79,6 +80,17 @@ final class TextareaField implements FieldType {
 			esc_textarea( (string) $value )
 		);
 
+		// Realtime character counter ("28/500"), kept in sync by the
+		// front-end script and by admin.js in the editor preview. Without a
+		// limit there is no total: rendered hidden so the editor can reveal
+		// it the moment a limit is configured.
+		$control .= sprintf(
+			'<p class="sentinel-forms-char-count" data-sf-count-for="%1$s"%2$s>%3$s</p>',
+			esc_attr( FieldMarkup::id( $definition, $formId ) ),
+			$limit > 0 ? '' : ' hidden',
+			esc_html( $limit > 0 ? $used . '/' . $limit : (string) $used )
+		);
+
 		return FieldMarkup::wrap( $definition, $formId, $control, $error );
 	}
 
@@ -86,9 +98,12 @@ final class TextareaField implements FieldType {
 	 * Effective maximum length: the definition's max_length when present
 	 * (0 = no limit), otherwise the type default.
 	 *
+	 * Public so the form renderer can decide whether the character counter
+	 * script is needed for a form.
+	 *
 	 * @param array<string, mixed> $definition Field definition.
 	 */
-	private static function limit( array $definition ): int {
+	public static function limit( array $definition ): int {
 		return array_key_exists( 'max_length', $definition )
 			? max( 0, (int) $definition['max_length'] )
 			: self::MAX_LENGTH;

@@ -85,3 +85,12 @@
 	margin: 0.5em 0 0;
 	opacity: 0.4;
 }
+
+/* Realtime character counter for limited paragraph fields ("28/500"). */
+
+.sentinel-forms-char-count {
+	color: #646970;
+	font-size: 0.875em;
+	margin: 0.25em 0 0;
+	text-align: right;
+}

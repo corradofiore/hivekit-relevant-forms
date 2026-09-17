@@ -9,6 +9,7 @@ declare(strict_types=1);
 
 namespace SentinelForms\Tests\Integration;
 
+use SentinelForms\Assets\FrontendAssets;
 use SentinelForms\Forms\FormRepository;
 use SentinelForms\Forms\FormRenderer;
 use SentinelForms\Forms\FormSchema;
@@ -45,6 +46,62 @@ final class ShortcodeRenderTest extends TestCase {
 		$this->assertStringContainsString( 'name="sentinel_field_f_name"', $html );
 		$this->assertStringContainsString( '_sentinel_form_nonce', $html );
 		$this->assertStringContainsString( '_sentinel_hp', $html );
+	}
+
+	/**
+	 * Limited paragraph fields carry a realtime character counter and load
+	 * its script; without a limit the counter stays hidden and is skipped.
+	 */
+	public function testLimitedTextareasRenderAndLoadTheCharacterCounter(): void {
+		FrontendAssets::registerAssets();
+
+		$repository = new FormRepository();
+
+		$limited = $repository->create(
+			'Counter Form',
+			FormSchema::empty( 'Counter Form' )->withFields(
+				[
+					[
+						'id'         => 'f_msg',
+						'type'       => 'textarea',
+						'label'      => 'Message',
+						'max_length' => 250,
+					],
+				]
+			),
+			'published'
+		);
+
+		$html = do_shortcode( '[sentinel_form id="' . $limited . '"]' );
+
+		$this->assertStringContainsString(
+			'<p class="sentinel-forms-char-count" data-sf-count-for="sentinel-field-' . $limited . '-f_msg">0/250</p>',
+			$html
+		);
+		$this->assertTrue( wp_script_is( 'sentinel-forms-counter', 'enqueued' ) );
+
+		// Without a limit there is no total: hidden counter, no script.
+		wp_dequeue_script( 'sentinel-forms-counter' );
+
+		$unlimited = $repository->create(
+			'Unlimited Form',
+			FormSchema::empty( 'Unlimited Form' )->withFields(
+				[
+					[
+						'id'         => 'f_msg',
+						'type'       => 'textarea',
+						'label'      => 'Message',
+						'max_length' => 0,
+					],
+				]
+			),
+			'published'
+		);
+
+		$html = do_shortcode( '[sentinel_form id="' . $unlimited . '"]' );
+
+		$this->assertStringContainsString( ' hidden>0</p>', $html );
+		$this->assertFalse( wp_script_is( 'sentinel-forms-counter', 'enqueued' ) );
 	}
 
 	/**

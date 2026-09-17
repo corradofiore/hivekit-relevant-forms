@@ -10,6 +10,7 @@ declare(strict_types=1);
 namespace SentinelForms\Forms;
 
 use SentinelForms\Forms\Fields\FieldTypeRegistry;
+use SentinelForms\Forms\Fields\TextareaField;
 
 /**
  * Renders published forms as accessible markup and registers the shortcode.
@@ -71,17 +72,27 @@ final class FormRenderer {
 
 		wp_enqueue_style( 'sentinel-forms' );
 
-		$hasFileField = false;
+		$hasFileField       = false;
+		$hasLimitedTextarea = false;
 
 		foreach ( $form->schema->fields() as $definition ) {
-			if ( 'file' === (string) ( $definition['type'] ?? '' ) ) {
+			$fieldType = (string) ( $definition['type'] ?? '' );
+
+			if ( 'file' === $fieldType ) {
 				$hasFileField = true;
-				break;
+			}
+
+			if ( 'textarea' === $fieldType && TextareaField::limit( $definition ) > 0 ) {
+				$hasLimitedTextarea = true;
 			}
 		}
 
 		if ( $hasFileField ) {
 			wp_enqueue_script( 'sentinel-forms-upload' );
+		}
+
+		if ( $hasLimitedTextarea ) {
+			wp_enqueue_script( 'sentinel-forms-counter' );
 		}
 
 		$output   = [];
