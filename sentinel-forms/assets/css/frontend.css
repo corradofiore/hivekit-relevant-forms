@@ -94,3 +94,9 @@
 	margin: 0.25em 0 0;
 	text-align: right;
 }
+
+/* Conditional fields: keep the hidden attribute authoritative. */
+
+.sentinel-forms-field[hidden] {
+	display: none;
+}

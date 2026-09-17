@@ -112,6 +112,111 @@ final class ShortcodeRenderTest extends TestCase {
 	}
 
 	/**
+	 * Conditional fields render with their payload; the initial state
+	 * follows the rules and un-required hidden fields remember that they
+	 * are required. The script loads only for forms with rules.
+	 */
+	public function testConditionalFieldsCarryTheirVisibilityPayload(): void {
+		FrontendAssets::registerAssets();
+
+		$repository = new FormRepository();
+
+		$schema = FormSchema::empty( 'Conditional Form' )->withFields(
+			[
+				[
+					'id'      => 'f_plan',
+					'type'    => 'select',
+					'label'   => 'Plan',
+					'choices' => [
+						[
+							'label' => 'Free',
+							'value' => 'free',
+						],
+						[
+							'label' => 'Pro',
+							'value' => 'pro',
+						],
+					],
+				],
+				[
+					'id'         => 'f_extra',
+					'type'       => 'text',
+					'label'      => 'Extra',
+					'required'   => true,
+					'visibility' => [
+						'default' => 'hidden',
+						'groups'  => [
+							[
+								[
+									'field'    => 'f_plan',
+									'operator' => 'is',
+									'value'    => 'pro',
+								],
+							],
+						],
+					],
+				],
+				[
+					'id'         => 'f_note',
+					'type'       => 'text',
+					'label'      => 'Note',
+					'visibility' => [
+						'default' => 'shown',
+						'groups'  => [
+							[
+								[
+									'field'    => 'f_plan',
+									'operator' => 'is',
+									'value'    => 'pro',
+								],
+							],
+						],
+					],
+				],
+			]
+		);
+
+		$id = $repository->create( 'Conditional Form', $schema, 'published' );
+
+		$html    = do_shortcode( '[sentinel_form id="' . $id . '"]' );
+		$decoded = html_entity_decode( $html, ENT_QUOTES );
+
+		// Both conditional fields carry their payload; only the field that
+		// is hidden by default starts hidden.
+		$this->assertSame( 2, substr_count( $decoded, 'data-sf-visibility=' ) );
+		$this->assertSame( 1, substr_count( $decoded, ' hidden>' ) );
+		$this->assertStringContainsString( 'data-sf-required="1" hidden>', $decoded );
+
+		// The hidden required field renders without the required flag (it
+		// would block a no-JS submission) but marks itself as required.
+		$this->assertSame( 1, preg_match( '/<input[^>]*name="sentinel_field_f_extra"[^>]*>/', $decoded, $matches ) );
+		$this->assertStringNotContainsString( 'required', $matches[0] );
+
+		// The script is enqueued lazily: only forms with rules load it.
+		$this->assertTrue( wp_script_is( 'sentinel-forms-conditional', 'enqueued' ) );
+
+		wp_dequeue_script( 'sentinel-forms-conditional' );
+
+		$plain = $repository->create(
+			'Plain Form',
+			FormSchema::empty( 'Plain Form' )->withFields(
+				[
+					[
+						'id'    => 'f_a',
+						'type'  => 'text',
+						'label' => 'A',
+					],
+				]
+			),
+			'published'
+		);
+
+		do_shortcode( '[sentinel_form id="' . $plain . '"]' );
+
+		$this->assertFalse( wp_script_is( 'sentinel-forms-conditional', 'enqueued' ) );
+	}
+
+	/**
 	 * Test drafts render nothing.
 	 */
 	public function testDraftRendersNothing(): void {

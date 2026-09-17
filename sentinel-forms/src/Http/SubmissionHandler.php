@@ -21,6 +21,7 @@ use SentinelForms\Forms\FormRenderer;
 use SentinelForms\Forms\FormRepository;
 use SentinelForms\Forms\Fields\FieldTypeRegistry;
 use SentinelForms\Forms\SubmissionFeedback;
+use SentinelForms\Forms\Visibility\VisibilityRules;
 use SentinelForms\Notifications\EmailNotification;
 use SentinelForms\Support\Logger;
 use SentinelForms\Support\Privacy;
@@ -174,6 +175,15 @@ final class SubmissionHandler {
 		$display = [];
 		$errors  = [];
 
+		$context = [];
+
+		foreach ( $form->schema->fields() as $definition ) {
+			$fieldId             = (string) ( $definition['id'] ?? '' );
+			$context[ $fieldId ] = $raw[ 'sentinel_field_' . $fieldId ] ?? ( $definition['default_value'] ?? '' );
+		}
+
+		$visibility = VisibilityRules::evaluate( $form->schema->fields(), $context );
+
 		foreach ( $form->schema->fields() as $definition ) {
 			$fieldId = (string) ( $definition['id'] ?? '' );
 			$type    = FieldTypeRegistry::get( (string) ( $definition['type'] ?? '' ) );
@@ -189,6 +199,13 @@ final class SubmissionHandler {
 			}
 
 			$display[ $fieldId ] = $value;
+
+			// Fields hidden by their visibility rules keep the entered value
+			// for re-display, but skip validation and storage entirely — the
+			// behaviour users expect from conditional logic.
+			if ( isset( $visibility[ $fieldId ] ) && false === $visibility[ $fieldId ] ) {
+				continue;
+			}
 
 			$error = $type->validate( $definition, $value );
 

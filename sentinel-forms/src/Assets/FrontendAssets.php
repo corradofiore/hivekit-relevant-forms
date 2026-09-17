@@ -50,5 +50,13 @@ final class FrontendAssets {
 			AssetVersion::get( 'assets/js/frontend-counter.js' ),
 			true
 		);
+
+		wp_register_script(
+			'sentinel-forms-conditional',
+			SENTINEL_FORMS_URL . 'assets/js/frontend-conditional.js',
+			[],
+			AssetVersion::get( 'assets/js/frontend-conditional.js' ),
+			true
+		);
 	}
 }

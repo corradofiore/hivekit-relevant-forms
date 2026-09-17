@@ -9,6 +9,8 @@ declare(strict_types=1);
 
 namespace SentinelForms\Forms\Fields;
 
+use SentinelForms\Forms\Visibility\VisibilityRules;
+
 /**
  * Small static factory for consistent, escaped field markup.
  */
@@ -95,13 +97,32 @@ final class FieldMarkup {
 	/**
 	 * Wrapper around a control with label, help and error.
 	 *
+	 * Fields carrying visibility rules get the normalized configuration as
+	 * a data attribute (frontend-conditional.js re-evaluates from it) and a
+	 * `hidden` attribute when the renderer computed them as hidden. The
+	 * optional `visibility_hidden` and `visibility_required` definition keys
+	 * are render-time markers and are never persisted.
+	 *
 	 * @param array<string, mixed> $definition Field definition.
 	 * @param string               $control    Escaped control markup.
 	 */
 	public static function wrap( array $definition, string $formId, string $control, ?string $error = null ): string {
+		$attributes = '';
+		$visibility = VisibilityRules::normalize( $definition['visibility'] ?? null );
+
+		if ( [] !== $visibility ) {
+			$attributes = sprintf(
+				' data-sf-visibility="%1$s"%2$s%3$s',
+				esc_attr( (string) wp_json_encode( $visibility ) ),
+				! empty( $definition['required'] ) || ! empty( $definition['visibility_required'] ) ? ' data-sf-required="1"' : '',
+				! empty( $definition['visibility_hidden'] ) ? ' hidden' : ''
+			);
+		}
+
 		return sprintf(
-			'<div class="sentinel-forms-field sentinel-forms-field--%1$s">%2$s%3$s%4$s%5$s</div>',
+			'<div class="sentinel-forms-field sentinel-forms-field--%1$s"%2$s>%3$s%4$s%5$s%6$s</div>',
 			esc_attr( (string) ( $definition['type'] ?? 'unknown' ) ),
+			$attributes,
 			self::label( $definition, $formId ),
 			$control,
 			self::help( $definition, $formId ),

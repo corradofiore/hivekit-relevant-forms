@@ -11,6 +11,7 @@ namespace SentinelForms\Forms;
 
 use SentinelForms\Forms\Fields\FieldTypeRegistry;
 use SentinelForms\Forms\Fields\TextareaField;
+use SentinelForms\Forms\Visibility\VisibilityRules;
 
 /**
  * Renders published forms as accessible markup and registers the shortcode.
@@ -74,6 +75,7 @@ final class FormRenderer {
 
 		$hasFileField       = false;
 		$hasLimitedTextarea = false;
+		$hasVisibility      = false;
 
 		foreach ( $form->schema->fields() as $definition ) {
 			$fieldType = (string) ( $definition['type'] ?? '' );
@@ -85,6 +87,10 @@ final class FormRenderer {
 			if ( 'textarea' === $fieldType && TextareaField::limit( $definition ) > 0 ) {
 				$hasLimitedTextarea = true;
 			}
+
+			if ( VisibilityRules::hasVisibility( $definition ) ) {
+				$hasVisibility = true;
+			}
 		}
 
 		if ( $hasFileField ) {
@@ -93,6 +99,10 @@ final class FormRenderer {
 
 		if ( $hasLimitedTextarea ) {
 			wp_enqueue_script( 'sentinel-forms-counter' );
+		}
+
+		if ( $hasVisibility ) {
+			wp_enqueue_script( 'sentinel-forms-conditional' );
 		}
 
 		$output   = [];
@@ -111,6 +121,8 @@ final class FormRenderer {
 		$output[] = wp_nonce_field( 'sentinel_form_' . $form->id, '_sentinel_form_nonce', true, false );
 		$output[] = self::honeypot();
 
+		$visibility = VisibilityRules::evaluate( $form->schema->fields(), $values );
+
 		foreach ( $form->schema->fields() as $definition ) {
 			$type = FieldTypeRegistry::get( (string) ( $definition['type'] ?? '' ) );
 
@@ -121,6 +133,19 @@ final class FormRenderer {
 			$fieldId = (string) ( $definition['id'] ?? '' );
 			$value   = array_key_exists( $fieldId, $values ) ? $values[ $fieldId ] : ( $definition['default_value'] ?? '' );
 			$error   = isset( $errors[ $fieldId ] ) ? (string) $errors[ $fieldId ] : null;
+
+			if ( isset( $visibility[ $fieldId ] ) ) {
+				$hidden = false === $visibility[ $fieldId ];
+
+				// A hidden required field must not block a no-JS submission;
+				// the script restores the flag when the field is revealed.
+				if ( $hidden ) {
+					$definition['visibility_required'] = ! empty( $definition['required'] );
+					$definition['required']            = false;
+				}
+
+				$definition['visibility_hidden'] = $hidden;
+			}
 
 			$output[] = $type->render( $definition, $value, $error, (string) $form->id );
 		}
