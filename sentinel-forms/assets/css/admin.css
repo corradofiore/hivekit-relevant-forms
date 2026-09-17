@@ -228,6 +228,81 @@
 	opacity: 1;
 }
 
+/*
+ * Form editor: field visibility rules panel under the preview. Each field
+ * gets a white block (like the editor panel) with a default state and rule
+ * groups; rules read as [field] [operator] [value] (Remove).
+ *
+ * These blocks are toggled through the hidden attribute, so never set a
+ * display property on them or core's [hidden] rule loses the fight.
+ */
+
+.sf-field-visibility {
+	background: #fff;
+	border: 1px solid #c3c4c7;
+	border-radius: 4px;
+	padding: 0.75rem 1rem;
+}
+
+.sf-field-visibility + .sf-field-visibility {
+	margin-top: 0.5rem;
+}
+
+.sf-field-visibility__intro {
+	color: #646970;
+	margin: 0 0 0.5rem;
+}
+
+.sf-field-visibility__default {
+	margin: 0 0 0.75rem;
+}
+
+.sf-field-visibility__default select {
+	margin-left: 0.4rem;
+}
+
+.sf-field-visibility__group {
+	border: 1px solid #dcdcde;
+	border-radius: 4px;
+	padding: 0.5rem 0.75rem;
+	margin: 0 0 0.5rem;
+}
+
+.sf-field-visibility__join {
+	color: #646970;
+	font-style: italic;
+	margin: 0.25rem 0 0.5rem;
+}
+
+.sf-field-visibility__rule {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 0.4rem;
+	margin: 0 0 0.4rem;
+}
+
+.sf-field-visibility__rule select {
+	max-width: 100%;
+}
+
+.sf-field-visibility__group-actions .button-link + .button-link {
+	margin-left: 0.75rem;
+}
+
+/* No display value here: the hidden attribute must stay authoritative
+   (it hides the value box for valueless operators). */
+
+.sf-visibility-remove {
+	color: #b32d2e;
+}
+
+.sf-field-preview__visibility {
+	color: #646970;
+	font-style: italic;
+	margin: 0.5em 0 0;
+}
+
 .sf-fields-empty {
 	color: #646970;
 }

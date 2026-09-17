@@ -21,6 +21,7 @@
 	var fieldList = document.getElementById( 'sf-fields-list' );
 	var fieldEditors = document.getElementById( 'sf-fields-editors' );
 	var fieldPreviews = document.getElementById( 'sf-fields-preview' );
+	var fieldVisibility = document.getElementById( 'sf-fields-visibility' );
 	var fieldsEmpty = document.getElementById( 'sf-fields-empty' );
 	var fieldsTitle = document.getElementById( 'sf-fields-title' );
 	var fieldsTitleDefault = fieldsTitle ? fieldsTitle.textContent : '';
@@ -28,6 +29,15 @@
 	var fieldStrings = window.sentinelFormsAdmin && window.sentinelFormsAdmin.fieldStrings
 		? window.sentinelFormsAdmin.fieldStrings
 		: {};
+	var visibilityStrings = window.sentinelFormsAdmin && window.sentinelFormsAdmin.visibilityStrings
+		? window.sentinelFormsAdmin.visibilityStrings
+		: { shown: 'Shown when: %s', hidden: 'Hidden when: %s', and: 'and', or: 'or', notAbove: 'not above', selectField: '', selectValue: '' };
+	var visibilityOperators = window.sentinelFormsAdmin && window.sentinelFormsAdmin.visibilityOperators
+		? window.sentinelFormsAdmin.visibilityOperators
+		: {};
+	var choiceOperators = window.sentinelFormsAdmin && window.sentinelFormsAdmin.choiceOperators
+		? window.sentinelFormsAdmin.choiceOperators
+		: [ 'is', 'is_not', 'empty', 'not_empty' ];
 
 	/**
 	 * Name shown for a field in the list ('' when there is none).
@@ -62,6 +72,12 @@
 		if ( fieldPreviews ) {
 			fieldPreviews.querySelectorAll( '.sf-field-preview' ).forEach( function ( preview ) {
 				preview.hidden = preview.getAttribute( 'data-for' ) !== id;
+			} );
+		}
+
+		if ( fieldVisibility ) {
+			fieldVisibility.querySelectorAll( '.sf-field-visibility' ).forEach( function ( block ) {
+				block.hidden = block.getAttribute( 'data-for' ) !== id;
 			} );
 		}
 
@@ -100,6 +116,15 @@
 				fieldPreviews.insertBefore( preview, after ? targetPreview.nextSibling : targetPreview );
 			}
 		}
+
+		if ( fieldVisibility ) {
+			var block = fieldVisibility.querySelector( '.sf-field-visibility[data-for="' + item.getAttribute( 'data-for' ) + '"]' );
+			var targetBlock = fieldVisibility.querySelector( '.sf-field-visibility[data-for="' + target.getAttribute( 'data-for' ) + '"]' );
+
+			if ( block && targetBlock ) {
+				fieldVisibility.insertBefore( block, after ? targetBlock.nextSibling : targetBlock );
+			}
+		}
 	}
 
 	/**
@@ -112,6 +137,23 @@
 
 		if ( fieldPreviews ) {
 			fieldPreviews.hidden = ! visible;
+		}
+
+		if ( title ) {
+			title.hidden = ! visible;
+		}
+	}
+
+	/**
+	 * Show or hide the whole visibility section (an empty form has none).
+	 *
+	 * @param {boolean} visible Whether the section should be visible.
+	 */
+	function toggleVisibilityPanel( visible ) {
+		var title = document.getElementById( 'sf-fields-visibility-title' );
+
+		if ( fieldVisibility ) {
+			fieldVisibility.hidden = ! visible;
 		}
 
 		if ( title ) {
@@ -439,6 +481,517 @@
 		} );
 	}
 
+	/*
+	 * Field visibility rules editor: a default state plus groups of rules
+	 * (joined with AND inside a group, OR across groups). Source dropdowns
+	 * list the fields above the edited one; the value control switches
+	 * between a text input and a choices dropdown for choice sources.
+	 */
+
+	/**
+	 * List items that sit above the given field (the allowed sources).
+	 *
+	 * @param {string} fieldId Field id.
+	 * @return {Array} List items.
+	 */
+	function previousFieldItems( fieldId ) {
+		var items = Array.prototype.slice.call( fieldList.querySelectorAll( '.sf-field-item' ) );
+		var result = [];
+
+		for ( var index = 0; index < items.length; index++ ) {
+			if ( items[ index ].getAttribute( 'data-for' ) === fieldId ) {
+				break;
+			}
+
+			result.push( items[ index ] );
+		}
+
+		return result;
+	}
+
+	/**
+	 * Type of a field, read from its editor panel.
+	 *
+	 * @param {string} fieldId Field id.
+	 * @return {string} Field type.
+	 */
+	function fieldTypeOf( fieldId ) {
+		var editor = fieldEditors.querySelector( '.sf-field-editor[data-for="' + fieldId + '"]' );
+
+		return editor ? ( editor.getAttribute( 'data-type' ) || '' ) : '';
+	}
+
+	/**
+	 * Choices of a field, parsed live from its editor textarea.
+	 *
+	 * @param {string} fieldId Field id.
+	 * @return {Array} Choices as {label, value} pairs.
+	 */
+	function fieldChoicesOf( fieldId ) {
+		var editor = fieldEditors.querySelector( '.sf-field-editor[data-for="' + fieldId + '"]' );
+		var choicesInput = editor ? editor.querySelector( 'textarea[name$="[choices]"]' ) : null;
+
+		return choicesInput ? parseChoiceLines( choicesInput.value ) : [];
+	}
+
+	/**
+	 * Whether a field type uses fixed choices.
+	 *
+	 * @param {string} type Field type.
+	 * @return {boolean} Whether the type is choice-based.
+	 */
+	function isChoiceSource( type ) {
+		return [ 'select', 'radio', 'checkbox' ].indexOf( type ) !== -1;
+	}
+
+	/**
+	 * Replace a select's options (labels via textContent, so no escaping).
+	 *
+	 * @param {Element} select Target select.
+	 * @param {Array}   items  Options as {value, label} pairs.
+	 */
+	function setSelectOptions( select, items ) {
+		select.textContent = '';
+
+		items.forEach( function ( item ) {
+			var option = document.createElement( 'option' );
+
+			option.setAttribute( 'value', item.value );
+			option.textContent = item.label;
+			select.appendChild( option );
+		} );
+	}
+
+	/**
+	 * Rebuild the source dropdown of one rule (fields above + orphans).
+	 *
+	 * @param {Element} block Visibility block.
+	 * @param {Element} rule  Rule row.
+	 */
+	function refreshSourceOptions( block, rule ) {
+		var select = rule.querySelector( '.sf-visibility-source' );
+		var current = select.value;
+		var placeholder = select.options.length ? select.options[ 0 ].textContent : visibilityStrings.selectField;
+		var items = [ { value: '', label: placeholder } ];
+		var known = { '': true };
+
+		previousFieldItems( block.getAttribute( 'data-for' ) ).forEach( function ( item ) {
+			var id = item.getAttribute( 'data-for' );
+
+			if ( 'section' === fieldTypeOf( id ) || known[ id ] ) {
+				return;
+			}
+
+			known[ id ] = true;
+			items.push( { value: id, label: String( fieldDisplayName( id ) || id ).trim() || id } );
+		} );
+
+		// Keep references that are no longer above (imports, reorders).
+		if ( current && ! known[ current ] ) {
+			var label = String( fieldDisplayName( current ) || current ).trim() || current;
+
+			items.push( { value: current, label: label + ' (' + visibilityStrings.notAbove + ')' } );
+		}
+
+		setSelectOptions( select, items );
+		select.value = current;
+	}
+
+	/**
+	 * Rebuild the operator dropdown for one rule.
+	 *
+	 * @param {Element} rule       Rule row.
+	 * @param {string}  sourceType Source field type.
+	 */
+	function refreshOperatorOptions( rule, sourceType ) {
+		var select = rule.querySelector( '.sf-visibility-operator' );
+		var current = select.value;
+		var tokens = isChoiceSource( sourceType ) ? choiceOperators : Object.keys( visibilityOperators );
+		var items = [];
+
+		tokens.forEach( function ( token ) {
+			items.push( { value: token, label: visibilityOperators[ token ] || token } );
+		} );
+
+		if ( current && tokens.indexOf( current ) === -1 ) {
+			items.push( { value: current, label: visibilityOperators[ current ] || current } );
+		}
+
+		setSelectOptions( select, items );
+
+		if ( current ) {
+			select.value = current;
+		} else if ( items.length ) {
+			select.value = items[ 0 ].value;
+		}
+	}
+
+	/**
+	 * Rebuild the value control for one rule (input or choices dropdown).
+	 *
+	 * @param {Element} rule       Rule row.
+	 * @param {string}  sourceType Source field type.
+	 */
+	function refreshValueControl( rule, sourceType ) {
+		var holder = rule.querySelector( '[data-value]' );
+		var existing = holder.querySelector( 'input, select' );
+		var current = existing ? existing.value : '';
+		var source = rule.querySelector( '.sf-visibility-source' );
+		var match = ( source.getAttribute( 'name' ) || '' ).match( /^(.*)\[field\]$/ );
+		var control;
+
+		holder.textContent = '';
+
+		if ( isChoiceSource( sourceType ) ) {
+			control = document.createElement( 'select' );
+
+			var items = [ { value: '', label: visibilityStrings.selectValue } ];
+			var known = { '': true };
+
+			fieldChoicesOf( source.value ).forEach( function ( choice ) {
+				if ( known[ choice.value ] ) {
+					return;
+				}
+
+				known[ choice.value ] = true;
+				items.push( { value: choice.value, label: choice.label } );
+			} );
+
+			if ( current && ! known[ current ] ) {
+				items.push( { value: current, label: current } );
+			}
+
+			setSelectOptions( control, items );
+			control.value = current;
+		} else {
+			control = document.createElement( 'input' );
+			control.setAttribute( 'type', 'text' );
+			control.value = current;
+		}
+
+		if ( match ) {
+			control.setAttribute( 'name', match[ 1 ] + '[value]' );
+		}
+
+		holder.appendChild( control );
+		syncValueHolderVisibility( rule );
+	}
+
+	/**
+	 * Hide the value control for valueless operators (empty / not empty).
+	 *
+	 * @param {Element} rule Rule row.
+	 */
+	function syncValueHolderVisibility( rule ) {
+		var holder = rule.querySelector( '[data-value]' );
+		var operator = rule.querySelector( '.sf-visibility-operator' );
+
+		if ( holder ) {
+			holder.hidden = !! operator && [ 'empty', 'not_empty' ].indexOf( operator.value ) !== -1;
+		}
+	}
+
+	/**
+	 * Append a new rule row to a group.
+	 *
+	 * @param {Element} block Visibility block.
+	 * @param {Element} group Group element.
+	 */
+	function addVisibilityRule( block, group ) {
+		var template = document.getElementById( 'sf-visibility-rule-template' );
+
+		if ( ! template ) {
+			return;
+		}
+
+		if ( ! group.hasAttribute( 'data-index' ) ) {
+			var maxGroup = -1;
+
+			block.querySelectorAll( '[data-group]' ).forEach( function ( candidate ) {
+				var index = parseInt( candidate.getAttribute( 'data-index' ) || '-1', 10 );
+
+				if ( index > maxGroup ) {
+					maxGroup = index;
+				}
+			} );
+
+			group.setAttribute( 'data-index', String( maxGroup + 1 ) );
+		}
+
+		var maxRule = -1;
+
+		group.querySelectorAll( '[data-rule] [name]' ).forEach( function ( control ) {
+			var match = ( control.getAttribute( 'name' ) || '' ).match( /\[groups\]\[\d+\]\[(\d+)\]/ );
+
+			if ( match ) {
+				maxRule = Math.max( maxRule, parseInt( match[ 1 ], 10 ) );
+			}
+		} );
+
+		var html = template.innerHTML
+			.replace( /\{FIELDID\}/g, block.getAttribute( 'data-for' ) )
+			.replace( /\{GROUP\}/g, group.getAttribute( 'data-index' ) )
+			.replace( /\{RULE\}/g, String( maxRule + 1 ) );
+		var wrapper = document.createElement( 'div' );
+
+		wrapper.innerHTML = html;
+
+		var rule = wrapper.querySelector( '[data-rule]' );
+
+		group.querySelector( '[data-rules]' ).appendChild( rule );
+
+		refreshSourceOptions( block, rule );
+		refreshOperatorOptions( rule, fieldTypeOf( rule.querySelector( '.sf-visibility-source' ).value ) );
+		refreshValueControl( rule, fieldTypeOf( rule.querySelector( '.sf-visibility-source' ).value ) );
+	}
+
+	/**
+	 * Append a new rule group (with one starter rule inside).
+	 *
+	 * @param {Element} block Visibility block.
+	 */
+	function addVisibilityGroup( block ) {
+		var template = document.getElementById( 'sf-visibility-group-template' );
+
+		if ( ! template ) {
+			return;
+		}
+
+		var wrapper = document.createElement( 'div' );
+
+		wrapper.innerHTML = template.innerHTML;
+
+		var group = wrapper.querySelector( '[data-group]' );
+
+		block.querySelector( '[data-groups]' ).appendChild( group );
+
+		addVisibilityRule( block, group );
+		refreshVisibilityJoins( block );
+		syncVisibilityNote( block );
+	}
+
+	/**
+	 * Show the "or" separator on every group but the first.
+	 *
+	 * @param {Element} block Visibility block.
+	 */
+	function refreshVisibilityJoins( block ) {
+		block.querySelectorAll( '[data-group]' ).forEach( function ( group, index ) {
+			var join = group.querySelector( '.sf-field-visibility__join' );
+
+			if ( join ) {
+				join.hidden = 0 === index;
+			}
+		} );
+	}
+
+	/**
+	 * Human summary of a block's rules ('' while incomplete).
+	 *
+	 * @param {Element} block Visibility block.
+	 * @return {string} Summary sentence.
+	 */
+	function visibilityNote( block ) {
+		var defaultSelect = block.querySelector( 'select[name$="[visibility][default]"]' );
+		var groups = [];
+
+		block.querySelectorAll( '[data-group]' ).forEach( function ( group ) {
+			var rules = [];
+
+			group.querySelectorAll( '[data-rule]' ).forEach( function ( rule ) {
+				var source = rule.querySelector( '.sf-visibility-source' );
+				var operator = rule.querySelector( '.sf-visibility-operator' );
+
+				if ( ! source || ! source.value || ! operator || ! operator.value ) {
+					return;
+				}
+
+				var text = source.options[ source.selectedIndex ].textContent + ' ' + operator.options[ operator.selectedIndex ].textContent;
+
+				if ( 'empty' !== operator.value && 'not_empty' !== operator.value ) {
+					var value = rule.querySelector( '[data-value] input, [data-value] select' );
+					var valueText = '';
+
+					if ( value && 'SELECT' === value.tagName && value.selectedIndex >= 0 ) {
+						valueText = value.options[ value.selectedIndex ].textContent;
+					} else if ( value ) {
+						valueText = value.value;
+					}
+
+					if ( '' === valueText ) {
+						return;
+					}
+
+					text += ' ' + valueText;
+				}
+
+				rules.push( text );
+			} );
+
+			if ( rules.length ) {
+				groups.push( rules.join( ' ' + visibilityStrings.and + ' ' ) );
+			}
+		} );
+
+		if ( ! groups.length ) {
+			return '';
+		}
+
+		var template = defaultSelect && 'hidden' === defaultSelect.value ? visibilityStrings.shown : visibilityStrings.hidden;
+
+		return template.replace( '%s', groups.join( ' ' + visibilityStrings.or + ' ' ) );
+	}
+
+	/**
+	 * Mirror a block's rules into its preview note.
+	 *
+	 * @param {Element} block Visibility block.
+	 */
+	function syncVisibilityNote( block ) {
+		var preview = fieldPreviews ? fieldPreviews.querySelector( '.sf-field-preview[data-for="' + block.getAttribute( 'data-for' ) + '"]' ) : null;
+
+		if ( ! preview ) {
+			return;
+		}
+
+		var note = preview.querySelector( '.sf-field-preview__visibility' );
+		var text = visibilityNote( block );
+
+		if ( '' === text ) {
+			if ( note ) {
+				note.remove();
+			}
+
+			return;
+		}
+
+		if ( ! note ) {
+			note = document.createElement( 'p' );
+			note.className = 'sf-field-preview__visibility';
+			preview.appendChild( note );
+		}
+
+		note.textContent = text;
+	}
+
+	/**
+	 * Refresh every preview note (labels changed, rules edited).
+	 */
+	function syncAllVisibilityNotes() {
+		if ( ! fieldVisibility ) {
+			return;
+		}
+
+		fieldVisibility.querySelectorAll( '.sf-field-visibility' ).forEach( function ( block ) {
+			syncVisibilityNote( block );
+		} );
+	}
+
+	/**
+	 * Refresh the source dropdowns of every rule (order/name changes).
+	 */
+	function refreshVisibilitySources() {
+		if ( ! fieldVisibility ) {
+			return;
+		}
+
+		fieldVisibility.querySelectorAll( '.sf-field-visibility' ).forEach( function ( block ) {
+			block.querySelectorAll( '[data-rule]' ).forEach( function ( rule ) {
+				refreshSourceOptions( block, rule );
+				syncValueHolderVisibility( rule );
+			} );
+		} );
+	}
+
+	/**
+	 * Refresh the choices dropdowns that read from one field.
+	 *
+	 * @param {string} fieldId Source field id.
+	 */
+	function refreshChoiceValueControls( fieldId ) {
+		if ( ! fieldVisibility ) {
+			return;
+		}
+
+		fieldVisibility.querySelectorAll( '.sf-field-visibility' ).forEach( function ( block ) {
+			block.querySelectorAll( '[data-rule]' ).forEach( function ( rule ) {
+				var source = rule.querySelector( '.sf-visibility-source' );
+
+				if ( source && source.value === fieldId ) {
+					refreshValueControl( rule, fieldTypeOf( fieldId ) );
+				}
+			} );
+		} );
+	}
+
+	if ( fieldVisibility ) {
+		fieldVisibility.addEventListener( 'click', function ( event ) {
+			var block = event.target.closest( '.sf-field-visibility' );
+			var group = event.target.closest( '[data-group]' );
+			var rule;
+
+			if ( ! block ) {
+				return;
+			}
+
+			if ( event.target.closest( '.sf-visibility-add-group' ) ) {
+				addVisibilityGroup( block );
+				return;
+			}
+
+			if ( event.target.closest( '.sf-visibility-add-rule' ) && group ) {
+				addVisibilityRule( block, group );
+				syncVisibilityNote( block );
+				return;
+			}
+
+			if ( event.target.closest( '.sf-visibility-remove' ) ) {
+				rule = event.target.closest( '[data-rule]' );
+
+				if ( rule ) {
+					rule.remove();
+					syncVisibilityNote( block );
+				}
+
+				return;
+			}
+
+			if ( event.target.closest( '.sf-visibility-remove-group' ) && group ) {
+				group.remove();
+				refreshVisibilityJoins( block );
+				syncVisibilityNote( block );
+			}
+		} );
+
+		fieldVisibility.addEventListener( 'change', function ( event ) {
+			var block = event.target.closest( '.sf-field-visibility' );
+			var rule = event.target.closest( '[data-rule]' );
+			var sourceType;
+
+			if ( ! block ) {
+				return;
+			}
+
+			if ( rule && event.target.classList.contains( 'sf-visibility-source' ) ) {
+				sourceType = fieldTypeOf( event.target.value );
+				refreshOperatorOptions( rule, sourceType );
+				refreshValueControl( rule, sourceType );
+			} else if ( rule && event.target.classList.contains( 'sf-visibility-operator' ) ) {
+				syncValueHolderVisibility( rule );
+			}
+
+			syncVisibilityNote( block );
+		} );
+
+		fieldVisibility.addEventListener( 'input', function ( event ) {
+			var block = event.target.closest( '.sf-field-visibility' );
+
+			if ( block ) {
+				syncVisibilityNote( block );
+			}
+		} );
+	}
+
 	/**
 	 * Remove one field: its list item and its editor panel.
 	 *
@@ -465,11 +1018,23 @@
 			togglePreviewPanel( null !== fieldPreviews.querySelector( '.sf-field-preview' ) );
 		}
 
+		if ( fieldVisibility ) {
+			var block = fieldVisibility.querySelector( '.sf-field-visibility[data-for="' + id + '"]' );
+
+			if ( block ) {
+				block.remove();
+			}
+
+			toggleVisibilityPanel( null !== fieldVisibility.querySelector( '.sf-field-visibility' ) );
+		}
+
 		if ( wasActive ) {
 			var next = fieldList.querySelector( '.sf-field-item' );
 
 			selectField( next ? next.getAttribute( 'data-for' ) : '' );
 		}
+
+		refreshVisibilitySources();
 	}
 
 	/**
@@ -525,8 +1090,20 @@
 			preview.parentNode.insertBefore( newPreview, preview.nextSibling );
 		}
 
+		if ( fieldVisibility ) {
+			var block = fieldVisibility.querySelector( '.sf-field-visibility[data-for="' + id + '"]' );
+
+			if ( block ) {
+				var newBlock = block.cloneNode( true );
+
+				reidentify( newBlock, id, newId );
+				block.parentNode.insertBefore( newBlock, block.nextSibling );
+			}
+		}
+
 		selectField( newId );
 		newItem.scrollIntoView( { behavior: 'smooth', block: 'nearest' } );
+		refreshVisibilitySources();
 	}
 
 	/**
@@ -565,8 +1142,18 @@
 			}
 		}
 
+		if ( fieldVisibility ) {
+			var block = wrapper.querySelector( '.sf-field-visibility' );
+
+			if ( block ) {
+				fieldVisibility.appendChild( block );
+				toggleVisibilityPanel( true );
+			}
+		}
+
 		selectField( id );
 		item.scrollIntoView( { behavior: 'smooth', block: 'nearest' } );
+		refreshVisibilitySources();
 
 		labelInput = editor.querySelector( '.sf-input-label' );
 
@@ -664,6 +1251,8 @@
 				draggedItem.classList.remove( 'sf-field-item--dragging' );
 				draggedItem = null;
 			}
+
+			refreshVisibilitySources();
 		} );
 
 		// The list item shows the field name: keep it in sync with the label.
@@ -693,6 +1282,12 @@
 						fieldsTitle.textContent = name.textContent;
 					}
 				}
+
+				refreshVisibilitySources();
+				syncAllVisibilityNotes();
+			} else if ( input.name.indexOf( '[choices]' ) !== -1 ) {
+				refreshChoiceValueControls( editor.getAttribute( 'data-for' ) );
+				syncAllVisibilityNotes();
 			}
 
 			syncSample( editor );
@@ -731,6 +1326,10 @@
 		} else if ( fieldsEmpty ) {
 			fieldsEmpty.hidden = false;
 		}
+
+		// Fill the visibility editors: server-rendered rules keep their
+		// values, the source options follow the current list order.
+		refreshVisibilitySources();
 	}
 
 	var addSelect = document.getElementById( 'sf-add-field' );

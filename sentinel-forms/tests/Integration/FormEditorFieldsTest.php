@@ -463,8 +463,8 @@ final class FormEditorFieldsTest extends TestCase {
 	}
 
 	/**
-	 * Each field type ships a template with BOTH fragments (item + editor)
-	 * so the JS can add fields to both columns.
+	 * Each field type ships a template with ALL fragments (item, editor,
+	 * preview and visibility) so the JS can add a field to every container.
 	 */
 	public function testFieldTemplatesCarryBothFragments(): void {
 		wp_set_current_user( self::factory()->user->create( [ 'role' => 'administrator' ] ) );
@@ -473,10 +473,10 @@ final class FormEditorFieldsTest extends TestCase {
 
 		$html = $this->renderEditor( $formId );
 
-		// Each type ships an item, an editor AND a preview fragment, so the
-		// JS can add a field to all three containers.
+		// Each type ships an item, an editor, a preview AND a visibility
+		// fragment, so the JS can add a field to all four containers.
 		$this->assertMatchesRegularExpression(
-			'/<template id="sf-field-template-text">.*?class="sf-field-item".*?class="sf-field-editor".*?class="sf-field-preview".*?<\/template>/s',
+			'/<template id="sf-field-template-text">.*?class="sf-field-item".*?class="sf-field-editor".*?class="sf-field-preview".*?class="sf-field-visibility".*?<\/template>/s',
 			$html
 		);
 	}

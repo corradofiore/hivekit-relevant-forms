@@ -23,6 +23,7 @@ $isHidden = 'hidden' === (string) $definition['type'];
 $sample   = $isHidden
 	? '<p class="description">' . esc_html__( 'Hidden fields are not visible on the front end.', 'sentinel-forms' ) . '</p>'
 	: $field_type->render( $definition, null, null, (string) $form->id );
+$summary  = SentinelForms\Forms\Visibility\VisibilityRules::summary( $definition, $form->schema->fields() );
 
 // The preview must never take part in the save form: pointing its controls
 // at a non-existent form id leaves them without a form owner, so browser
@@ -37,4 +38,7 @@ $sample = (string) preg_replace(
 	<div class="sentinel-forms">
 		<?php echo $sample; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- field markup escaped by the field renderers. ?>
 	</div>
+	<?php if ( '' !== $summary ) : ?>
+		<p class="sf-field-preview__visibility"><?php echo esc_html( $summary ); ?></p>
+	<?php endif; ?>
 </div>

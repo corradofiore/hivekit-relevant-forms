@@ -11,6 +11,7 @@ namespace SentinelForms\Admin\Assets;
 
 use SentinelForms\Admin\Controllers\RedirectTargetSearchController;
 use SentinelForms\Admin\Controllers\SmsVerificationController;
+use SentinelForms\Forms\Visibility\VisibilityRules;
 use SentinelForms\Support\AssetVersion;
 
 /**
@@ -65,12 +66,12 @@ final class AdminAssets {
 			'sentinel-forms-admin',
 			'sentinelFormsAdmin',
 			[
-				'ajaxUrl'        => admin_url( 'admin-ajax.php' ),
-				'searchNonce'    => wp_create_nonce( RedirectTargetSearchController::ACTION ),
-				'noResults'      => __( 'No pages or posts found.', 'sentinel-forms' ),
-				'smsSendNonce'   => wp_create_nonce( SmsVerificationController::ACTION_SEND ),
-				'smsVerifyNonce' => wp_create_nonce( SmsVerificationController::ACTION_VERIFY ),
-				'smsStrings'     => [
+				'ajaxUrl'             => admin_url( 'admin-ajax.php' ),
+				'searchNonce'         => wp_create_nonce( RedirectTargetSearchController::ACTION ),
+				'noResults'           => __( 'No pages or posts found.', 'sentinel-forms' ),
+				'smsSendNonce'        => wp_create_nonce( SmsVerificationController::ACTION_SEND ),
+				'smsVerifyNonce'      => wp_create_nonce( SmsVerificationController::ACTION_VERIFY ),
+				'smsStrings'          => [
 					'checkPhone'    => __( 'Enter the phone number first.', 'sentinel-forms' ),
 					'sending'       => __( 'Sending code…', 'sentinel-forms' ),
 					'codeSent'      => __( 'Code sent. Enter the 6 digits we texted you.', 'sentinel-forms' ),
@@ -79,9 +80,22 @@ final class AdminAssets {
 					'devCode'       => __( 'Dev code:', 'sentinel-forms' ),
 					'requestFailed' => __( 'The request failed. Try again.', 'sentinel-forms' ),
 				],
-				'fieldStrings'   => [
+				'fieldStrings'        => [
 					'untitled' => __( 'Untitled field', 'sentinel-forms' ),
 				],
+				'visibilityStrings'   => [
+					/* translators: %s: condition summary ("Email is not empty"). */
+					'shown'       => __( 'Shown when: %s', 'sentinel-forms' ),
+					/* translators: %s: condition summary ("Email is not empty"). */
+					'hidden'      => __( 'Hidden when: %s', 'sentinel-forms' ),
+					'and'         => __( 'and', 'sentinel-forms' ),
+					'or'          => __( 'or', 'sentinel-forms' ),
+					'notAbove'    => __( 'not above', 'sentinel-forms' ),
+					'selectField' => __( '— Select field —', 'sentinel-forms' ),
+					'selectValue' => __( '— Select value —', 'sentinel-forms' ),
+				],
+				'visibilityOperators' => VisibilityRules::operatorLabels(),
+				'choiceOperators'     => VisibilityRules::operatorsFor( 'select' ),
 			]
 		);
 	}

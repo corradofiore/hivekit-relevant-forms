@@ -28,6 +28,8 @@ declare(strict_types=1);
 
 namespace SentinelForms\Forms\Visibility;
 
+use SentinelForms\Forms\Fields\FieldTypeRegistry;
+
 /**
  * Pure visibility rule helpers: normalization, evaluation and summaries.
  */
@@ -540,13 +542,15 @@ final class VisibilityRules {
 				continue;
 			}
 
-			foreach ( (array) ( $definition['choices'] ?? [] ) as $choice ) {
-				if ( ! is_array( $choice ) ) {
-					continue;
-				}
+			$field = FieldTypeRegistry::get( (string) ( $definition['type'] ?? '' ) );
 
-				if ( (string) ( $choice['value'] ?? '' ) === $rule['value'] && '' !== (string) ( $choice['label'] ?? '' ) ) {
-					return (string) $choice['label'];
+			// Choice definitions are stored raw ("Label|value" rows); let the
+			// field type normalize them the same way the renderers do.
+			if ( $field && method_exists( $field, 'normalizeChoices' ) ) {
+				foreach ( $field->normalizeChoices( $definition ) as $choice ) {
+					if ( $choice['value'] === $rule['value'] && '' !== $choice['label'] ) {
+						return $choice['label'];
+					}
 				}
 			}
 		}

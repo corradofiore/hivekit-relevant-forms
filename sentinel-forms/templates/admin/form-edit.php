@@ -273,6 +273,19 @@ if ( $isEditing ) {
 					}
 					?>
 				</div>
+
+				<h2 id="sf-fields-visibility-title"<?php echo [] === $builder_fields ? ' hidden' : ''; ?>><?php esc_html_e( 'Field visibility rules', 'sentinel-forms' ); ?></h2>
+				<div id="sf-fields-visibility" class="sf-fields-visibility"<?php echo [] === $builder_fields ? ' hidden' : ''; ?>>
+					<?php
+					foreach ( $builder_fields as $builder_visibility_index => $definition ) {
+						$field_type = SentinelForms\Forms\Fields\FieldTypeRegistry::get( (string) $definition['type'] );
+						if ( null === $field_type ) {
+							continue;
+						}
+						require SENTINEL_FORMS_PATH . 'templates/admin/field-visibility.php';
+					}
+					?>
+				</div>
 			</div>
 		</div>
 		</div><!-- #sf-panel-fields -->
@@ -304,7 +317,32 @@ if ( $isEditing ) {
 			require SENTINEL_FORMS_PATH . 'templates/admin/field-list-item.php';
 			require SENTINEL_FORMS_PATH . 'templates/admin/field-row.php';
 			require SENTINEL_FORMS_PATH . 'templates/admin/field-preview.php';
+
+			// Template fragments have no previous fields: admin.js fills the
+			// source options when the field is added to the list.
+			$builder_visibility_index = 0;
+			require SENTINEL_FORMS_PATH . 'templates/admin/field-visibility.php';
 			?>
 		</template>
 	<?php endforeach; ?>
+
+	<template id="sf-visibility-group-template">
+		<div class="sf-field-visibility__group" data-group>
+			<p class="sf-field-visibility__join" hidden><?php esc_html_e( 'or', 'sentinel-forms' ); ?></p>
+			<div class="sf-field-visibility__rules" data-rules></div>
+			<div class="sf-field-visibility__group-actions">
+				<button type="button" class="button-link sf-visibility-add-rule"><?php esc_html_e( '+ Add rule', 'sentinel-forms' ); ?></button>
+				<button type="button" class="button-link sf-visibility-remove-group"><?php esc_html_e( 'Remove group', 'sentinel-forms' ); ?></button>
+			</div>
+		</div>
+	</template>
+
+	<template id="sf-visibility-rule-template">
+		<div class="sf-field-visibility__rule" data-rule>
+			<select class="sf-visibility-source" name="sentinel_fields[{FIELDID}][visibility][groups][{GROUP}][{RULE}][field]"></select>
+			<select class="sf-visibility-operator" name="sentinel_fields[{FIELDID}][visibility][groups][{GROUP}][{RULE}][operator]"></select>
+			<span class="sf-field-visibility__value" data-value></span>
+			<button type="button" class="button-link sf-visibility-remove"><?php esc_html_e( 'Remove', 'sentinel-forms' ); ?></button>
+		</div>
+	</template>
 </div>
