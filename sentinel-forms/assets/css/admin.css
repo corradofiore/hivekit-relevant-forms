@@ -192,6 +192,14 @@
 	margin: 0;
 }
 
+/* Preview panel: placeholder text reads lighter on the yellow background. */
+
+.sf-fields-preview input::placeholder,
+.sf-fields-preview textarea::placeholder {
+	color: #a7aaad;
+	opacity: 1;
+}
+
 .sf-fields-empty {
 	color: #646970;
 }
