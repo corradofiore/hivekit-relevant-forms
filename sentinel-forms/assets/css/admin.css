@@ -134,6 +134,8 @@
 
 .sf-field-item__name {
 	flex: 0 1 auto;
+	font-size: 14px;
+	font-weight: 600;
 	min-width: 0;
 	overflow-wrap: anywhere;
 }
@@ -219,6 +221,11 @@
 @media screen and (max-width: 782px) {
 	.sf-fields-columns {
 		grid-template-columns: 1fr;
+	}
+
+	/* Matches core's 16px form controls on small screens. */
+	.sf-field-item__name {
+		font-size: 16px;
 	}
 }
 
