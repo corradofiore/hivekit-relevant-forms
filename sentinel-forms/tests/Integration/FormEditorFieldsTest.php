@@ -117,9 +117,17 @@ final class FormEditorFieldsTest extends TestCase {
 
 		$html = $this->renderEditor( $formId );
 
-		// The field type as text (not an input), before the actual fields.
-		$this->assertStringContainsString( '<p class="sf-field-editor__type">Single-line text</p>', $html );
-		$this->assertStringContainsString( '<p class="sf-field-editor__type">Email</p>', $html );
+		// The field type is the first settings row: read-only text, no input.
+		$this->assertStringContainsString( '<th scope="row">Field type</th>', $html );
+		$this->assertMatchesRegularExpression(
+			'/<tr>\s*<th scope="row">Field type<\/th>\s*<td>Single-line text<\/td>\s*<\/tr>/',
+			$html
+		);
+		$this->assertMatchesRegularExpression(
+			'/<tr>\s*<th scope="row">Field type<\/th>\s*<td>Email<\/td>\s*<\/tr>/',
+			$html
+		);
+		$this->assertStringNotContainsString( 'sf-field-editor__type', $html );
 
 		// The preview is a separate panel with a header like the Fields one,
 		// kept in the right column under the field editor.

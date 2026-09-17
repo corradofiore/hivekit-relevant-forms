@@ -175,13 +175,6 @@
 	margin: 0.5rem 0;
 }
 
-.sf-field-editor__type {
-	border-bottom: 1px solid #dcdcde;
-	font-weight: 600;
-	margin: 0;
-	padding: 0.5rem 1rem;
-}
-
 /*
  * Form editor: preview panel under the field editor, in the same column.
  * Same yellow as the AI callout; only the selected field's preview block is

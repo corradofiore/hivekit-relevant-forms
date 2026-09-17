@@ -30,12 +30,15 @@ $controlId = 'sentinel-field-' . (string) $form->id . '-' . $fieldId;
 $inputIdBase = 'sf-field-' . $fieldId;
 ?>
 <div class="sf-field-editor" data-for="<?php echo esc_attr( $fieldId ); ?>" data-type="<?php echo esc_attr( (string) $definition['type'] ); ?>" data-control-id="<?php echo esc_attr( $controlId ); ?>">
-	<p class="sf-field-editor__type"><?php echo esc_html( $field_type->label() ); ?></p>
 	<div class="sf-field-editor__body">
 		<input type="hidden" name="sentinel_fields[<?php echo esc_attr( $fieldId ); ?>][id]" value="<?php echo esc_attr( $fieldId ); ?>">
 		<input type="hidden" name="sentinel_fields[<?php echo esc_attr( $fieldId ); ?>][type]" value="<?php echo esc_attr( (string) $definition['type'] ); ?>">
 
 		<table class="form-table" role="presentation">
+			<tr>
+				<th scope="row"><?php esc_html_e( 'Field type', 'sentinel-forms' ); ?></th>
+				<td><?php echo esc_html( $field_type->label() ); ?></td>
+			</tr>
 			<?php if ( ! $isHidden ) : ?>
 				<tr>
 					<th scope="row"><label for="<?php echo esc_attr( $inputIdBase . '-label' ); ?>"><?php esc_html_e( 'Label', 'sentinel-forms' ); ?></label></th>
