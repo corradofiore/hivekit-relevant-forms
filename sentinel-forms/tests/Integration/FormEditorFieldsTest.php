@@ -60,6 +60,12 @@ final class FormEditorFieldsTest extends TestCase {
 		$this->assertStringContainsString( '<h1>Edit Form: Contact</h1>', $html );
 		$this->assertStringContainsString( '<h2 id="sf-fields-title">Fields</h2>', $html );
 
+		// The header sits in the right column, above the field editor.
+		$this->assertMatchesRegularExpression(
+			'/sf-fields-column--editor.*?<h2 id="sf-fields-title">Fields<\/h2>.*?id="sf-fields-editors"/s',
+			$html
+		);
+
 		// A new form has no name yet.
 		unset( $_GET['form_id'] );
 

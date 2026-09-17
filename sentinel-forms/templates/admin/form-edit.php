@@ -220,8 +220,6 @@ if ( $isEditing ) {
 
 		<div id="sf-panel-fields" class="sentinel-forms-tabs__panel">
 
-		<h2 id="sf-fields-title"><?php esc_html_e( 'Fields', 'sentinel-forms' ); ?></h2>
-
 		<?php $builder_fields = $form->schema->fields(); ?>
 		<div class="sf-fields-columns">
 			<div class="sf-fields-column sf-fields-column--list">
@@ -249,6 +247,7 @@ if ( $isEditing ) {
 				</div>
 			</div>
 			<div class="sf-fields-column sf-fields-column--editor">
+				<h2 id="sf-fields-title"><?php esc_html_e( 'Fields', 'sentinel-forms' ); ?></h2>
 				<p id="sf-fields-empty" class="sf-fields-empty"<?php echo [] === $builder_fields ? '' : ' hidden'; ?>><?php esc_html_e( 'Select a field to edit it, or add a new one.', 'sentinel-forms' ); ?></p>
 				<div id="sf-fields-editors">
 					<?php

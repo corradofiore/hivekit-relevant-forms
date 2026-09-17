@@ -56,6 +56,11 @@
 	grid-template-columns: 34fr 66fr;
 }
 
+/* The section header sits above the field editor, in the right column. */
+#sf-fields-title {
+	margin-top: 0;
+}
+
 .sf-fields-add {
 	margin: 0 0 0.75em;
 }
