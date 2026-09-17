@@ -119,7 +119,7 @@ final class FormSaveController {
 			wp_die(
 				'<h1>' . esc_html__( 'The form could not be saved.', 'sentinel-forms' ) . '</h1>'
 				. '<ul><li>' . implode( '</li><li>', array_map( 'esc_html', $errors ) ) . '</li></ul>'
-				. '<p><a href="' . esc_url( admin_url( 'admin.php?page=sentinel-form-new' . ( $formId > 0 ? '&form_id=' . $formId : '' ) ) ) . '">&larr; ' . esc_html__( 'Go back', 'sentinel-forms' ) . '</a></p>',
+				. '<p><a href="' . esc_url( admin_url( 'admin.php?page=sentinel-form-edit' . ( $formId > 0 ? '&form_id=' . $formId : '' ) ) ) . '">&larr; ' . esc_html__( 'Go back', 'sentinel-forms' ) . '</a></p>',
 				esc_html__( 'Form invalid', 'sentinel-forms' ),
 				[ 'response' => 400 ]
 			);
@@ -141,7 +141,7 @@ final class FormSaveController {
 
 		wp_safe_redirect(
 			admin_url(
-				'admin.php?page=sentinel-form-new&form_id=' . $formId . '&saved=1'
+				'admin.php?page=sentinel-form-edit&form_id=' . $formId . '&saved=1'
 				. ( '' !== $smsError ? '&sms_error=' . rawurlencode( $smsError ) : '' )
 			)
 		);

@@ -42,7 +42,7 @@ final class AdminAssets {
 			AssetVersion::get( 'assets/css/admin.css' )
 		);
 
-		if ( false !== strpos( $hookSuffix, 'sentinel-form-new' ) ) {
+		if ( false !== strpos( $hookSuffix, 'sentinel-form-edit' ) ) {
 			// The field editor previews render the real front-end markup,
 			// so they get the real front-end stylesheet.
 			wp_enqueue_style(

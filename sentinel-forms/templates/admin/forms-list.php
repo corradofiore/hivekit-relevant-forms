@@ -16,7 +16,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 ?>
 <div class="wrap">
 	<h1 class="wp-heading-inline"><?php esc_html_e( 'Forms', 'sentinel-forms' ); ?></h1>
-	<a href="<?php echo esc_url( admin_url( 'admin.php?page=sentinel-form-new' ) ); ?>" class="page-title-action">
+	<a href="<?php echo esc_url( admin_url( 'admin.php?page=sentinel-form-edit' ) ); ?>" class="page-title-action">
 		<?php esc_html_e( 'Add New Form', 'sentinel-forms' ); ?>
 	</a>
 	<hr class="wp-header-end">
@@ -30,7 +30,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	<?php if ( $forms === [] ) : ?>
 		<div class="sentinel-forms-empty">
 			<p><?php esc_html_e( 'No forms yet. Create your first form to start collecting submissions.', 'sentinel-forms' ); ?></p>
-			<a class="button button-primary" href="<?php echo esc_url( admin_url( 'admin.php?page=sentinel-form-new' ) ); ?>">
+			<a class="button button-primary" href="<?php echo esc_url( admin_url( 'admin.php?page=sentinel-form-edit' ) ); ?>">
 				<?php esc_html_e( 'Create a form', 'sentinel-forms' ); ?>
 			</a>
 		</div>
@@ -64,7 +64,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 							<strong><?php echo esc_html( $form->name ); ?></strong>
 							<div class="row-actions">
 								<span class="edit">
-									<a href="<?php echo esc_url( admin_url( 'admin.php?page=sentinel-form-new&form_id=' . $form->id ) ); ?>"><?php esc_html_e( 'Edit', 'sentinel-forms' ); ?></a> |
+									<a href="<?php echo esc_url( admin_url( 'admin.php?page=sentinel-form-edit&form_id=' . $form->id ) ); ?>"><?php esc_html_e( 'Edit', 'sentinel-forms' ); ?></a> |
 								</span>
 								<span class="duplicate">
 									<a href="<?php echo esc_url( wp_nonce_url( admin_url( 'admin-post.php?action=sentinel_forms_action&form_action=duplicate&form_id=' . $form->id ), 'sentinel_form_action_duplicate_' . $form->id ) ); ?>"><?php esc_html_e( 'Duplicate', 'sentinel-forms' ); ?></a>

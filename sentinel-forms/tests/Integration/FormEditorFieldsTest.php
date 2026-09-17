@@ -149,7 +149,7 @@ final class FormEditorFieldsTest extends TestCase {
 		AdminAssets::enqueue( 'sentinel-forms_page_sentinel-entry' );
 		$this->assertFalse( wp_style_is( 'sentinel-forms-preview', 'enqueued' ) );
 
-		AdminAssets::enqueue( 'sentinel-forms_page_sentinel-form-new' );
+		AdminAssets::enqueue( 'sentinel-forms_page_sentinel-form-edit' );
 		$this->assertTrue( wp_style_is( 'sentinel-forms-preview', 'enqueued' ) );
 	}
 
