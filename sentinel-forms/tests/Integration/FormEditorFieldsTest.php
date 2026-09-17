@@ -318,12 +318,23 @@ final class FormEditorFieldsTest extends TestCase {
 		$html = $this->renderEditor( $formId );
 
 		// The text panel shows the row with the default limit (legacy fields
-		// without the key fall back to the type default).
+		// without the key fall back to the type default) and a compact input.
 		$this->assertMatchesRegularExpression(
 			'/name="sentinel_fields\[f_name\]\[max_length\]" value="500"/',
 			$html
 		);
 		$this->assertStringContainsString( '<th scope="row"><label for="sf-field-f_name-max-length">Maximum characters</label></th>', $html );
+		$this->assertStringContainsString( 'class="sf-input-max-length" id="sf-field-f_name-max-length"', $html );
+
+		// The row sits directly below "Required", with the other validation
+		// options, ahead of Placeholder.
+		$requiredPos    = strpos( $html, 'sf-field-f_name-required' );
+		$maxLengthPos   = strpos( $html, 'sf-field-f_name-max-length' );
+		$placeholderPos = strpos( $html, 'sf-field-f_name-placeholder' );
+		$this->assertNotFalse( $requiredPos );
+		$this->assertNotFalse( $maxLengthPos );
+		$this->assertNotFalse( $placeholderPos );
+		$this->assertTrue( $requiredPos < $maxLengthPos && $maxLengthPos < $placeholderPos );
 
 		// Other field types do not get the row.
 		$this->assertStringNotContainsString( 'sentinel_fields[f_email][max_length]', $html );

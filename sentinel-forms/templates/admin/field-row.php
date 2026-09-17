@@ -58,6 +58,22 @@ $inputIdBase = 'sf-field-' . $fieldId;
 				</tr>
 			<?php endif; ?>
 
+			<?php if ( in_array( (string) $definition['type'], [ 'text', 'textarea' ], true ) ) : ?>
+				<?php
+				$maxLengthDefault = 'text' === (string) $definition['type']
+					? \SentinelForms\Forms\Fields\TextField::MAX_LENGTH
+					: \SentinelForms\Forms\Fields\TextareaField::MAX_LENGTH;
+				$maxLength        = array_key_exists( 'max_length', $definition ) ? (int) $definition['max_length'] : $maxLengthDefault;
+				?>
+				<tr>
+					<th scope="row"><label for="<?php echo esc_attr( $inputIdBase . '-max-length' ); ?>"><?php esc_html_e( 'Maximum characters', 'sentinel-forms' ); ?></label></th>
+					<td>
+						<input type="number" min="0" step="1" class="sf-input-max-length" id="<?php echo esc_attr( $inputIdBase . '-max-length' ); ?>" name="sentinel_fields[<?php echo esc_attr( $fieldId ); ?>][max_length]" value="<?php echo esc_attr( (string) $maxLength ); ?>">
+						<p class="description"><?php esc_html_e( '0 for no limit.', 'sentinel-forms' ); ?></p>
+					</td>
+				</tr>
+			<?php endif; ?>
+
 			<?php if ( ! $isHidden && ! in_array( (string) $definition['type'], [ 'consent', 'section' ], true ) ) : ?>
 				<tr>
 					<th scope="row"><label for="<?php echo esc_attr( $inputIdBase . '-placeholder' ); ?>"><?php esc_html_e( 'Placeholder', 'sentinel-forms' ); ?></label></th>
@@ -69,22 +85,6 @@ $inputIdBase = 'sf-field-' . $fieldId;
 					<th scope="row"><label for="<?php echo esc_attr( $inputIdBase . '-help-text' ); ?>"><?php esc_html_e( 'Help text', 'sentinel-forms' ); ?></label></th>
 					<td>
 						<input type="text" class="widefat" id="<?php echo esc_attr( $inputIdBase . '-help-text' ); ?>" name="sentinel_fields[<?php echo esc_attr( $fieldId ); ?>][help_text]" value="<?php echo esc_attr( (string) ( $definition['help_text'] ?? '' ) ); ?>">
-					</td>
-				</tr>
-			<?php endif; ?>
-
-			<?php if ( in_array( (string) $definition['type'], [ 'text', 'textarea' ], true ) ) : ?>
-				<?php
-				$maxLengthDefault = 'text' === (string) $definition['type']
-					? \SentinelForms\Forms\Fields\TextField::MAX_LENGTH
-					: \SentinelForms\Forms\Fields\TextareaField::MAX_LENGTH;
-				$maxLength        = array_key_exists( 'max_length', $definition ) ? (int) $definition['max_length'] : $maxLengthDefault;
-				?>
-				<tr>
-					<th scope="row"><label for="<?php echo esc_attr( $inputIdBase . '-max-length' ); ?>"><?php esc_html_e( 'Maximum characters', 'sentinel-forms' ); ?></label></th>
-					<td>
-						<input type="number" min="0" step="1" class="widefat" id="<?php echo esc_attr( $inputIdBase . '-max-length' ); ?>" name="sentinel_fields[<?php echo esc_attr( $fieldId ); ?>][max_length]" value="<?php echo esc_attr( (string) $maxLength ); ?>">
-						<p class="description"><?php esc_html_e( '0 for no limit.', 'sentinel-forms' ); ?></p>
 					</td>
 				</tr>
 			<?php endif; ?>

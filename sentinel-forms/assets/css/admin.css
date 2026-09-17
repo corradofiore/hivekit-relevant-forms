@@ -195,6 +195,15 @@
 }
 
 /*
+ * Compact numeric inputs ("Maximum characters") don't need the full row;
+ * core's mobile rules don't stretch number inputs, so one width fits all.
+ */
+
+.sf-field-editor__body .sf-input-max-length {
+	width: 120px;
+}
+
+/*
  * Form editor: preview panel under the field editor, in the same column.
  * Same yellow as the AI callout; only the selected field's preview block is
  * shown (JS).
