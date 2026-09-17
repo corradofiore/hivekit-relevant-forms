@@ -116,6 +116,62 @@ final class FormEditorFieldsTest extends TestCase {
 	}
 
 	/**
+	 * The sample keeps a live-update contract: the editor exposes the sample
+	 * control id, and the list marks required fields with an asterisk the
+	 * JS toggles while editing.
+	 */
+	public function testTheSampleExposesItsControlIdAndTheRequiredMarker(): void {
+		wp_set_current_user( self::factory()->user->create( [ 'role' => 'administrator' ] ) );
+
+		$repository = new FormRepository();
+		$schema     = FormSchema::empty( 'Marker' )->withFields(
+			[
+				[
+					'id'       => 'f_req',
+					'type'     => 'text',
+					'label'    => 'Required field',
+					'required' => true,
+				],
+				[
+					'id'    => 'f_opt',
+					'type'  => 'text',
+					'label' => 'Optional field',
+				],
+			]
+		);
+		$formId     = $repository->create( 'Marker', $schema, 'draft' );
+
+		$html = $this->renderEditor( $formId );
+		$list = $this->listRegion( $html );
+
+		$reqStart = (int) strpos( $list, 'data-for="f_req"' );
+		$optStart = (int) strpos( $list, 'data-for="f_opt"' );
+
+		$requiredItem = substr( $list, $reqStart, $optStart - $reqStart );
+		$optionalItem = substr( $list, $optStart );
+
+		// Required: visible asterisk next to the name; optional: hidden.
+		$this->assertStringContainsString( '<span class="sf-field-item__required" aria-hidden="true">*</span>', $requiredItem );
+		$this->assertStringNotContainsString( 'sf-field-item__required" hidden', $requiredItem );
+		$this->assertStringContainsString( '<span class="sf-field-item__required" hidden aria-hidden="true">*</span>', $optionalItem );
+		$this->assertStringNotContainsString( '<span class="sf-field-item__required" aria-hidden="true">*</span>', $optionalItem );
+
+		// The JS finds the sample label, control and help text by this id.
+		$this->assertStringContainsString( 'data-control-id="sentinel-field-' . $formId . '-f_req"', $html );
+		$this->assertStringContainsString( 'data-control-id="sentinel-field-' . $formId . '-f_opt"', $html );
+
+		// The sample label mirrors the front-end renderer: text + asterisk.
+		$this->assertStringContainsString(
+			'<label for="sentinel-field-' . $formId . '-f_req">Required field <span class="sentinel-forms-required">*</span></label>',
+			$html
+		);
+		$this->assertStringContainsString(
+			'<label for="sentinel-field-' . $formId . '-f_opt">Optional field</label>',
+			$html
+		);
+	}
+
+	/**
 	 * Hidden fields show a note instead of an invisible sample.
 	 */
 	public function testHiddenFieldsShowANoteInsteadOfASample(): void {

@@ -127,6 +127,11 @@
 .sf-field-item__name {
 }
 
+.sf-field-item__required {
+	color: #d63638;
+	font-weight: 600;
+}
+
 .sf-field-item__type {
 	color: #646970;
 	flex: 0 0 auto;

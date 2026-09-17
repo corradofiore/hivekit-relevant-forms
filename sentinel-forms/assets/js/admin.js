@@ -67,6 +67,275 @@
 	}
 
 	/**
+	 * Parse the choices textarea: one choice per line, optional value after
+	 * the first "|" (same rule as the PHP renderers).
+	 *
+	 * @param {string} raw Textarea value.
+	 * @return {Array} Choices as {label, value} pairs.
+	 */
+	function parseChoiceLines( raw ) {
+		var choices = [];
+
+		raw.split( '\n' ).forEach( function ( line ) {
+			var pipe, label, value;
+
+			line = line.trim();
+
+			if ( '' === line ) {
+				return;
+			}
+
+			pipe = line.indexOf( '|' );
+			label = ( pipe === -1 ? line : line.slice( 0, pipe ) ).trim();
+			value = pipe === -1 ? label : ( line.slice( pipe + 1 ).trim() || label );
+
+			if ( '' === label ) {
+				return;
+			}
+
+			choices.push( { label: label, value: value } );
+		} );
+
+		return choices;
+	}
+
+	/**
+	 * Rebuild the sample options of a select/radio/checkbox field.
+	 *
+	 * @param {Element} wrapper Sample field wrapper.
+	 * @param {string}  baseId  Base DOM id of the sample field.
+	 * @param {string}  type    Field type.
+	 * @param {string}  fieldId Field id (for newly created input names).
+	 * @param {Array}   choices Parsed choices.
+	 */
+	function rebuildSampleChoices( wrapper, baseId, type, fieldId, choices ) {
+		var select = wrapper.querySelector( 'select' );
+		var group = wrapper.querySelector( '.sentinel-forms-choice-group' );
+		var name = null;
+		var checked = [];
+
+		if ( select ) {
+			// Keep the localized "— Select —" placeholder option.
+			while ( select.options.length > 1 ) {
+				select.remove( 1 );
+			}
+
+			choices.forEach( function ( choice ) {
+				var option = document.createElement( 'option' );
+
+				option.setAttribute( 'value', choice.value );
+				option.textContent = choice.label;
+				select.appendChild( option );
+			} );
+
+			return;
+		}
+
+		if ( ! group ) {
+			return;
+		}
+
+		group.querySelectorAll( 'input' ).forEach( function ( input ) {
+			if ( ! name ) {
+				name = input.getAttribute( 'name' );
+			}
+
+			if ( input.checked ) {
+				checked.push( input.value );
+			}
+		} );
+
+		name = name || ( 'sentinel_field_' + fieldId + ( 'checkbox' === type ? '[]' : '' ) );
+
+		group.textContent = '';
+
+		choices.forEach( function ( choice, index ) {
+			var item = document.createElement( 'span' );
+			var input = document.createElement( 'input' );
+			var label = document.createElement( 'label' );
+
+			item.className = 'sentinel-forms-choice';
+
+			input.setAttribute( 'type', 'checkbox' === type ? 'checkbox' : 'radio' );
+			input.setAttribute( 'name', name );
+			input.setAttribute( 'id', baseId + '-' + index );
+			input.setAttribute( 'value', choice.value );
+			input.setAttribute( 'form', 'sentinel-forms-preview' );
+
+			if ( checked.indexOf( choice.value ) !== -1 ) {
+				input.checked = true;
+			}
+
+			label.setAttribute( 'for', baseId + '-' + index );
+			label.textContent = choice.label;
+
+			item.appendChild( input );
+			item.appendChild( label );
+			group.appendChild( item );
+		} );
+	}
+
+	/**
+	 * Mirror editor changes into the sample rendering at the bottom of the
+	 * panel: label, required, placeholder, help text, default value and
+	 * choices update while they are typed, following the same markup the
+	 * front-end field renderers produce.
+	 *
+	 * @param {Element} editor Field editor panel.
+	 */
+	function syncSample( editor ) {
+		var sample = editor.querySelector( '.sf-field-editor__sample' );
+		var wrapper = sample ? sample.querySelector( '.sentinel-forms-field' ) : null;
+		var baseId = editor.getAttribute( 'data-control-id' );
+		var type = editor.getAttribute( 'data-type' );
+		var labelInput = editor.querySelector( '[name$="[label]"]' );
+		var placeholderInput = editor.querySelector( '[name$="[placeholder]"]' );
+		var helpInput = editor.querySelector( '[name$="[help_text]"]' );
+		var defaultInput = editor.querySelector( '[name$="[default_value]"]' );
+		var requiredInput = editor.querySelector( 'input[type="checkbox"][name$="[required]"]' );
+		var choicesInput = editor.querySelector( 'textarea[name$="[choices]"]' );
+		var required = !! ( requiredInput && requiredInput.checked );
+		var fieldset, control, label, marker, help, anchor;
+
+		if ( ! sample || ! wrapper || ! baseId ) {
+			return;
+		}
+
+		fieldset = wrapper.querySelector( 'fieldset' );
+		control = document.getElementById( baseId );
+		label = null;
+
+		wrapper.querySelectorAll( 'label' ).forEach( function ( candidate ) {
+			if ( ! label && candidate.getAttribute( 'for' ) === baseId ) {
+				label = candidate;
+			}
+		} );
+
+		// Label text plus, outside consent fields, the required asterisk.
+		if ( labelInput ) {
+			if ( 'consent' === type ) {
+				if ( label ) {
+					label.textContent = labelInput.value;
+				}
+			} else if ( '' === labelInput.value ) {
+				if ( label && label.parentNode === wrapper ) {
+					label.remove();
+					label = null;
+				}
+			} else {
+				if ( ! label ) {
+					label = document.createElement( 'label' );
+					label.setAttribute( 'for', baseId );
+					wrapper.insertBefore( label, wrapper.firstChild );
+				}
+
+				label.textContent = labelInput.value;
+
+				if ( required ) {
+					marker = document.createElement( 'span' );
+					marker.className = 'sentinel-forms-required';
+					marker.textContent = '*';
+					label.appendChild( document.createTextNode( ' ' ) );
+					label.appendChild( marker );
+				}
+			}
+		}
+
+		// Required state on the control itself (fieldset for choice groups).
+		if ( fieldset ) {
+			if ( required ) {
+				fieldset.setAttribute( 'aria-required', 'true' );
+			} else {
+				fieldset.removeAttribute( 'aria-required' );
+			}
+		}
+
+		if ( control ) {
+			if ( required ) {
+				control.setAttribute( 'required', 'required' );
+			} else {
+				control.removeAttribute( 'required' );
+			}
+		}
+
+		// Placeholder and default value on the text-like controls.
+		if ( placeholderInput || defaultInput ) {
+			wrapper.querySelectorAll( 'input, textarea' ).forEach( function ( element ) {
+				var tag = element.tagName.toLowerCase();
+				var controlType = ( element.getAttribute( 'type' ) || '' ).toLowerCase();
+				var isTextLike = 'textarea' === tag || [ 'text', 'email', 'tel', 'url', 'number', 'search', 'date' ].indexOf( controlType ) !== -1;
+
+				if ( ! isTextLike ) {
+					return;
+				}
+
+				if ( placeholderInput && 'date' !== controlType ) {
+					if ( '' === placeholderInput.value ) {
+						element.removeAttribute( 'placeholder' );
+					} else {
+						element.setAttribute( 'placeholder', placeholderInput.value );
+					}
+				}
+
+				if ( defaultInput ) {
+					if ( 'textarea' === tag ) {
+						element.textContent = defaultInput.value;
+					} else {
+						element.setAttribute( 'value', defaultInput.value );
+						element.value = defaultInput.value;
+					}
+				}
+			} );
+		}
+
+		// Help text paragraph (id "{control-id}-help") and its aria wiring.
+		if ( helpInput ) {
+			help = document.getElementById( baseId + '-help' );
+
+			if ( '' === helpInput.value ) {
+				if ( help ) {
+					help.remove();
+					help = null;
+				}
+			} else {
+				if ( ! help ) {
+					help = document.createElement( 'p' );
+					help.className = 'sentinel-forms-help';
+					help.id = baseId + '-help';
+
+					anchor = fieldset || control;
+
+					if ( anchor && anchor.parentNode ) {
+						anchor.insertAdjacentElement( 'afterend', help );
+					} else {
+						wrapper.appendChild( help );
+					}
+				}
+
+				help.textContent = helpInput.value;
+			}
+
+			wrapper.querySelectorAll( 'input, select, textarea' ).forEach( function ( element ) {
+				if ( '' === helpInput.value ) {
+					element.removeAttribute( 'aria-describedby' );
+				} else {
+					element.setAttribute( 'aria-describedby', baseId + '-help' );
+				}
+			} );
+		}
+
+		if ( choicesInput ) {
+			rebuildSampleChoices( wrapper, baseId, type, editor.getAttribute( 'data-for' ), parseChoiceLines( choicesInput.value ) );
+		}
+
+		// The preview must never join the save form, or browser validation
+		// (required) blocks the whole submission.
+		sample.querySelectorAll( 'input, select, textarea' ).forEach( function ( element ) {
+			element.setAttribute( 'form', 'sentinel-forms-preview' );
+		} );
+	}
+
+	/**
 	 * Remove one field: its list item and its editor panel.
 	 *
 	 * @param {Element} item List item to remove.
@@ -267,11 +536,39 @@
 		} );
 
 		// The list item shows the field name: keep it in sync with the label.
+		// Every editor input also refreshes the live sample preview.
 		fieldEditors.addEventListener( 'input', function ( event ) {
 			var input = event.target;
 			var editor, item, name;
 
-			if ( ! input.name || input.name.indexOf( '[label]' ) === -1 ) {
+			if ( ! input.name ) {
+				return;
+			}
+
+			editor = input.closest( '.sf-field-editor' );
+
+			if ( ! editor ) {
+				return;
+			}
+
+			if ( input.name.indexOf( '[label]' ) !== -1 ) {
+				item = fieldList.querySelector( '[data-for="' + editor.getAttribute( 'data-for' ) + '"]' );
+				name = item ? item.querySelector( '.sf-field-item__name' ) : null;
+
+				if ( name ) {
+					name.textContent = input.value.trim() || fieldStrings.untitled || 'Untitled field';
+				}
+			}
+
+			syncSample( editor );
+		} );
+
+		// Required: asterisk next to the list name and in the sample label.
+		fieldEditors.addEventListener( 'change', function ( event ) {
+			var input = event.target;
+			var editor, item, marker;
+
+			if ( ! input.name || input.name.indexOf( '[required]' ) === -1 ) {
 				return;
 			}
 
@@ -282,16 +579,13 @@
 			}
 
 			item = fieldList.querySelector( '[data-for="' + editor.getAttribute( 'data-for' ) + '"]' );
+			marker = item ? item.querySelector( '.sf-field-item__required' ) : null;
 
-			if ( ! item ) {
-				return;
+			if ( marker ) {
+				marker.hidden = ! input.checked;
 			}
 
-			name = item.querySelector( '.sf-field-item__name' );
-
-			if ( name ) {
-				name.textContent = input.value.trim() || fieldStrings.untitled || 'Untitled field';
-			}
+			syncSample( editor );
 		} );
 
 		// Select the first field (or show the empty state) on load.
