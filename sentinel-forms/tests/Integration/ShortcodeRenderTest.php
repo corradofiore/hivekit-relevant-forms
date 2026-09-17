@@ -66,6 +66,7 @@ final class ShortcodeRenderTest extends TestCase {
 						'type'       => 'textarea',
 						'label'      => 'Message',
 						'max_length' => 250,
+						'help_text'  => 'Keep it short',
 					],
 				]
 			),
@@ -79,6 +80,12 @@ final class ShortcodeRenderTest extends TestCase {
 			$html
 		);
 		$this->assertTrue( wp_script_is( 'sentinel-forms-counter', 'enqueued' ) );
+
+		// Help text follows the counter, like in the editor preview.
+		$this->assertStringContainsString(
+			'0/250</p><p class="sentinel-forms-help" id="sentinel-field-' . $limited . '-f_msg-help">Keep it short</p>',
+			$html
+		);
 
 		// Without a limit there is no total: hidden counter, no script.
 		wp_dequeue_script( 'sentinel-forms-counter' );

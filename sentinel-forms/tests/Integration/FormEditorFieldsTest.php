@@ -358,6 +358,7 @@ final class FormEditorFieldsTest extends TestCase {
 					'type'       => 'textarea',
 					'label'      => 'Message',
 					'max_length' => 300,
+					'help_text'  => 'Keep it short',
 				],
 			]
 		);
@@ -369,6 +370,12 @@ final class FormEditorFieldsTest extends TestCase {
 		// shows the field's own limit.
 		$this->assertStringContainsString(
 			'<p class="sentinel-forms-char-count" data-sf-count-for="sentinel-field-' . $formId . '-f_msg">0/300</p>',
+			$html
+		);
+
+		// Help text follows the counter (matching the front-end order).
+		$this->assertStringContainsString(
+			'0/300</p><p class="sentinel-forms-help" id="sentinel-field-' . $formId . '-f_msg-help">Keep it short</p>',
 			$html
 		);
 

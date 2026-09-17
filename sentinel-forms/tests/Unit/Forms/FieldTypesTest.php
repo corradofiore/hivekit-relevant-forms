@@ -253,6 +253,14 @@ it(
 		expect( $textarea->render( $definition, 'Hi', null, '7' ) )
 			->toContain( '<p class="sentinel-forms-char-count" data-sf-count-for="sentinel-field-7-f_msg" hidden>2</p>' );
 
+		// Help text sits below the counter (control, counter, help): the
+		// editor preview mirrors this order when a help text is typed.
+		$definition['max_length'] = 500;
+		$definition['help_text']  = 'Keep it short';
+
+		expect( $textarea->render( $definition, 'Hi', null, '7' ) )
+			->toContain( '>2/500</p><p class="sentinel-forms-help" id="sentinel-field-7-f_msg-help">Keep it short</p>' );
+
 		// Single-line text fields never carry a counter.
 		$text   = FieldTypeRegistry::get( 'text' );
 		$single = [

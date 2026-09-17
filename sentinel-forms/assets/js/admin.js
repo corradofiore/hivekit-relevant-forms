@@ -403,7 +403,11 @@
 					help.className = 'sentinel-forms-help';
 					help.id = baseId + '-help';
 
-					anchor = fieldset || control;
+					// Paragraph fields end with their character counter: the
+					// help text goes below it, like the server rendering.
+					anchor = wrapper.querySelector( '.sentinel-forms-char-count[data-sf-count-for="' + baseId + '"]' )
+						|| fieldset
+						|| control;
 
 					if ( anchor && anchor.parentNode ) {
 						anchor.insertAdjacentElement( 'afterend', help );
