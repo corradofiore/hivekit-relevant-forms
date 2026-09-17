@@ -74,7 +74,14 @@
 .sf-field-item {
 	border-bottom: 1px solid #dcdcde;
 	cursor: grab;
+	display: flex;
+	gap: 0.5em;
 	padding: 0.5rem 0.75rem;
+}
+
+.sf-field-item__content {
+	flex: 1 1 auto;
+	min-width: 0;
 }
 
 .sf-field-item__main {
@@ -116,15 +123,19 @@
 	opacity: 0.5;
 }
 
+/* Stretches with the content column, so it spans the name and actions rows. */
 .sf-field-item__handle {
+	align-self: stretch;
 	background-image: radial-gradient(circle, #787c82 1px, transparent 1.5px);
 	background-size: 6px 6px;
 	flex: 0 0 auto;
-	height: 12px;
 	width: 12px;
 }
 
 .sf-field-item__name {
+	flex: 0 1 auto;
+	min-width: 0;
+	overflow-wrap: anywhere;
 }
 
 .sf-field-item__required {
@@ -136,6 +147,7 @@
 	color: #646970;
 	flex: 0 0 auto;
 	font-size: 12px;
+	margin-left: auto;
 }
 
 .sf-field-item .sf-remove {

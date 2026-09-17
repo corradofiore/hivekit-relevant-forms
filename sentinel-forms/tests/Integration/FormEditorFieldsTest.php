@@ -266,6 +266,14 @@ final class FormEditorFieldsTest extends TestCase {
 		$this->assertSame( 2, substr_count( $list, 'sf-field-item__actions' ) );
 		$this->assertSame( 2, substr_count( $list, 'class="button-link sf-duplicate">Duplicate</button>' ) );
 		$this->assertSame( 2, substr_count( $list, 'class="button-link sf-remove">Delete</button>' ) );
+
+		// The handle is a sibling of the content column (it spans both rows),
+		// and the actions live in that column next to the field name.
+		$this->assertMatchesRegularExpression(
+			'/sf-field-item__handle"[^>]*><\/span>\s*<div class="sf-field-item__content">/',
+			$list
+		);
+		$this->assertSame( 2, substr_count( $list, 'class="sf-field-item__content"' ) );
 	}
 
 	/**
