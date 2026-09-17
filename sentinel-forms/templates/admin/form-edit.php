@@ -249,20 +249,20 @@ if ( ! defined( 'ABSPATH' ) ) {
 					}
 					?>
 				</div>
-			</div>
-		</div>
 
-		<h2 id="sf-fields-preview-title"<?php echo [] === $builder_fields ? ' hidden' : ''; ?>><?php esc_html_e( 'Preview', 'sentinel-forms' ); ?></h2>
-		<div id="sf-fields-preview" class="sf-fields-preview"<?php echo [] === $builder_fields ? ' hidden' : ''; ?>>
-			<?php
-			foreach ( $builder_fields as $definition ) {
-				$field_type = SentinelForms\Forms\Fields\FieldTypeRegistry::get( (string) $definition['type'] );
-				if ( null === $field_type ) {
-					continue;
-				}
-				require SENTINEL_FORMS_PATH . 'templates/admin/field-preview.php';
-			}
-			?>
+				<h2 id="sf-fields-preview-title"<?php echo [] === $builder_fields ? ' hidden' : ''; ?>><?php esc_html_e( 'Preview', 'sentinel-forms' ); ?></h2>
+				<div id="sf-fields-preview" class="sf-fields-preview"<?php echo [] === $builder_fields ? ' hidden' : ''; ?>>
+					<?php
+					foreach ( $builder_fields as $definition ) {
+						$field_type = SentinelForms\Forms\Fields\FieldTypeRegistry::get( (string) $definition['type'] );
+						if ( null === $field_type ) {
+							continue;
+						}
+						require SENTINEL_FORMS_PATH . 'templates/admin/field-preview.php';
+					}
+					?>
+				</div>
+			</div>
 		</div>
 		</div><!-- #sf-panel-fields -->
 

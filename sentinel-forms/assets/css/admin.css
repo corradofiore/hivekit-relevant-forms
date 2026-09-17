@@ -183,15 +183,15 @@
 }
 
 /*
- * Form editor: preview panel below the fields editor. Same yellow as the AI
- * callout; only the selected field's preview block is shown (JS).
+ * Form editor: preview panel under the field editor, in the same column.
+ * Same yellow as the AI callout; only the selected field's preview block is
+ * shown (JS).
  */
 
 .sf-fields-preview {
 	background: #fff6ab;
 	border: 1px solid #eede85;
 	border-radius: 4px;
-	margin-top: 0.5em;
 	padding: 1em 1.25em;
 }
 

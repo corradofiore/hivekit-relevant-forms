@@ -121,9 +121,14 @@ final class FormEditorFieldsTest extends TestCase {
 		$this->assertStringContainsString( '<p class="sf-field-editor__type">Single-line text</p>', $html );
 		$this->assertStringContainsString( '<p class="sf-field-editor__type">Email</p>', $html );
 
-		// The preview is a separate panel with a header like the Fields one.
+		// The preview is a separate panel with a header like the Fields one,
+		// kept in the right column under the field editor.
 		$this->assertStringContainsString( '<h2 id="sf-fields-preview-title">Preview</h2>', $html );
 		$this->assertStringContainsString( '<div id="sf-fields-preview" class="sf-fields-preview">', $html );
+		$this->assertMatchesRegularExpression(
+			'/sf-fields-column--editor.*?id="sf-fields-editors".*?id="sf-fields-preview-title".*?<div id="sf-fields-preview"/s',
+			$html
+		);
 		$this->assertStringContainsString( 'class="sf-field-preview" data-for="f_name"', $html );
 		$this->assertStringContainsString( 'class="sf-field-preview" data-for="f_email"', $html );
 
