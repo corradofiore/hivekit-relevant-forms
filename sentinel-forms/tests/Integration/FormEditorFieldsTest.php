@@ -107,10 +107,10 @@ final class FormEditorFieldsTest extends TestCase {
 	}
 
 	/**
-	 * Each panel prepends the field type as plain text and ends with a sample
-	 * rendering produced by the same renderer as the front end.
+	 * Each panel prepends the field type as plain text; the preview lives in
+	 * its own panel below the editor, under a "Preview" header.
 	 */
-	public function testTheEditorPanelShowsTheTypeAndASample(): void {
+	public function testTheEditorPanelShowsTheTypeAndThePreviewIsSplitOut(): void {
 		wp_set_current_user( self::factory()->user->create( [ 'role' => 'administrator' ] ) );
 
 		$formId = $this->makeForm();
@@ -121,9 +121,17 @@ final class FormEditorFieldsTest extends TestCase {
 		$this->assertStringContainsString( '<p class="sf-field-editor__type">Single-line text</p>', $html );
 		$this->assertStringContainsString( '<p class="sf-field-editor__type">Email</p>', $html );
 
-		// Sample rendering at the bottom of the panel.
-		$this->assertStringContainsString( 'sf-field-editor__sample', $html );
-		$this->assertStringContainsString( '>Sample</p>', $html );
+		// The preview is a separate panel with a header like the Fields one.
+		$this->assertStringContainsString( '<h2 id="sf-fields-preview-title">Preview</h2>', $html );
+		$this->assertStringContainsString( '<div id="sf-fields-preview" class="sf-fields-preview">', $html );
+		$this->assertStringContainsString( 'class="sf-field-preview" data-for="f_name"', $html );
+		$this->assertStringContainsString( 'class="sf-field-preview" data-for="f_email"', $html );
+
+		// The old in-panel sample block and its title are gone.
+		$this->assertStringNotContainsString( 'sf-field-editor__sample', $html );
+		$this->assertStringNotContainsString( '>Sample</p>', $html );
+
+		// Preview rendering uses the front-end renderer.
 		$this->assertStringContainsString( 'sentinel-forms-field sentinel-forms-field--text', $html );
 		$this->assertStringContainsString( 'sentinel-forms-field sentinel-forms-field--email', $html );
 		$this->assertStringContainsString( 'id="sentinel-field-' . $formId . '-f_name"', $html );
@@ -282,8 +290,10 @@ final class FormEditorFieldsTest extends TestCase {
 
 		$html = $this->renderEditor( $formId );
 
+		// Each type ships an item, an editor AND a preview fragment, so the
+		// JS can add a field to all three containers.
 		$this->assertMatchesRegularExpression(
-			'/<template id="sf-field-template-text">.*?class="sf-field-item".*?class="sf-field-editor".*?<\/template>/s',
+			'/<template id="sf-field-template-text">.*?class="sf-field-item".*?class="sf-field-editor".*?class="sf-field-preview".*?<\/template>/s',
 			$html
 		);
 	}

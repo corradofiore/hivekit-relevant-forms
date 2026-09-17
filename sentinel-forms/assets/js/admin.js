@@ -20,6 +20,7 @@
 	 */
 	var fieldList = document.getElementById( 'sf-fields-list' );
 	var fieldEditors = document.getElementById( 'sf-fields-editors' );
+	var fieldPreviews = document.getElementById( 'sf-fields-preview' );
 	var fieldsEmpty = document.getElementById( 'sf-fields-empty' );
 	var draggedItem = null;
 	var fieldStrings = window.sentinelFormsAdmin && window.sentinelFormsAdmin.fieldStrings
@@ -43,6 +44,12 @@
 			editor.hidden = editor.getAttribute( 'data-for' ) !== id;
 		} );
 
+		if ( fieldPreviews ) {
+			fieldPreviews.querySelectorAll( '.sf-field-preview' ).forEach( function ( preview ) {
+				preview.hidden = preview.getAttribute( 'data-for' ) !== id;
+			} );
+		}
+
 		if ( fieldsEmpty ) {
 			fieldsEmpty.hidden = id !== '';
 		}
@@ -64,6 +71,32 @@
 		}
 
 		fieldEditors.insertBefore( editor, after ? targetEditor.nextSibling : targetEditor );
+
+		if ( fieldPreviews ) {
+			var preview = fieldPreviews.querySelector( '.sf-field-preview[data-for="' + item.getAttribute( 'data-for' ) + '"]' );
+			var targetPreview = fieldPreviews.querySelector( '.sf-field-preview[data-for="' + target.getAttribute( 'data-for' ) + '"]' );
+
+			if ( preview && targetPreview ) {
+				fieldPreviews.insertBefore( preview, after ? targetPreview.nextSibling : targetPreview );
+			}
+		}
+	}
+
+	/**
+	 * Show or hide the whole preview section (an empty form has none).
+	 *
+	 * @param {boolean} visible Whether the section should be visible.
+	 */
+	function togglePreviewPanel( visible ) {
+		var title = document.getElementById( 'sf-fields-preview-title' );
+
+		if ( fieldPreviews ) {
+			fieldPreviews.hidden = ! visible;
+		}
+
+		if ( title ) {
+			title.hidden = ! visible;
+		}
 	}
 
 	/**
@@ -176,16 +209,16 @@
 	}
 
 	/**
-	 * Mirror editor changes into the sample rendering at the bottom of the
-	 * panel: label, required, placeholder, help text, default value and
-	 * choices update while they are typed, following the same markup the
+	 * Mirror editor changes into the field preview (Preview panel below the
+	 * fields editor): label, required, placeholder, help text, default value
+	 * and choices update while they are typed, following the same markup the
 	 * front-end field renderers produce.
 	 *
 	 * @param {Element} editor Field editor panel.
 	 */
 	function syncSample( editor ) {
-		var sample = editor.querySelector( '.sf-field-editor__sample' );
-		var wrapper = sample ? sample.querySelector( '.sentinel-forms-field' ) : null;
+		var preview = fieldPreviews ? fieldPreviews.querySelector( '.sf-field-preview[data-for="' + editor.getAttribute( 'data-for' ) + '"]' ) : null;
+		var wrapper = preview ? preview.querySelector( '.sentinel-forms-field' ) : null;
 		var baseId = editor.getAttribute( 'data-control-id' );
 		var type = editor.getAttribute( 'data-type' );
 		var labelInput = editor.querySelector( '[name$="[label]"]' );
@@ -197,7 +230,7 @@
 		var required = !! ( requiredInput && requiredInput.checked );
 		var fieldset, control, label, marker, help, anchor;
 
-		if ( ! sample || ! wrapper || ! baseId ) {
+		if ( ! preview || ! wrapper || ! baseId ) {
 			return;
 		}
 
@@ -330,7 +363,7 @@
 
 		// The preview must never join the save form, or browser validation
 		// (required) blocks the whole submission.
-		sample.querySelectorAll( 'input, select, textarea' ).forEach( function ( element ) {
+		preview.querySelectorAll( 'input, select, textarea' ).forEach( function ( element ) {
 			element.setAttribute( 'form', 'sentinel-forms-preview' );
 		} );
 	}
@@ -349,6 +382,16 @@
 
 		if ( editor ) {
 			editor.remove();
+		}
+
+		if ( fieldPreviews ) {
+			var preview = fieldPreviews.querySelector( '.sf-field-preview[data-for="' + id + '"]' );
+
+			if ( preview ) {
+				preview.remove();
+			}
+
+			togglePreviewPanel( null !== fieldPreviews.querySelector( '.sf-field-preview' ) );
 		}
 
 		if ( wasActive ) {
@@ -388,7 +431,7 @@
 		var id = item.getAttribute( 'data-for' );
 		var editor = fieldEditors.querySelector( '[data-for="' + id + '"]' );
 		var newId = generateId();
-		var newItem, newEditor;
+		var newItem, newEditor, preview, newPreview;
 
 		if ( ! editor ) {
 			return;
@@ -403,6 +446,14 @@
 		item.parentNode.insertBefore( newItem, item.nextSibling );
 		editor.parentNode.insertBefore( newEditor, editor.nextSibling );
 
+		preview = fieldPreviews ? fieldPreviews.querySelector( '.sf-field-preview[data-for="' + id + '"]' ) : null;
+
+		if ( preview ) {
+			newPreview = preview.cloneNode( true );
+			reidentify( newPreview, id, newId );
+			preview.parentNode.insertBefore( newPreview, preview.nextSibling );
+		}
+
 		selectField( newId );
 		newItem.scrollIntoView( { behavior: 'smooth', block: 'nearest' } );
 	}
@@ -414,7 +465,7 @@
 	 */
 	function addField( type ) {
 		var template = document.getElementById( 'sf-field-template-' + type );
-		var id, wrapper, item, editor, labelInput;
+		var id, wrapper, item, editor, preview, labelInput;
 
 		if ( ! template || ! fieldList || ! fieldEditors ) {
 			return;
@@ -433,6 +484,15 @@
 
 		fieldList.appendChild( item );
 		fieldEditors.appendChild( editor );
+
+		if ( fieldPreviews ) {
+			preview = wrapper.querySelector( '.sf-field-preview' );
+
+			if ( preview ) {
+				fieldPreviews.appendChild( preview );
+				togglePreviewPanel( true );
+			}
+		}
 
 		selectField( id );
 		item.scrollIntoView( { behavior: 'smooth', block: 'nearest' } );

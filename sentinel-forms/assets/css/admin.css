@@ -182,23 +182,20 @@
 	padding: 0.5rem 1rem;
 }
 
-.sf-field-editor__sample {
+/*
+ * Form editor: preview panel below the fields editor. Same yellow as the AI
+ * callout; only the selected field's preview block is shown (JS).
+ */
+
+.sf-fields-preview {
 	background: #fff6ab;
-	border-top: 1px solid #eede85;
-	margin: 1rem -1rem -0.75rem;
-	padding: 0.75rem 1rem;
+	border: 1px solid #eede85;
+	border-radius: 4px;
+	margin-top: 0.5em;
+	padding: 1em 1.25em;
 }
 
-.sf-field-editor__sample-title {
-	color: #646970;
-	font-size: 11px;
-	font-weight: 600;
-	letter-spacing: 0.04em;
-	margin: 0 0 0.5rem;
-	text-transform: uppercase;
-}
-
-.sf-field-editor__sample .description {
+.sf-field-preview .description {
 	margin: 0;
 }
 
