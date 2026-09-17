@@ -25,13 +25,14 @@ Core does not require Sentinel Cloud to render or accept ordinary forms.
 Core functionality includes:
 
 * Common form fields (text, textarea, email, telephone, number, URL, select, radio, checkbox, consent, hidden, date, file)
+* Conditional field visibility: show or hide fields based on earlier answers, with rule groups (AND within a group, OR across groups)
 * Entry storage in your own WordPress database
 * Entries inbox with statuses and spam/suspicious triage
 * Email notifications
 * Shortcode and template function embedding: `[sentinel_form id="123"]` and `sentinel_forms_render( 123 )`
 * Local anti-abuse controls: honeypot, timing checks, rate limiting, duplicate detection and spam signals
 * Local secure-upload fallback: files are stored privately with strict validation and a scan-before-download policy
-* WPForms compatibility scanner and importer for supported field types (drafts only; your WPForms data is never modified)
+* WPForms compatibility scanner and importer for supported field types and conditional logic (drafts only; your WPForms data is never modified)
 
 = Optional Sentinel Cloud – forms that understand the message =
 
@@ -137,10 +138,10 @@ Sentinel Forms is an independent product and is not affiliated with or endorsed 
 
 = 1.0.0 =
 * Initial release.
-* Forms: builder with the common field set, schema versioning, entries inbox, email notifications.
+* Forms: builder with the common field set, conditional field visibility (show/hide rules with AND/OR groups), schema versioning, entries inbox, email notifications.
 * Security: honeypot, timing checks, rate limiting, duplicate detection, spam signals, local spam triage.
 * Uploads: local private quarantine with strict validation and a scan-before-download policy.
-* Migration: WPForms compatibility scanner and draft importer, plus a Tier 1 hook compatibility layer that runs only while WPForms itself is not active.
+* Migration: WPForms compatibility scanner and draft importer (field types, notifications, confirmations and conditional logic converted to visibility rules), plus a Tier 1 hook compatibility layer that runs only while WPForms itself is not active.
 * Optional Sentinel Cloud: explicit consent connection flow, semantic classification with redaction, priority SMS alerts, managed secure uploads, usage metering and per-site subscriptions with hosted checkout.
 * Privacy: no external calls before explicit configuration; the plugin is fully functional without Sentinel Cloud.
 
