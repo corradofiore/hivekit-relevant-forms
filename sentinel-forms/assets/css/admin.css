@@ -157,6 +157,20 @@
 	padding: 0.75rem 1rem;
 }
 
+/*
+ * The editor rows use the same nested two-column form-table layout as the
+ * form settings panels: right-aligned headers (desktop) over a 34% column,
+ * fields in the wider 66% column. Core stacks the table on small screens.
+ */
+
+.sf-field-editor__body .form-table {
+	margin-top: 0;
+}
+
+.sf-field-editor__body .form-table th {
+	width: 34%;
+}
+
 .sf-field-editor__body p {
 	margin: 0.5rem 0;
 }

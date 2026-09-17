@@ -85,6 +85,28 @@ final class FormEditorFieldsTest extends TestCase {
 	}
 
 	/**
+	 * The editor panel rows use the same nested form-table layout as the
+	 * settings panels: headers in the left column, fields in the right.
+	 */
+	public function testTheEditorRowsUseTheSettingsTwoColumnLayout(): void {
+		wp_set_current_user( self::factory()->user->create( [ 'role' => 'administrator' ] ) );
+
+		$formId = $this->makeForm();
+
+		$html = $this->renderEditor( $formId );
+
+		// Nested two-column table inside the editor panel, like the settings.
+		$this->assertStringContainsString( '<table class="form-table" role="presentation">', $html );
+		$this->assertStringContainsString( '<th scope="row"><label for="sf-field-f_name-label">Label</label></th>', $html );
+		$this->assertStringContainsString( 'id="sf-field-f_name-label" name="sentinel_fields[f_name][label]"', $html );
+		$this->assertStringContainsString( '<th scope="row"><label for="sf-field-f_name-required">Required</label></th>', $html );
+		$this->assertStringContainsString( 'id="sf-field-f_name-required" name="sentinel_fields[f_name][required]"', $html );
+		$this->assertStringContainsString( '<th scope="row"><label for="sf-field-f_name-placeholder">Placeholder</label></th>', $html );
+		$this->assertStringContainsString( '<th scope="row"><label for="sf-field-f_name-help-text">Help text</label></th>', $html );
+		$this->assertStringContainsString( '<th scope="row"><label for="sf-field-f_email-default">Default value</label></th>', $html );
+	}
+
+	/**
 	 * Each panel prepends the field type as plain text and ends with a sample
 	 * rendering produced by the same renderer as the front end.
 	 */
