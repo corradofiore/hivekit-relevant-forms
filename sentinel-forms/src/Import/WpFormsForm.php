@@ -87,6 +87,10 @@ final class WpFormsForm {
 	/**
 	 * Fields mapped to the Sentinel schema.
 	 *
+	 * Conditional logic is converted in a second pass, after every field has
+	 * been mapped: rules reference other fields, so the conversion needs the
+	 * full imported set (and the raw choices for choice-source rules).
+	 *
 	 * @return array<int, array{definition: array<string, mixed>, notes: array<int, string>}>
 	 */
 	public function mappedFields(): array {
@@ -100,7 +104,45 @@ final class WpFormsForm {
 			}
 		}
 
+		$rawById     = $this->rawFieldsById();
+		$definitions = [];
+
+		foreach ( $mapped as $entry ) {
+			$definitions[ (string) ( $entry['definition']['id'] ?? '' ) ] = $entry['definition'];
+		}
+
+		foreach ( $mapped as $index => $entry ) {
+			$id = (string) ( $entry['definition']['id'] ?? '' );
+
+			if ( '' === $id || ! isset( $rawById[ $id ] ) || ! is_array( $rawById[ $id ] ) ) {
+				continue;
+			}
+
+			$converted = WpFormsConditionals::convert( $rawById[ $id ], $rawById, $definitions );
+
+			if ( [] !== $converted['visibility'] ) {
+				$mapped[ $index ]['definition']['visibility'] = $converted['visibility'];
+			}
+
+			$mapped[ $index ]['notes'] = array_values( array_merge( $mapped[ $index ]['notes'], $converted['notes'] ) );
+		}
+
 		return $mapped;
+	}
+
+	/**
+	 * Raw form fields keyed by their field id.
+	 *
+	 * @return array<string, array<string, mixed>>
+	 */
+	private function rawFieldsById(): array {
+		$fields = [];
+
+		foreach ( $this->fields as $field ) {
+			$fields[ (string) ( $field['id'] ?? '' ) ] = $field;
+		}
+
+		return $fields;
 	}
 
 	/**
@@ -218,17 +260,10 @@ final class WpFormsForm {
 	 * @return array{status: string, issues: array<int, string>, uploads: bool, conditionals: bool, integrations: bool}
 	 */
 	public function analysis(): array {
-		$skipped      = $this->skippedFields();
-		$mapped       = $this->mappedFields();
-		$issues       = [];
-		$uploads      = false;
-		$conditionals = false;
-
-		foreach ( $this->fields as $field ) {
-			if ( ! empty( $field['conditionals'] ) ) {
-				$conditionals = true;
-			}
-		}
+		$skipped = $this->skippedFields();
+		$mapped  = $this->mappedFields();
+		$issues  = [];
+		$uploads = false;
 
 		foreach ( $mapped as $entry ) {
 			if ( 'file' === ( $entry['definition']['type'] ?? '' ) ) {
@@ -245,8 +280,11 @@ final class WpFormsForm {
 			);
 		}
 
-		if ( $conditionals ) {
-			$issues[] = __( 'Conditional logic is not imported.', 'sentinel-forms' );
+		$conditionalIssues = $this->conditionalIssues( $mapped );
+		$conditionals      = $conditionalIssues['has'];
+
+		if ( $conditionalIssues['unmapped'] ) {
+			$issues[] = __( 'Some conditional rules could not be imported and were dropped.', 'sentinel-forms' );
 		}
 
 		$integrations = $this->usesIntegrations();
@@ -259,7 +297,7 @@ final class WpFormsForm {
 
 		if ( $integrations ) {
 			$status = self::STATUS_UNSUPPORTED;
-		} elseif ( [] !== $skipped || $conditionals ) {
+		} elseif ( [] !== $skipped || $conditionalIssues['unmapped'] ) {
 			$status = self::STATUS_REVIEW;
 		}
 
@@ -274,6 +312,46 @@ final class WpFormsForm {
 			'uploads'      => $uploads,
 			'conditionals' => $conditionals,
 			'integrations' => $integrations,
+		];
+	}
+
+	/**
+	 * Conditional-conversion problems across the mapped fields.
+	 *
+	 * @param array<int, array{definition: array<string, mixed>, notes: array<int, string>}> $mapped Mapped fields.
+	 * @return array{has: bool, unmapped: bool}
+	 */
+	private function conditionalIssues( array $mapped ): array {
+		$rawById     = $this->rawFieldsById();
+		$definitions = [];
+
+		foreach ( $mapped as $entry ) {
+			$definitions[ (string) ( $entry['definition']['id'] ?? '' ) ] = $entry['definition'];
+		}
+
+		$has      = false;
+		$unmapped = false;
+
+		foreach ( $mapped as $entry ) {
+			$id  = (string) ( $entry['definition']['id'] ?? '' );
+			$raw = $rawById[ $id ] ?? null;
+
+			if ( ! is_array( $raw ) || empty( $raw['conditionals'] ) ) {
+				continue;
+			}
+
+			$has = true;
+
+			$converted = WpFormsConditionals::convert( $raw, $rawById, $definitions );
+
+			if ( [] !== $converted['notes'] ) {
+				$unmapped = true;
+			}
+		}
+
+		return [
+			'has'      => $has,
+			'unmapped' => $unmapped,
 		];
 	}
 

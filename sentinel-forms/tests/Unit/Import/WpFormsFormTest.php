@@ -213,10 +213,19 @@ it(
 						'label' => 'Files',
 					],
 					[
-						'id'           => '1',
-						'type'         => 'text',
-						'label'        => 'Extra',
-						'conditionals' => [ '1' => [ 'action' => 'show' ] ],
+						'id'               => '1',
+						'type'             => 'text',
+						'label'            => 'Extra',
+						'conditional_type' => 'show',
+						'conditionals'     => [
+							'1' => [
+								'1' => [
+									'field'    => '0',
+									'operator' => '!e',
+									'value'    => '',
+								],
+							],
+						],
 					],
 				],
 			]
@@ -226,6 +235,104 @@ it(
 
 		expect( $analysis['uploads'] )->toBeTrue();
 		expect( $analysis['conditionals'] )->toBeTrue();
+
+		// Conditional logic now converts, so it no longer forces a review.
+		expect( $analysis['status'] )->toBe( WpFormsForm::STATUS_COMPATIBLE );
+	}
+);
+
+it(
+	'flags conditional rules that cannot be imported',
+	function () {
+		$form = sf_wpforms_form(
+			[
+				'fields' => [
+					[
+						'id'    => '0',
+						'type'  => 'text',
+						'label' => 'Name',
+					],
+					[
+						'id'               => '1',
+						'type'             => 'text',
+						'label'            => 'Extra',
+						'conditional_type' => 'show',
+						'conditionals'     => [
+							'1' => [
+								'1' => [
+									'field'    => '99',
+									'operator' => '==',
+									'value'    => 'x',
+								],
+							],
+						],
+					],
+				],
+			]
+		);
+
+		$analysis = $form->analysis();
+
+		expect( $analysis['conditionals'] )->toBeTrue();
 		expect( $analysis['status'] )->toBe( WpFormsForm::STATUS_REVIEW );
+		expect( implode( ' ', $analysis['issues'] ) )->toContain( 'could not be imported' );
+	}
+);
+
+it(
+	'converts conditional logic into visibility rules on the mapped fields',
+	function () {
+		$form = sf_wpforms_form(
+			[
+				'fields' => [
+					[
+						'id'      => '1',
+						'type'    => 'select',
+						'label'   => 'Plan',
+						'choices' => [
+							'1' => [
+								'label' => 'Pro',
+								'value' => 'pro',
+							],
+							'2' => [ 'label' => 'Free' ],
+						],
+					],
+					[
+						'id'               => '2',
+						'type'             => 'text',
+						'label'            => 'Company',
+						'conditional_type' => 'show',
+						'conditionals'     => [
+							'1' => [
+								'1' => [
+									'field'    => '1',
+									'operator' => '==',
+									'value'    => '1',
+								],
+							],
+						],
+					],
+				],
+			]
+		);
+
+		$mapped = $form->mappedFields();
+
+		expect( $mapped[0]['definition'] )->not->toHaveKey( 'visibility' );
+		expect( $mapped[1]['definition']['visibility'] )->toBe(
+			[
+				'default' => 'hidden',
+				'groups'  => [
+					[
+						[
+							'field'    => '1',
+							'operator' => 'is',
+							'value'    => 'pro',
+						],
+					],
+				],
+			]
+		);
+		expect( $mapped[1]['notes'] )->toBe( [] );
 	}
 );

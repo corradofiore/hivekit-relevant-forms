@@ -98,10 +98,6 @@ final class WpFormsFieldMapper {
 			$notes[]                     = __( 'Uploads are converted to Sentinel secure storage: private quarantine directory, malware scan required before any download.', 'sentinel-forms' );
 		}
 
-		if ( ! empty( $field['conditionals'] ) ) {
-			$notes[] = __( 'Conditional logic is not imported; the field shows unconditionally.', 'sentinel-forms' );
-		}
-
 		return [
 			'definition' => $definition,
 			'notes'      => $notes,
@@ -128,21 +124,40 @@ final class WpFormsFieldMapper {
 				continue;
 			}
 
-			$label = trim( (string) ( $choice['label'] ?? '' ) );
+			$value = self::choiceValue( $choice );
 
-			if ( '' === $label ) {
+			if ( '' === $value ) {
 				continue;
 			}
 
-			$value = (string) ( $choice['value'] ?? $label );
-
 			$result[] = [
-				'label' => $label,
-				'value' => '' !== $value ? $value : $label,
+				'label' => trim( (string) ( $choice['label'] ?? '' ) ),
+				'value' => $value,
 			];
 		}
 
 		return $result;
+	}
+
+	/**
+	 * Normalize one raw choice to the value the rendered field submits.
+	 *
+	 * Returns an empty string when the choice has no usable label (those are
+	 * dropped). Shared with the conditional conversion, which must resolve
+	 * choice keys to the exact same submitted value.
+	 *
+	 * @param array<string, mixed> $choice Raw WPForms choice.
+	 */
+	public static function choiceValue( array $choice ): string {
+		$label = trim( (string) ( $choice['label'] ?? '' ) );
+
+		if ( '' === $label ) {
+			return '';
+		}
+
+		$value = (string) ( $choice['value'] ?? $label );
+
+		return '' !== $value ? $value : $label;
 	}
 
 	/**

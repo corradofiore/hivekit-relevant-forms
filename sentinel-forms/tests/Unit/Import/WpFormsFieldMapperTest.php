@@ -205,7 +205,7 @@ it(
 );
 
 it(
-	'notes conditional logic that will not be imported',
+	'leaves conditional logic to the form-level conversion',
 	function () {
 		$mapped = WpFormsFieldMapper::map(
 			[
@@ -217,6 +217,34 @@ it(
 			]
 		);
 
-		expect( implode( ' ', $mapped['notes'] ) )->toContain( 'Conditional logic' );
+		// Conditional logic is converted by WpFormsForm (it needs the full
+		// imported field set), so the per-field mapper adds no note.
+		expect( $mapped['notes'] )->toBe( [] );
+	}
+);
+
+it(
+	'normalizes a single choice to the value the rendered field submits',
+	function () {
+		expect(
+			WpFormsFieldMapper::choiceValue(
+				[
+					'label' => 'Pro',
+					'value' => 'pro',
+				]
+			)
+		)->toBe( 'pro' );
+		expect( WpFormsFieldMapper::choiceValue( [ 'label' => 'Free' ] ) )->toBe( 'Free' );
+		expect(
+			WpFormsFieldMapper::choiceValue(
+				[
+					'label' => 'Free',
+					'value' => '',
+				]
+			)
+		)->toBe( 'Free' );
+
+		// An unusable choice (no label) is dropped from the import.
+		expect( WpFormsFieldMapper::choiceValue( [ 'value' => 'orphan' ] ) )->toBe( '' );
 	}
 );

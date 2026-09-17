@@ -11,6 +11,7 @@ namespace SentinelForms\Tests\Integration;
 
 use SentinelForms\Admin\Controllers\ImportController;
 use SentinelForms\Forms\FormRepository;
+use SentinelForms\Import\WpFormsForm;
 use SentinelForms\Import\WpFormsImporter;
 use SentinelForms\Import\WpFormsScanner;
 use SentinelForms\Tests\Integration\Support\RedirectedException;
@@ -117,6 +118,82 @@ final class WpFormsImportTest extends TestCase {
 		$this->assertSame( 'failed', $row['status'] );
 		$this->assertSame( 0, $row['form_id'] );
 		$this->assertNotSame( '', $row['error'] );
+	}
+
+	/**
+	 * Conditional logic is converted into visibility rules and persisted.
+	 */
+	public function testImportConvertsConditionalLogic(): void {
+		$this->createWpFormsForm(
+			[
+				'fields'   => [
+					'1' => [
+						'id'      => '1',
+						'type'    => 'select',
+						'label'   => 'Plan',
+						'choices' => [
+							'1' => [
+								'label' => 'Pro',
+								'value' => 'pro',
+							],
+							'2' => [
+								'label' => 'Free',
+							],
+						],
+					],
+					'2' => [
+						'id'               => '2',
+						'type'             => 'text',
+						'label'            => 'Company name',
+						'conditional_type' => 'show',
+						'conditionals'     => [
+							'1' => [
+								'1' => [
+									'field'    => '1',
+									'operator' => '==',
+									'value'    => '1',
+								],
+							],
+						],
+					],
+				],
+				'settings' => [ 'form_title' => 'Conditional' ],
+			],
+			'Conditional'
+		);
+
+		$forms = ( new WpFormsScanner() )->forms();
+
+		$this->assertCount( 1, $forms );
+
+		// Cleanly convertible conditions no longer force a review.
+		$this->assertSame( WpFormsForm::STATUS_COMPATIBLE, $forms[0]->analysis()['status'] );
+
+		$row  = ( new WpFormsImporter() )->import( $forms[0] );
+		$form = ( new FormRepository() )->find( (int) $row['form_id'] );
+
+		$this->assertNotNull( $form );
+
+		$fields = $form->schema->fields();
+
+		$this->assertSame(
+			[
+				'default' => 'hidden',
+				'groups'  => [
+					[
+						[
+							'field'    => '1',
+							'operator' => 'is',
+							'value'    => 'pro',
+						],
+					],
+				],
+			],
+			$fields[1]['visibility']
+		);
+
+		$this->assertSame( [], $row['skipped'] );
+		$this->assertStringNotContainsString( 'could not be imported', implode( ' ', $row['notes'] ) );
 	}
 
 	/**

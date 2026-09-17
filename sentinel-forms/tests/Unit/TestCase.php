@@ -27,6 +27,9 @@ abstract class TestCase extends PhpUnitTestCase {
 		Monkey\Functions\when( '__' )->returnArg();
 		Monkey\Functions\when( 'esc_html__' )->returnArg();
 		Monkey\Functions\when( 'esc_attr__' )->returnArg();
+		Monkey\Functions\when( '_n' )->alias(
+			static fn ( string $single, string $plural, int $number ): string => 1 === $number ? $single : $plural
+		);
 		Monkey\Functions\when( 'wp_parse_url' )->alias( 'parse_url' );
 	}
 
