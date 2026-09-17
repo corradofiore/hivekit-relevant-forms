@@ -1,0 +1,18 @@
+includes:
+	- vendor/szepeviktor/phpstan-wordpress/extension.neon
+
+parameters:
+	level: 6
+	phpVersion: 80300
+	paths:
+		- relevant-forms.php
+		- src
+	excludePaths:
+		analyseAndScan:
+			- vendor
+			- tests
+			- templates
+	bootstrapFiles:
+		- vendor/php-stubs/wordpress-stubs/wordpress-stubs.php
+		- tests/phpstan-constants.php
+	treatPhpDocTypesAsCertain: false
