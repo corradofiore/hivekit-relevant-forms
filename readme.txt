@@ -1,6 +1,6 @@
 === Relevant Forms ===
 Contributors: corradofiore
-Tags: forms, contact form, spam protection, file upload, lead forms
+Tags: forms, contact form, spam protection, file upload, conditional logic
 Requires at least: 6.9
 Tested up to: 7.1
 Requires PHP: 8.3
