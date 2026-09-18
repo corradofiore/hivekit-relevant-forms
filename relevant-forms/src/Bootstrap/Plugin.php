@@ -16,6 +16,8 @@ use RelevantForms\Admin\Controllers\EntryStatusController;
 use RelevantForms\Admin\Controllers\FormActionController;
 use RelevantForms\Admin\Controllers\FormSaveController;
 use RelevantForms\Admin\Controllers\ImportController;
+use RelevantForms\Admin\Controllers\PaymentEntryController;
+use RelevantForms\Admin\Controllers\PaymentSettingsController;
 use RelevantForms\Admin\Controllers\RedirectTargetSearchController;
 use RelevantForms\Admin\Controllers\SmsVerificationController;
 use RelevantForms\Admin\Pages\SettingsPage;
@@ -60,6 +62,8 @@ final class Plugin {
 		RedirectTargetSearchController::register();
 		SmsVerificationController::register();
 		PaymentReturnHandler::register();
+		PaymentEntryController::register();
+		PaymentSettingsController::register();
 
 		// WPForms hook compatibility (Phase 7.5): active only when WPForms is absent.
 		CompatLayer::register();

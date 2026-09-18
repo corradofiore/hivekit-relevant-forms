@@ -268,6 +268,32 @@ final class CloudConnection {
 	}
 
 	/**
+	 * Payments (Stripe Connect) status reported by the server, if any.
+	 *
+	 * @return array<string, mixed>
+	 */
+	public function payments(): array {
+		$data = $this->get();
+
+		return is_array( $data['payments'] ?? null ) ? $data['payments'] : [];
+	}
+
+	/**
+	 * Store the payments status reported by the server.
+	 *
+	 * @param array<string, mixed> $payments Status payload.
+	 */
+	public function updatePayments( array $payments ): void {
+		$data = $this->get();
+
+		if ( self::STATE_DISCONNECTED === (string) ( $data['state'] ?? self::STATE_DISCONNECTED ) ) {
+			return;
+		}
+
+		$this->save( array_merge( $data, [ 'payments' => $payments ] ) );
+	}
+
+	/**
 	 * Cached usage data, if any.
 	 *
 	 * @return array<string, mixed>

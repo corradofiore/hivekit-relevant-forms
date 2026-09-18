@@ -39,6 +39,26 @@ if ( $isEditing ) {
 		</div>
 	<?php endif; ?>
 
+	<?php
+	$rf_has_payment_fields = \RelevantForms\Payments\PaymentTotals::hasPaymentFields( $form->schema->fields() );
+	$rf_payments_ready     = ( new \RelevantForms\Payments\CloudPaymentsGateway() )->isAvailable();
+	?>
+	<?php if ( $rf_has_payment_fields && ! $rf_payments_ready ) : ?>
+		<div class="notice notice-info inline">
+			<p>
+				<?php
+				echo wp_kses_post(
+					sprintf(
+						/* translators: %s: link to the payments settings. */
+						__( 'This form has payment fields. %s to start accepting payments — until then new submissions stay pending.', 'relevant-forms' ),
+						'<a href="' . esc_url( admin_url( 'admin.php?page=relevant-settings' ) ) . '">' . esc_html__( 'Connect a Stripe account in Settings', 'relevant-forms' ) . '</a>'
+					)
+				);
+				?>
+			</p>
+		</div>
+	<?php endif; ?>
+
 	<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
 		<input type="hidden" name="action" value="relevant_forms_save_form">
 		<input type="hidden" name="form_id" value="<?php echo esc_attr( (string) $form->id ); ?>">

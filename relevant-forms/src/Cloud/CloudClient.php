@@ -210,6 +210,59 @@ final class CloudClient {
 	}
 
 	/**
+	 * POST /v1/payments/connect — start the Stripe Connect OAuth flow.
+	 *
+	 * @return array<string, mixed>|null
+	 */
+	public function paymentsConnect(): ?array {
+		$response = wp_remote_post(
+			$this->baseUrl . '/api/v1/payments/connect',
+			[
+				'timeout' => 20,
+				'headers' => $this->headers(),
+				'body'    => wp_json_encode( [] ),
+			]
+		);
+
+		return $this->decode( $response, [ 200, 201 ] );
+	}
+
+	/**
+	 * GET /v1/payments/connect/status — connection state snapshot.
+	 *
+	 * @return array<string, mixed>|null
+	 */
+	public function paymentsStatus(): ?array {
+		$response = wp_remote_get(
+			$this->baseUrl . '/api/v1/payments/connect/status',
+			[
+				'timeout' => 15,
+				'headers' => $this->headers(),
+			]
+		);
+
+		return $this->decode( $response, [ 200 ] );
+	}
+
+	/**
+	 * POST /v1/payments/connect/disconnect — revoke the connection.
+	 *
+	 * @return array<string, mixed>|null
+	 */
+	public function paymentsDisconnect(): ?array {
+		$response = wp_remote_post(
+			$this->baseUrl . '/api/v1/payments/connect/disconnect',
+			[
+				'timeout' => 20,
+				'headers' => $this->headers(),
+				'body'    => wp_json_encode( [] ),
+			]
+		);
+
+		return $this->decode( $response, [ 200 ] );
+	}
+
+	/**
 	 * POST /v1/uploads/authorize — managed storage upload authorization.
 	 *
 	 * @param array<string, mixed> $payload Object key, filename, MIME, size.

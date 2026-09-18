@@ -279,6 +279,88 @@ if ( ! defined( 'ABSPATH' ) ) {
 	</form>
 
 	<?php
+	$paymentsStatus    = $connection->payments();
+	$paymentsConnected = ! empty( $paymentsStatus['connected'] );
+	$paymentsClientOk  = \RelevantForms\Cloud\CloudConfig::isConfigured() && \RelevantForms\Cloud\CloudConnection::STATE_DISCONNECTED !== $cloudState;
+	$feePercent        = (float) ( $paymentsStatus['fee_percent'] ?? 2.0 );
+	$feeLabel          = rtrim( rtrim( number_format( $feePercent, 2, '.', '' ), '0' ), '.' );
+	?>
+
+	<h2><?php esc_html_e( 'Payments (Stripe)', 'relevant-forms' ); ?></h2>
+	<p class="description">
+		<?php esc_html_e( 'Accept payments on your forms through your own Stripe account (Stripe Connect). Buyers pay you directly on Stripe\'s hosted checkout; Relevant Cloud applies the platform fee below to each charge. Card data never touches this site.', 'relevant-forms' ); ?>
+	</p>
+
+	<?php
+	// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only status marker set by our own redirect.
+	$paymentsNotice = isset( $_GET['payments'] ) ? sanitize_key( wp_unslash( $_GET['payments'] ) ) : '';
+	?>
+	<?php if ( 'connected' === $paymentsNotice ) : ?>
+		<div class="notice notice-success is-dismissible"><p><?php esc_html_e( 'Stripe account connected. Payments are ready on every form with payment fields.', 'relevant-forms' ); ?></p></div>
+	<?php elseif ( 'disconnected' === $paymentsNotice ) : ?>
+		<div class="notice notice-info is-dismissible"><p><?php esc_html_e( 'Stripe account disconnected. Existing entries keep their payment records.', 'relevant-forms' ); ?></p></div>
+	<?php elseif ( 'error' === $paymentsNotice ) : ?>
+		<div class="notice notice-error is-dismissible"><p><?php esc_html_e( 'The Stripe authorization was not completed. No changes were made.', 'relevant-forms' ); ?></p></div>
+	<?php elseif ( 'unavailable' === $paymentsNotice ) : ?>
+		<div class="notice notice-error is-dismissible"><p><?php esc_html_e( 'Payments are not available on this deployment yet. Check the Cloud connection and try again.', 'relevant-forms' ); ?></p></div>
+	<?php elseif ( 'not_connected' === $paymentsNotice ) : ?>
+		<div class="notice notice-error is-dismissible"><p><?php esc_html_e( 'Connect this site to Relevant Cloud first, then connect Stripe here.', 'relevant-forms' ); ?></p></div>
+	<?php endif; ?>
+
+	<table class="form-table" role="presentation">
+		<tr>
+			<th scope="row"><?php esc_html_e( 'Stripe account', 'relevant-forms' ); ?></th>
+			<td>
+				<?php if ( $paymentsConnected ) : ?>
+					<code><?php echo esc_html( (string) ( $paymentsStatus['stripe_user_id'] ?? '' ) ); ?></code>
+					&middot; <strong><?php echo ! empty( $paymentsStatus['livemode'] ) ? esc_html__( 'Live mode', 'relevant-forms' ) : esc_html__( 'Test mode', 'relevant-forms' ); ?></strong>
+					<?php if ( empty( $paymentsStatus['charges_enabled'] ) ) : ?>
+						<p class="description"><?php esc_html_e( 'Stripe reports charges as disabled for this account — finish the Stripe onboarding to accept payments.', 'relevant-forms' ); ?></p>
+					<?php endif; ?>
+				<?php else : ?>
+					<span><?php esc_html_e( 'No Stripe account connected.', 'relevant-forms' ); ?></span>
+				<?php endif; ?>
+				<p class="description">
+					<?php
+					printf(
+						/* translators: %s: platform fee percentage */
+						esc_html__( 'Platform fee: %s%% of each charge, collected automatically by Stripe. Payouts and refunds happen on your own Stripe account.', 'relevant-forms' ),
+						esc_html( $feeLabel )
+					);
+					?>
+				</p>
+			</td>
+		</tr>
+		<tr>
+			<th scope="row"><?php esc_html_e( 'Connection', 'relevant-forms' ); ?></th>
+			<td>
+				<?php if ( ! $paymentsClientOk ) : ?>
+					<p class="description"><?php esc_html_e( 'Connect this site to Relevant Cloud first (above), then connect Stripe here.', 'relevant-forms' ); ?></p>
+				<?php else : ?>
+					<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" style="display:inline-block;margin-right:8px;">
+						<input type="hidden" name="action" value="relevant_forms_payments_connect">
+						<?php wp_nonce_field( 'relevant_payments_connect' ); ?>
+						<button type="submit" class="button button-primary"><?php echo $paymentsConnected ? esc_html__( 'Reconnect Stripe', 'relevant-forms' ) : esc_html__( 'Connect Stripe', 'relevant-forms' ); ?></button>
+					</form>
+					<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" style="display:inline-block;margin-right:8px;">
+						<input type="hidden" name="action" value="relevant_forms_payments_refresh">
+						<?php wp_nonce_field( 'relevant_payments_refresh' ); ?>
+						<button type="submit" class="button"><?php esc_html_e( 'Refresh status', 'relevant-forms' ); ?></button>
+					</form>
+					<?php if ( $paymentsConnected ) : ?>
+						<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" style="display:inline-block;">
+							<input type="hidden" name="action" value="relevant_forms_payments_disconnect">
+							<?php wp_nonce_field( 'relevant_payments_disconnect' ); ?>
+							<button type="submit" class="button button-link-delete"><?php esc_html_e( 'Disconnect Stripe', 'relevant-forms' ); ?></button>
+						</form>
+					<?php endif; ?>
+					<p class="description"><?php esc_html_e( 'Connecting opens Stripe: you choose (or create) the account that receives the money. Access can be revoked here or from your Stripe dashboard at any time.', 'relevant-forms' ); ?></p>
+				<?php endif; ?>
+			</td>
+		</tr>
+	</table>
+
+	<?php
 	// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only status marker set by our own redirect.
 	$billingNotice = isset( $_GET['billing'] ) ? sanitize_key( wp_unslash( $_GET['billing'] ) ) : '';
 
