@@ -40,6 +40,22 @@
 	color: #8a6d3b;
 }
 
+.relevant-forms-status--paid {
+	background: #edfaef;
+	color: #1e6b22;
+}
+
+.relevant-forms-status--pending_payment {
+	background: #f0f6fc;
+	color: #0a4b78;
+}
+
+.relevant-forms-status--payment_failed,
+.relevant-forms-status--refunded {
+	background: #f0f0f1;
+	color: #50575e;
+}
+
 .relevant-forms-empty {
 	background: #fff;
 	border: 1px solid #c3c4c7;

@@ -65,12 +65,13 @@ final class PaymentCheckboxField extends PaymentField {
 
 		foreach ( $this->pricedChoices( $definition ) as $choice ) {
 			$inputs[] = sprintf(
-				'<span class="relevant-forms-choice"><input type="checkbox" name="%1$s[]" id="%2$s-%3$s" value="%3$s"%4$s><label for="%2$s-%3$s">%5$s</label></span>',
+				'<span class="relevant-forms-choice"><input type="checkbox" name="%1$s[]" id="%2$s-%3$s" value="%3$s"%4$s%6$s><label for="%2$s-%3$s">%5$s</label></span>',
 				esc_attr( FieldMarkup::name( $definition ) ),
 				esc_attr( FieldMarkup::id( $definition, $formId ) ),
 				esc_attr( $choice['value'] ),
 				in_array( $choice['value'], $current, true ) ? ' checked' : '',
-				esc_html( $this->optionLabel( $definition, $choice['label'], $choice['priceMinor'] ) )
+				esc_html( $this->optionLabel( $definition, $choice['label'], $choice['priceMinor'] ) ),
+				null !== $choice['priceMinor'] ? ' data-rf-price="' . esc_attr( (string) $choice['priceMinor'] ) . '"' : ''
 			);
 		}
 
@@ -88,6 +89,13 @@ final class PaymentCheckboxField extends PaymentField {
 	 */
 	public function contributionMinor( array $definition, mixed $raw ): int {
 		return $this->sumPositionsMinor( $definition, $raw );
+	}
+
+	/**
+	 * {@inheritDoc}
+	 */
+	public function itemsForRaw( array $definition, mixed $raw ): array {
+		return $this->choiceItemsForPositions( $definition, $raw );
 	}
 
 	/**

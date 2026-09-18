@@ -25,6 +25,7 @@ use RelevantForms\Database\MigrationRunner;
 use RelevantForms\Forms\FormRenderer;
 use RelevantForms\Forms\FormUsage;
 use RelevantForms\Http\CloudBillingController;
+use RelevantForms\Http\PaymentReturnHandler;
 use RelevantForms\Http\SubmissionHandler;
 use RelevantForms\Http\UploadController;
 use RelevantForms\Http\CloudController;
@@ -58,6 +59,7 @@ final class Plugin {
 		ImportController::register();
 		RedirectTargetSearchController::register();
 		SmsVerificationController::register();
+		PaymentReturnHandler::register();
 
 		// WPForms hook compatibility (Phase 7.5): active only when WPForms is absent.
 		CompatLayer::register();

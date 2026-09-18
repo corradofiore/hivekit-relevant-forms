@@ -14,6 +14,7 @@ use RelevantForms\Forms\Fields\FieldTypeRegistry;
 use RelevantForms\Forms\FormRepository;
 use RelevantForms\Forms\FormSchema;
 use RelevantForms\Forms\Visibility\VisibilityRules;
+use RelevantForms\Payments\Money;
 use RelevantForms\Support\Logger;
 
 /**
@@ -67,6 +68,11 @@ final class FormSaveController {
 			? absint( $raw['redirect_page'] )
 			: ( null !== $existing ? $existing->schema->redirectPageId() : 0 );
 
+		// Missing key (hand-crafted request) keeps the stored currency.
+		$currency = array_key_exists( 'form_currency', $raw )
+			? Money::normalizeCurrency( (string) $raw['form_currency'] )
+			: ( null !== $existing ? $existing->schema->currency() : Money::DEFAULT_CURRENCY );
+
 		$mode = (string) ( $raw['confirmation_mode'] ?? '' );
 
 		if ( ! in_array( $mode, FormSchema::CONFIRMATION_MODES, true ) ) {
@@ -108,7 +114,8 @@ final class FormSaveController {
 			->withFields( $fields )
 			->withNotifications( $emails )
 			->withConfirmation( $message, $redirect, $redirectPage, $mode )
-			->withAiPolicy( $aiPolicy );
+			->withAiPolicy( $aiPolicy )
+			->withCurrency( $currency );
 
 		$errors = [];
 		if ( '' === trim( $name ) ) {

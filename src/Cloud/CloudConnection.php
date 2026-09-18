@@ -46,11 +46,17 @@ final class CloudConnection {
 	public const STATE_MANAGED_UPLOADS_ENABLED = 'managed_uploads_enabled';
 
 	/**
+	 * Payments (Stripe Connect) enabled.
+	 */
+	public const STATE_PAYMENTS_ENABLED = 'payments_enabled';
+
+	/**
 	 * Capability keys (mirror the backend capabilities endpoint).
 	 */
-	public const CAP_AI      = 'semantic_classification';
-	public const CAP_SMS     = 'priority_sms';
-	public const CAP_UPLOADS = 'managed_uploads';
+	public const CAP_AI       = 'semantic_classification';
+	public const CAP_SMS      = 'priority_sms';
+	public const CAP_UPLOADS  = 'managed_uploads';
+	public const CAP_PAYMENTS = 'payments';
 
 	/**
 	 * Capability key → highest state it produces.
@@ -58,9 +64,10 @@ final class CloudConnection {
 	 * @var array<string, string>
 	 */
 	private const CAPABILITY_STATES = [
-		self::CAP_AI      => self::STATE_AI_ENABLED,
-		self::CAP_SMS     => self::STATE_SMS_ENABLED,
-		self::CAP_UPLOADS => self::STATE_MANAGED_UPLOADS_ENABLED,
+		self::CAP_AI       => self::STATE_AI_ENABLED,
+		self::CAP_SMS      => self::STATE_SMS_ENABLED,
+		self::CAP_UPLOADS  => self::STATE_MANAGED_UPLOADS_ENABLED,
+		self::CAP_PAYMENTS => self::STATE_PAYMENTS_ENABLED,
 	];
 
 	/**

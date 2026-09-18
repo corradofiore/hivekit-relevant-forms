@@ -69,6 +69,17 @@ if ( $isEditing ) {
 					<p class="description"><?php esc_html_e( 'Only published forms can be rendered on the front end.', 'relevant-forms' ); ?></p>
 				</td>
 			</tr>
+			<tr>
+				<th scope="row"><label for="relevant-form-currency"><?php esc_html_e( 'Payment currency', 'relevant-forms' ); ?></label></th>
+				<td>
+					<select id="relevant-form-currency" name="form_currency">
+						<?php foreach ( \RelevantForms\Payments\Money::SUPPORTED_CURRENCIES as $relevant_currency ) : ?>
+							<option value="<?php echo esc_attr( $relevant_currency ); ?>" <?php selected( $form->schema->currency(), $relevant_currency ); ?>><?php echo esc_html( \RelevantForms\Payments\Money::label( $relevant_currency ) ); ?></option>
+						<?php endforeach; ?>
+					</select>
+					<p class="description"><?php esc_html_e( 'Used by the payment fields on this form.', 'relevant-forms' ); ?></p>
+				</td>
+			</tr>
 		</table>
 
 		<?php $confirmation_mode = $form->schema->confirmationMode(); ?>

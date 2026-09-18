@@ -163,7 +163,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 		<?php wp_nonce_field( 'relevant_entry_status_' . $entry->id ); ?>
 		<select name="entry_status">
 			<?php foreach ( \RelevantForms\Entries\Entry::STATUSES as $entryStatus ) : ?>
-				<option value="<?php echo esc_attr( $entryStatus ); ?>" <?php selected( $entry->status, $entryStatus ); ?>><?php echo esc_html( ucfirst( $entryStatus ) ); ?></option>
+				<option value="<?php echo esc_attr( $entryStatus ); ?>" <?php selected( $entry->status, $entryStatus ); ?>><?php echo esc_html( ucwords( str_replace( '_', ' ', $entryStatus ) ) ); ?></option>
 			<?php endforeach; ?>
 		</select>
 		<button type="submit" class="button button-primary"><?php esc_html_e( 'Update status', 'relevant-forms' ); ?></button>

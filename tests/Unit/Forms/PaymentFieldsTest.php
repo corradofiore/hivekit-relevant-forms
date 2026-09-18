@@ -226,3 +226,115 @@ it(
 		)->toBeFalse();
 	}
 );
+
+it(
+	'builds the payment breakdown with readable line items',
+	function () {
+		$definitions = [
+			rf_priced_definition(
+				[
+					'id'     => 'f_fixed',
+					'type'   => 'payment-single',
+					'label'  => 'Deposit',
+					'amount' => '25.00',
+				]
+			),
+			rf_priced_definition(
+				[
+					'id'    => 'f_select',
+					'label' => 'Merch',
+				]
+			),
+			[
+				'id'   => 'f_total',
+				'type' => 'payment-total',
+			],
+		];
+
+		$breakdown = PaymentTotals::breakdown(
+			$definitions,
+			[
+				'f_select' => '1',
+				'f_total'  => 'ignored',
+			],
+			'EUR'
+		);
+
+		expect( $breakdown['currency'] )->toBe( 'eur' );
+		expect( $breakdown['total_minor'] )->toBe( 3500 );
+		expect( $breakdown['items'] )->toHaveCount( 2 );
+		expect( $breakdown['items'][0] )->toBe(
+			[
+				'field_id'     => 'f_fixed',
+				'label'        => 'Deposit',
+				'detail'       => '',
+				'amount_minor' => 2500,
+			]
+		);
+		expect( $breakdown['items'][1]['detail'] )->toBe( 'Cap' );
+		expect( $breakdown['items'][1]['amount_minor'] )->toBe( 1000 );
+
+		// Donations report the entered amount as their detail.
+		$donation = PaymentTotals::breakdown(
+			[
+				rf_priced_definition(
+					[
+						'id'          => 'f_give',
+						'type'        => 'payment-single',
+						'label'       => 'Donation',
+						'user_amount' => true,
+					]
+				),
+			],
+			[ 'f_give' => '12,50' ],
+			'usd'
+		);
+
+		expect( $donation['total_minor'] )->toBe( 1250 );
+		expect( $donation['items'][0]['detail'] )->toBe( '$12.50' );
+	}
+);
+
+it(
+	'carries live-total data attributes for the frontend script',
+	function () {
+		$select = FieldTypeRegistry::get( 'payment-select' )->render( rf_priced_definition(), '', null, '7' );
+
+		expect( $select )->toContain( 'data-rf-price="2500"' );
+		expect( $select )->toContain( 'data-rf-price="1000"' );
+
+		$total = FieldTypeRegistry::get( 'payment-total' )->render( rf_priced_definition( [ 'type' => 'payment-total' ] ), null, null, '7' );
+
+		expect( $total )->toContain( 'data-rf-symbol="$"' );
+		expect( $total )->toContain( 'data-rf-decimals="2"' );
+
+		$donation = FieldTypeRegistry::get( 'payment-single' )->render(
+			rf_priced_definition(
+				[
+					'type'        => 'payment-single',
+					'user_amount' => true,
+				]
+			),
+			'10',
+			null,
+			'7'
+		);
+
+		expect( $donation )->toContain( 'data-rf-amount="1"' );
+		expect( $donation )->toContain( 'data-rf-decimals="2"' );
+
+		$fixed = FieldTypeRegistry::get( 'payment-single' )->render(
+			rf_priced_definition(
+				[
+					'type'   => 'payment-single',
+					'amount' => '25.00',
+				]
+			),
+			null,
+			null,
+			'7'
+		);
+
+		expect( $fixed )->toContain( 'data-rf-price="2500"' );
+	}
+);

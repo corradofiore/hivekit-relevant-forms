@@ -25,6 +25,14 @@ final class Entry {
 	public const STATUS_PRIORITY   = 'priority';
 
 	/**
+	 * Payment statuses (payments doc §4).
+	 */
+	public const STATUS_PENDING_PAYMENT = 'pending_payment';
+	public const STATUS_PAID            = 'paid';
+	public const STATUS_PAYMENT_FAILED  = 'payment_failed';
+	public const STATUS_REFUNDED        = 'refunded';
+
+	/**
 	 * Allowed workflow statuses.
 	 *
 	 * @var array<int, string>
@@ -36,6 +44,10 @@ final class Entry {
 		self::STATUS_SPAM,
 		self::STATUS_SUSPICIOUS,
 		self::STATUS_PRIORITY,
+		self::STATUS_PENDING_PAYMENT,
+		self::STATUS_PAID,
+		self::STATUS_PAYMENT_FAILED,
+		self::STATUS_REFUNDED,
 	];
 
 	/**

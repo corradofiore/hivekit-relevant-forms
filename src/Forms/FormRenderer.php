@@ -10,6 +10,7 @@ declare(strict_types=1);
 namespace RelevantForms\Forms;
 
 use RelevantForms\Forms\Fields\FieldTypeRegistry;
+use RelevantForms\Forms\Fields\PaymentField;
 use RelevantForms\Forms\Fields\TextareaField;
 use RelevantForms\Forms\Visibility\VisibilityRules;
 
@@ -76,6 +77,7 @@ final class FormRenderer {
 		$hasFileField       = false;
 		$hasLimitedTextarea = false;
 		$hasVisibility      = false;
+		$hasPaymentFields   = false;
 
 		foreach ( $form->schema->fields() as $definition ) {
 			$fieldType = (string) ( $definition['type'] ?? '' );
@@ -91,6 +93,10 @@ final class FormRenderer {
 			if ( VisibilityRules::hasVisibility( $definition ) ) {
 				$hasVisibility = true;
 			}
+
+			if ( FieldTypeRegistry::get( $fieldType ) instanceof PaymentField ) {
+				$hasPaymentFields = true;
+			}
 		}
 
 		if ( $hasFileField ) {
@@ -105,8 +111,13 @@ final class FormRenderer {
 			wp_enqueue_script( 'relevant-forms-conditional' );
 		}
 
+		if ( $hasPaymentFields ) {
+			wp_enqueue_script( 'relevant-forms-total' );
+		}
+
 		$output   = [];
 		$output[] = self::successMessage( $form );
+		$output[] = self::paymentNotice( $form );
 		// Empty action: the browser posts to this very page, where the
 		// front-end submission handler renders errors inline and redirects
 		// after success — user pages never post to wp-admin.
@@ -122,8 +133,12 @@ final class FormRenderer {
 		$output[] = self::honeypot();
 
 		$visibility = VisibilityRules::evaluate( $form->schema->fields(), $values );
+		$currency   = $form->schema->currency();
 
 		foreach ( $form->schema->fields() as $definition ) {
+			// Payment fields format and validate with the form currency.
+			$definition['currency'] = $currency;
+
 			$type = FieldTypeRegistry::get( (string) ( $definition['type'] ?? '' ) );
 
 			if ( null === $type ) {
@@ -175,6 +190,23 @@ final class FormRenderer {
 		}
 
 		return sprintf( '<p class="relevant-forms-success" role="status">%s</p>', esc_html( $message ) );
+	}
+
+	/**
+	 * Notice when a payment attempt came back without completing (the
+	 * checkout cancel URL or an expired session redirect carries this
+	 * marker).
+	 */
+	private static function paymentNotice( Form $form ): string {
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only marker set by our own redirect.
+		if ( ! isset( $_GET['relevant_payment_failed'] ) || (int) $_GET['relevant_payment_failed'] !== $form->id ) {
+			return '';
+		}
+
+		return sprintf(
+			'<p class="relevant-forms-payment-notice" role="alert">%s</p>',
+			esc_html__( 'The payment was not completed. You can try again below.', 'relevant-forms' )
+		);
 	}
 
 	/**

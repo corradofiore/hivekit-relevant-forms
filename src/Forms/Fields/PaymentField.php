@@ -136,12 +136,54 @@ abstract class PaymentField implements FieldType {
 	}
 
 	/**
+	 * Line items for posted choice positions (one item per selection).
+	 *
+	 * @param array<string, mixed> $definition Field definition.
+	 * @param mixed                $raw        Posted value(s).
+	 * @return array<int, array{detail: string, amount_minor: int}>
+	 */
+	protected function choiceItemsForPositions( array $definition, mixed $raw ): array {
+		$positions = is_array( $raw ) ? $raw : [ $raw ];
+		$choices   = $this->pricedChoices( $definition );
+		$items     = [];
+
+		foreach ( $positions as $position ) {
+			if ( ! is_scalar( $position ) || ! preg_match( '/^\d+$/', (string) $position ) ) {
+				continue;
+			}
+
+			$index = (int) $position;
+
+			if ( ! isset( $choices[ $index ] ) ) {
+				continue;
+			}
+
+			$items[] = [
+				'detail'       => $choices[ $index ]['label'],
+				'amount_minor' => $choices[ $index ]['priceMinor'] ?? 0,
+			];
+		}
+
+		return $items;
+	}
+
+	/**
 	 * Minor-unit contribution of this field for a raw posted value.
 	 *
 	 * @param array<string, mixed> $definition Field definition.
 	 * @param mixed                $raw        Raw posted value.
 	 */
 	abstract public function contributionMinor( array $definition, mixed $raw ): int;
+
+	/**
+	 * Human-readable line items for one submission (checkout sessions and
+	 * the `_payment` entry meta).
+	 *
+	 * @param array<string, mixed> $definition Field definition.
+	 * @param mixed                $raw        Raw posted value.
+	 * @return array<int, array{detail: string, amount_minor: int}>
+	 */
+	abstract public function itemsForRaw( array $definition, mixed $raw ): array;
 
 	/**
 	 * {@inheritDoc}

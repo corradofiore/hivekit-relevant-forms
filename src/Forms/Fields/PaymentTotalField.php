@@ -53,10 +53,13 @@ final class PaymentTotalField extends PaymentField {
 	 * {@inheritDoc}
 	 */
 	public function render( array $definition, mixed $value, ?string $error, string $formId ): string {
-		$control = sprintf(
-			'<p class="relevant-forms-payment-total" id="%1$s" data-rf-payment-total="1">%2$s</p>',
+		$currency = $this->currency( $definition );
+		$control  = sprintf(
+			'<p class="relevant-forms-payment-total" id="%1$s" data-rf-payment-total="1" data-rf-symbol="%3$s" data-rf-decimals="%4$d">%2$s</p>',
 			esc_attr( FieldMarkup::id( $definition, $formId ) ),
-			esc_html( Money::format( 0, $this->currency( $definition ) ) )
+			esc_html( Money::format( 0, $currency ) ),
+			esc_attr( Money::symbol( $currency ) ),
+			Money::decimals( $currency )
 		);
 
 		return FieldMarkup::wrap( $definition, $formId, $control, $error );
@@ -67,5 +70,12 @@ final class PaymentTotalField extends PaymentField {
 	 */
 	public function contributionMinor( array $definition, mixed $raw ): int {
 		return 0;
+	}
+
+	/**
+	 * {@inheritDoc}
+	 */
+	public function itemsForRaw( array $definition, mixed $raw ): array {
+		return [];
 	}
 }

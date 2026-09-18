@@ -29,6 +29,18 @@ it(
 );
 
 it(
+	'labels and symbols currencies for selectors',
+	function () {
+		expect( Money::label( 'usd' ) )->toBe( 'USD ($)' );
+		expect( Money::label( 'GBP' ) )->toBe( 'GBP (£)' );
+		expect( Money::label( 'sek' ) )->toBe( 'SEK' );
+
+		expect( Money::symbol( 'eur' ) )->toBe( '€' );
+		expect( Money::symbol( 'sek' ) )->toBe( '' );
+	}
+);
+
+it(
 	'parses decimal amounts into minor units',
 	function () {
 		expect( Money::toMinor( '10', 'usd' ) )->toBe( 1000 );

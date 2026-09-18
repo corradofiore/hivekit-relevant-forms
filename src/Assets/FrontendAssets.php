@@ -58,5 +58,13 @@ final class FrontendAssets {
 			AssetVersion::get( 'assets/js/frontend-conditional.js' ),
 			true
 		);
+
+		wp_register_script(
+			'relevant-forms-total',
+			RELEVANT_FORMS_URL . 'assets/js/frontend-total.js',
+			[],
+			AssetVersion::get( 'assets/js/frontend-total.js' ),
+			true
+		);
 	}
 }

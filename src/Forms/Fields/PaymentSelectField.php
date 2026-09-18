@@ -62,10 +62,11 @@ final class PaymentSelectField extends PaymentField {
 
 		foreach ( $this->pricedChoices( $definition ) as $choice ) {
 			$options .= sprintf(
-				'<option value="%1$s"%2$s>%3$s</option>',
+				'<option value="%1$s"%4$s%2$s>%3$s</option>',
 				esc_attr( $choice['value'] ),
 				selected( (string) $value, $choice['value'], false ),
-				esc_html( $this->optionLabel( $definition, $choice['label'], $choice['priceMinor'] ) )
+				esc_html( $this->optionLabel( $definition, $choice['label'], $choice['priceMinor'] ) ),
+				null !== $choice['priceMinor'] ? ' data-rf-price="' . esc_attr( (string) $choice['priceMinor'] ) . '"' : ''
 			);
 		}
 
@@ -85,6 +86,13 @@ final class PaymentSelectField extends PaymentField {
 	 */
 	public function contributionMinor( array $definition, mixed $raw ): int {
 		return $this->sumPositionsMinor( $definition, $raw );
+	}
+
+	/**
+	 * {@inheritDoc}
+	 */
+	public function itemsForRaw( array $definition, mixed $raw ): array {
+		return $this->choiceItemsForPositions( $definition, $raw );
 	}
 
 	/**
