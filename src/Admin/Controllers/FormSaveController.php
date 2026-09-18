@@ -189,8 +189,15 @@ final class FormSaveController {
 				$definition['max_length'] = absint( $rawField['max_length'] ?? 0 );
 			}
 
-			if ( in_array( $type, [ 'select', 'radio', 'checkbox' ], true ) ) {
-				$definition['choices'] = self::parseLines( (string) ( $rawField['choices'] ?? '' ) );
+			if ( in_array( $type, [ 'select', 'radio', 'checkbox', 'payment-select', 'payment-multiple', 'payment-checkbox' ], true ) ) {
+						$definition['choices'] = self::parseLines( (string) ( $rawField['choices'] ?? '' ) );
+			}
+
+			if ( 'payment-single' === $type ) {
+				$definition['amount']      = sanitize_text_field( (string) ( $rawField['amount'] ?? '' ) );
+				$definition['user_amount'] = ! empty( $rawField['user_amount'] );
+				$definition['min_amount']  = sanitize_text_field( (string) ( $rawField['min_amount'] ?? '' ) );
+				$definition['max_amount']  = sanitize_text_field( (string) ( $rawField['max_amount'] ?? '' ) );
 			}
 
 			if ( 'file' === $type ) {
