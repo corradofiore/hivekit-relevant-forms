@@ -156,6 +156,132 @@ if ( ! defined( 'ABSPATH' ) ) {
 		<?php endif; ?>
 	<?php endif; ?>
 
+	<?php
+	$payment         = is_array( $entry->meta['_payment'] ?? null ) ? $entry->meta['_payment'] : [];
+	$paymentStatus   = (string) ( $payment['status'] ?? '' );
+	$paymentItems    = is_array( $payment['items'] ?? null ) ? $payment['items'] : [];
+	$paymentCurrency = (string) ( $payment['currency'] ?? 'usd' );
+	?>
+	<h2><?php esc_html_e( 'Payment', 'relevant-forms' ); ?></h2>
+	<?php if ( [] === $payment ) : ?>
+		<p><?php esc_html_e( 'No payment recorded for this entry.', 'relevant-forms' ); ?></p>
+	<?php else : ?>
+		<?php
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only status marker set by our own redirect.
+		$paymentNotice = isset( $_GET['payment_notice'] ) ? sanitize_key( wp_unslash( $_GET['payment_notice'] ) ) : '';
+
+		$paymentNoticeMap = [
+			'paid'          => [ 'success', __( 'Payment confirmed — the entry is marked paid.', 'relevant-forms' ) ],
+			'failed'        => [ 'warning', __( 'The checkout session reports a failed or expired payment.', 'relevant-forms' ) ],
+			'still_pending' => [ 'info', __( 'The checkout is still open — no payment recorded yet.', 'relevant-forms' ) ],
+			'refunded'      => [ 'success', __( 'Refund issued.', 'relevant-forms' ) ],
+			'refund_failed' => [ 'error', __( 'The refund could not be created. Try again or refund from your Stripe dashboard.', 'relevant-forms' ) ],
+			'not_paid'      => [ 'error', __( 'Only paid entries can be refunded.', 'relevant-forms' ) ],
+			'no_payment'    => [ 'error', __( 'No payment session is stored for this entry.', 'relevant-forms' ) ],
+			'unavailable'   => [ 'error', __( 'Payments are not available on this site right now.', 'relevant-forms' ) ],
+		];
+
+		if ( isset( $paymentNoticeMap[ $paymentNotice ] ) ) {
+			printf(
+				'<div class="notice notice-%1$s is-dismissible"><p>%2$s</p></div>',
+				esc_attr( $paymentNoticeMap[ $paymentNotice ][0] ),
+				esc_html( $paymentNoticeMap[ $paymentNotice ][1] )
+			);
+		}
+
+		$paymentStatusClasses = [
+			'pending'  => 'pending_payment',
+			'paid'     => 'paid',
+			'failed'   => 'payment_failed',
+			'refunded' => 'refunded',
+		];
+
+		$paymentStatusClass = $paymentStatusClasses[ $paymentStatus ] ?? 'new';
+		$paymentSession     = (string) ( $payment['session_id'] ?? '' );
+		$paymentsReady      = ( new \RelevantForms\Payments\CloudPaymentsGateway() )->isAvailable();
+		?>
+		<table class="widefat striped">
+			<tbody>
+				<tr>
+					<th scope="row"><?php esc_html_e( 'Status', 'relevant-forms' ); ?></th>
+					<td><span class="relevant-forms-status relevant-forms-status--<?php echo esc_attr( $paymentStatusClass ); ?>"><?php echo esc_html( ucfirst( '' !== $paymentStatus ? $paymentStatus : 'unknown' ) ); ?></span></td>
+				</tr>
+				<tr>
+					<th scope="row"><?php esc_html_e( 'Amount', 'relevant-forms' ); ?></th>
+					<td>
+						<code><?php echo esc_html( \RelevantForms\Payments\Money::format( (int) ( $payment['total_minor'] ?? 0 ), $paymentCurrency ) ); ?></code>
+						<span class="description">(<?php echo esc_html( strtoupper( $paymentCurrency ) ); ?>)</span>
+					</td>
+				</tr>
+				<?php if ( [] !== $paymentItems ) : ?>
+					<tr>
+						<th scope="row"><?php esc_html_e( 'Items', 'relevant-forms' ); ?></th>
+						<td>
+							<?php foreach ( $paymentItems as $paymentItem ) : ?>
+								<?php
+								if ( ! is_array( $paymentItem ) ) {
+									continue;
+								}
+								?>
+								<div>
+									<?php echo esc_html( (string) ( $paymentItem['label'] ?? '' ) ); ?>
+									<?php if ( '' !== (string) ( $paymentItem['detail'] ?? '' ) ) : ?>
+										— <?php echo esc_html( (string) $paymentItem['detail'] ); ?>
+									<?php endif; ?>
+									&nbsp;<code><?php echo esc_html( \RelevantForms\Payments\Money::format( (int) ( $paymentItem['amount_minor'] ?? 0 ), $paymentCurrency ) ); ?></code>
+								</div>
+							<?php endforeach; ?>
+						</td>
+					</tr>
+				<?php endif; ?>
+				<?php if ( '' !== $paymentSession ) : ?>
+					<tr><th scope="row"><?php esc_html_e( 'Checkout session', 'relevant-forms' ); ?></th><td><code><?php echo esc_html( $paymentSession ); ?></code></td></tr>
+				<?php endif; ?>
+				<?php if ( '' !== (string) ( $payment['payment_intent'] ?? '' ) ) : ?>
+					<tr><th scope="row"><?php esc_html_e( 'Payment intent', 'relevant-forms' ); ?></th><td><code><?php echo esc_html( (string) $payment['payment_intent'] ); ?></code></td></tr>
+				<?php endif; ?>
+				<?php if ( '' !== (string) ( $payment['created_at'] ?? '' ) ) : ?>
+					<tr><th scope="row"><?php esc_html_e( 'Started', 'relevant-forms' ); ?></th><td><?php echo esc_html( (string) $payment['created_at'] ); ?></td></tr>
+				<?php endif; ?>
+				<?php if ( '' !== (string) ( $payment['paid_at'] ?? '' ) ) : ?>
+					<tr><th scope="row"><?php esc_html_e( 'Paid', 'relevant-forms' ); ?></th><td><?php echo esc_html( (string) $payment['paid_at'] ); ?></td></tr>
+				<?php endif; ?>
+				<?php if ( '' !== (string) ( $payment['refunded_at'] ?? '' ) ) : ?>
+					<tr>
+						<th scope="row"><?php esc_html_e( 'Refunded', 'relevant-forms' ); ?></th>
+						<td>
+							<?php echo esc_html( (string) $payment['refunded_at'] ); ?>
+							<?php if ( '' !== (string) ( $payment['refund_id'] ?? '' ) ) : ?>
+								· <code><?php echo esc_html( (string) $payment['refund_id'] ); ?></code>
+							<?php endif; ?>
+						</td>
+					</tr>
+				<?php endif; ?>
+				<?php if ( '' !== (string) ( $payment['reason'] ?? '' ) ) : ?>
+					<tr><th scope="row"><?php esc_html_e( 'Failure', 'relevant-forms' ); ?></th><td><?php echo esc_html( (string) $payment['reason'] ); ?></td></tr>
+				<?php endif; ?>
+			</tbody>
+		</table>
+
+		<?php if ( $paymentsReady && '' !== $paymentSession && in_array( $paymentStatus, [ 'pending', 'failed' ], true ) ) : ?>
+			<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" style="display:inline-block;margin-top:8px;">
+				<input type="hidden" name="action" value="relevant_forms_payment_check">
+				<input type="hidden" name="entry_id" value="<?php echo esc_attr( (string) $entry->id ); ?>">
+				<?php wp_nonce_field( 'relevant_entry_payment_check_' . $entry->id ); ?>
+				<button type="submit" class="button"><?php esc_html_e( 'Check payment status', 'relevant-forms' ); ?></button>
+			</form>
+		<?php endif; ?>
+
+		<?php if ( $paymentsReady && 'paid' === $paymentStatus ) : ?>
+			<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" style="display:inline-block;margin-top:8px;">
+				<input type="hidden" name="action" value="relevant_forms_payment_refund">
+				<input type="hidden" name="entry_id" value="<?php echo esc_attr( (string) $entry->id ); ?>">
+				<?php wp_nonce_field( 'relevant_entry_payment_refund_' . $entry->id ); ?>
+				<button type="submit" class="button" onclick="return window.confirm('<?php echo esc_js( __( 'Refund this payment in full? This cannot be undone.', 'relevant-forms' ) ); ?>');"><?php esc_html_e( 'Refund payment', 'relevant-forms' ); ?></button>
+			</form>
+		<?php endif; ?>
+	<?php endif; ?>
+
 	<h2><?php esc_html_e( 'Status', 'relevant-forms' ); ?></h2>
 	<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
 		<input type="hidden" name="action" value="relevant_forms_entry_status">
