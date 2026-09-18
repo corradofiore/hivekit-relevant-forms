@@ -129,6 +129,27 @@ final class Money {
 	}
 
 	/**
+	 * Human-readable currency label for selectors, e.g. "USD ($)".
+	 *
+	 * @param string $currency Currency code.
+	 */
+	public static function label( string $currency ): string {
+		$code   = self::normalizeCurrency( $currency );
+		$symbol = self::SYMBOLS[ $code ] ?? '';
+
+		return '' !== $symbol ? strtoupper( $code ) . ' (' . $symbol . ')' : strtoupper( $code );
+	}
+
+	/**
+	 * Display symbol for a currency ('' when none is known).
+	 *
+	 * @param string $currency Currency code.
+	 */
+	public static function symbol( string $currency ): string {
+		return self::SYMBOLS[ self::normalizeCurrency( $currency ) ] ?? '';
+	}
+
+	/**
 	 * Parse a decimal amount ("10", "10.50", "10,50") into minor units.
 	 *
 	 * Extra decimals round half-up; malformed input returns null.

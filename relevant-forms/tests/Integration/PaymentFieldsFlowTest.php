@@ -34,7 +34,7 @@ final class PaymentFieldsFlowTest extends TestCase {
 			'form_name'       => 'Payments',
 			'form_status'     => 'published',
 			'relevant_fields' => [
-				'f_item' => [
+				'f_item'  => [
 					'id'          => 'f_item',
 					'type'        => 'payment-single',
 					'label'       => 'Donation',

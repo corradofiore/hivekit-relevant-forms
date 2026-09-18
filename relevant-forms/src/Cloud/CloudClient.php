@@ -152,6 +152,64 @@ final class CloudClient {
 	}
 
 	/**
+	 * POST /v1/payments/sessions — create a hosted Checkout Session on the
+	 * owner's connected Stripe account (payments doc §5).
+	 *
+	 * @param array<string, mixed> $payload Form, entry, line items, currency and return URLs.
+	 * @return array<string, mixed>|null
+	 */
+	public function createPaymentSession( array $payload ): ?array {
+		$response = wp_remote_post(
+			$this->baseUrl . '/api/v1/payments/sessions',
+			[
+				'timeout' => 30,
+				'headers' => $this->headers(),
+				'body'    => wp_json_encode( $payload ),
+			]
+		);
+
+		return $this->decode( $response, [ 200, 201 ] );
+	}
+
+	/**
+	 * GET /v1/payments/sessions/{id} — session status poll (return page,
+	 * no-JS path).
+	 *
+	 * @param string $sessionId Checkout session reference.
+	 * @return array<string, mixed>|null
+	 */
+	public function paymentSession( string $sessionId ): ?array {
+		$response = wp_remote_get(
+			$this->baseUrl . '/api/v1/payments/sessions/' . rawurlencode( $sessionId ),
+			[
+				'timeout' => 15,
+				'headers' => $this->headers(),
+			]
+		);
+
+		return $this->decode( $response, [ 200 ] );
+	}
+
+	/**
+	 * POST /v1/payments/{id}/refund — full refund (v1).
+	 *
+	 * @param string $sessionId Checkout session reference.
+	 * @return array<string, mixed>|null
+	 */
+	public function refundPayment( string $sessionId ): ?array {
+		$response = wp_remote_post(
+			$this->baseUrl . '/api/v1/payments/' . rawurlencode( $sessionId ) . '/refund',
+			[
+				'timeout' => 30,
+				'headers' => $this->headers(),
+				'body'    => wp_json_encode( [] ),
+			]
+		);
+
+		return $this->decode( $response, [ 200, 201 ] );
+	}
+
+	/**
 	 * POST /v1/uploads/authorize — managed storage upload authorization.
 	 *
 	 * @param array<string, mixed> $payload Object key, filename, MIME, size.

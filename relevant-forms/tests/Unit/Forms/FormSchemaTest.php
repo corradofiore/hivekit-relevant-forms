@@ -49,6 +49,35 @@ it(
 );
 
 it(
+	'carries a normalized payment currency with a usd fallback',
+	function () {
+		$schema = FormSchema::empty( 'Payments' );
+
+		expect( $schema->currency() )->toBe( 'usd' );
+
+		$schema = $schema->withCurrency( 'EUR' );
+
+		expect( $schema->currency() )->toBe( 'eur' );
+		expect( $schema->toArray()['currency'] )->toBe( 'eur' );
+
+		// The currency survives the storage round-trip normalization.
+		expect( FormSchema::fromArray( $schema->toArray() )->currency() )->toBe( 'eur' );
+
+		// Unsupported values fall back at write and read time.
+		expect( $schema->withCurrency( 'xyz' )->currency() )->toBe( 'usd' );
+		expect(
+			FormSchema::fromArray(
+				[
+					'name'     => 'Legacy',
+					'fields'   => [],
+					'currency' => 'xxc',
+				]
+			)->currency()
+		)->toBe( 'usd' );
+	}
+);
+
+it(
 	'normalizes field visibility configs on read',
 	function () {
 		$schema = FormSchema::fromArray(

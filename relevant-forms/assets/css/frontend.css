@@ -48,6 +48,24 @@
 	padding: 0.75rem 1rem;
 }
 
+.relevant-forms-payment-notice {
+	background: #fcf9e8;
+	border: 1px solid #dba617;
+	border-radius: 3px;
+	color: #8a6d3b;
+	padding: 0.75rem 1rem;
+}
+
+.relevant-forms-payment-amount,
+.relevant-forms-payment-total {
+	font-weight: 600;
+	margin: 0.25rem 0 0;
+}
+
+.relevant-forms-payment-input {
+	max-width: 12rem;
+}
+
 .relevant-forms-choice {
 	display: block;
 	margin: 0.25rem 0;

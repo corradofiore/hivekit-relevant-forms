@@ -64,7 +64,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 						<td><?php echo esc_html( null !== $form ? $form->name : (string) $entry->formId ); ?></td>
 						<td>
 							<span class="relevant-forms-status relevant-forms-status--<?php echo esc_attr( $entry->status ); ?>">
-								<?php echo esc_html( $entry->status ); ?>
+								<?php echo esc_html( ucwords( str_replace( '_', ' ', $entry->status ) ) ); ?>
 							</span>
 						</td>
 						<td><?php echo esc_html( $entry_preview ); ?></td>

@@ -14,7 +14,6 @@ use RelevantForms\Entries\EntryRepository;
 use RelevantForms\Ai\AiClassifier;
 use RelevantForms\Ai\AttentionScore;
 use RelevantForms\Ai\Classification;
-use RelevantForms\Alerts\SmsAlert;
 use RelevantForms\Events\EventRecorder;
 use RelevantForms\Forms\Form;
 use RelevantForms\Forms\FormRenderer;
@@ -22,7 +21,10 @@ use RelevantForms\Forms\FormRepository;
 use RelevantForms\Forms\Fields\FieldTypeRegistry;
 use RelevantForms\Forms\SubmissionFeedback;
 use RelevantForms\Forms\Visibility\VisibilityRules;
-use RelevantForms\Notifications\EmailNotification;
+use RelevantForms\Notifications\SubmissionNotifier;
+use RelevantForms\Payments\CloudPaymentsGateway;
+use RelevantForms\Payments\PaymentService;
+use RelevantForms\Payments\PaymentTotals;
 use RelevantForms\Support\Logger;
 use RelevantForms\Support\Privacy;
 use RelevantForms\Uploads\UploadService;
@@ -55,7 +57,7 @@ final class SubmissionHandler {
 		self::verifyNonce( $form );
 		self::guardHoneypot( $form );
 
-		[ $errors, $values, $display ] = self::validateSubmission( $form );
+		[ $errors, $values, $display, $payment ] = self::validateSubmission( $form );
 
 		if ( [] !== $errors ) {
 			status_header( 422 );
@@ -69,7 +71,7 @@ final class SubmissionHandler {
 			exit;
 		}
 
-		self::store( $form, $values );
+		self::store( $form, $values, $payment );
 	}
 
 	/**
@@ -114,7 +116,7 @@ final class SubmissionHandler {
 		self::verifyNonce( $form );
 		self::guardHoneypot( $form );
 
-		[ $errors, $values, $display ] = self::validateSubmission( $form );
+		[ $errors, $values, $display, $payment ] = self::validateSubmission( $form );
 
 		if ( [] !== $errors ) {
 			SubmissionFeedback::stash( $form->id, $errors, $display );
@@ -122,7 +124,7 @@ final class SubmissionHandler {
 			return;
 		}
 
-		self::store( $form, $values );
+		self::store( $form, $values, $payment );
 	}
 
 	/**
@@ -166,25 +168,30 @@ final class SubmissionHandler {
 	/**
 	 * Field validation shared by both routes.
 	 *
-	 * @return array{0: array<string, string>, 1: array<string, mixed>, 2: array<string, mixed>} Errors (field id → message), sanitized values and raw display values.
+	 * @return array{0: array<string, string>, 1: array<string, mixed>, 2: array<string, mixed>, 3: array<string, mixed>} Errors (field id → message), sanitized values, raw display values and the server-computed payment breakdown.
 	 */
 	private static function validateSubmission( Form $form ): array {
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- nonce is verified by verifyNonce() before validation runs.
-		$raw     = wp_unslash( $_POST );
-		$values  = [];
-		$display = [];
-		$errors  = [];
+		$raw         = wp_unslash( $_POST );
+		$values      = [];
+		$display     = [];
+		$errors      = [];
+		$definitions = $form->schema->fields();
+		$currency    = $form->schema->currency();
 
 		$context = [];
 
-		foreach ( $form->schema->fields() as $definition ) {
+		foreach ( $definitions as $definition ) {
 			$fieldId             = (string) ( $definition['id'] ?? '' );
 			$context[ $fieldId ] = $raw[ 'relevant_field_' . $fieldId ] ?? ( $definition['default_value'] ?? '' );
 		}
 
-		$visibility = VisibilityRules::evaluate( $form->schema->fields(), $context );
+		$visibility = VisibilityRules::evaluate( $definitions, $context );
 
-		foreach ( $form->schema->fields() as $definition ) {
+		foreach ( $definitions as $definition ) {
+			// Payment math parses decimals per form currency.
+			$definition['currency'] = $currency;
+
 			$fieldId = (string) ( $definition['id'] ?? '' );
 			$type    = FieldTypeRegistry::get( (string) ( $definition['type'] ?? '' ) );
 
@@ -234,15 +241,65 @@ final class SubmissionHandler {
 			(array) apply_filters( 'relevant_forms_pre_insert_errors', [], $form, $values )
 		);
 
-		return [ $errors, $values, $display ];
+		return [ $errors, $values, $display, self::paymentBreakdown( $form, $raw, $visibility ) ];
 	}
 
 	/**
-	 * Store a validated submission, record events, notify, then redirect.
+	 * Server-computed payment breakdown for the submission (^ payments doc
+	 * §2–3): amounts come from the field definitions and posted positions,
+	 * never from posted prices. Fields hidden by visibility rules contribute
+	 * nothing.
 	 *
-	 * @param array<string, mixed> $values Sanitized field values.
+	 * @param Form                  $form       Form entity.
+	 * @param array<string, mixed>  $raw        Unslashed POST data.
+	 * @param array<string, bool>   $visibility Computed visibility per field id.
+	 * @return array{currency: string, total_minor: int, items: array<int, array{field_id: string, label: string, detail: string, amount_minor: int}>}
 	 */
-	private static function store( Form $form, array $values ): never {
+	private static function paymentBreakdown( Form $form, array $raw, array $visibility ): array {
+		$definitions = $form->schema->fields();
+		$currency    = $form->schema->currency();
+
+		if ( ! PaymentTotals::hasPaymentFields( $definitions ) ) {
+			return [
+				'currency'    => $currency,
+				'total_minor' => 0,
+				'items'       => [],
+			];
+		}
+
+		$rawById = [];
+
+		foreach ( $definitions as $definition ) {
+			if ( ! is_array( $definition ) ) {
+				continue;
+			}
+
+			$fieldId = (string) ( $definition['id'] ?? '' );
+
+			if ( '' === $fieldId ) {
+				continue;
+			}
+
+			if ( isset( $visibility[ $fieldId ] ) && false === $visibility[ $fieldId ] ) {
+				continue;
+			}
+
+			if ( array_key_exists( 'relevant_field_' . $fieldId, $raw ) ) {
+				$rawById[ $fieldId ] = $raw[ 'relevant_field_' . $fieldId ];
+			}
+		}
+
+		return PaymentTotals::breakdown( $definitions, $rawById, $currency );
+	}
+
+	/**
+	 * Store a validated submission, record events, notify (or defer the
+	 * notifications for payments), then redirect.
+	 *
+	 * @param array<string, mixed>                                                                                                                   $values  Sanitized field values.
+	 * @param array{currency: string, total_minor: int, items: array<int, array{field_id: string, label: string, detail: string, amount_minor: int}>} $payment Server-computed payment breakdown.
+	 */
+	private static function store( Form $form, array $values, array $payment ): never {
 		$repository = new FormRepository();
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- nonce is verified by verifyNonce() before storing.
 		$raw = wp_unslash( $_POST );
@@ -256,6 +313,14 @@ final class SubmissionHandler {
 			$classification   = $classificationOn ? $classifier->classify( $form, $values, $protection ) : null;
 
 			$entryStatus = self::resolveStatus( $protection['status'], $classification );
+
+			// Payment forms hold the entry (and its notifications) until the
+			// checkout completes; purely local spam never reaches checkout.
+			$paymentPending = (int) ( $payment['total_minor'] ?? 0 ) > 0 && Entry::STATUS_SPAM !== $entryStatus;
+
+			if ( $paymentPending ) {
+				$entryStatus = Entry::STATUS_PENDING_PAYMENT;
+			}
 
 			$meta = array_merge(
 				$values,
@@ -329,12 +394,19 @@ final class SubmissionHandler {
 
 		do_action( 'relevant_forms_submission_received', $entryId, $form->id, $values );
 
-		if ( null !== $classification && Entry::STATUS_SPAM !== $entryStatus ) {
-			self::notifySmsIfNeeded( $form, $entryId, $classification );
+		if ( $paymentPending ) {
+			$service = new PaymentService();
+			$service->recordPending( $entryId, $payment );
+
+			EventRecorder::record( $entryId, 'notification_deferred', [ 'reason' => 'pending_payment' ] );
+
+			self::startPayment( $form, $entryId, $payment, $service );
+
+			self::finish( $form );
 		}
 
 		if ( Entry::STATUS_SPAM !== $entryStatus ) {
-			( new EmailNotification() )->send( $form, $values, $entryId, $classification );
+			( new SubmissionNotifier() )->notify( $form, $entryId, $classification, $values );
 		} else {
 			EventRecorder::record( $entryId, 'notification_skipped', [ 'reason' => 'spam' ] );
 		}
@@ -343,57 +415,64 @@ final class SubmissionHandler {
 	}
 
 	/**
-	 * Managed priority SMS (Phase 5, doc §20–22): interrupt the operator
-	 * when attention >= threshold. The Cloud renders the message from the
-	 * minimal payload (summary + secure entry link); failures only leave
-	 * a recorded event — entry and email remain unaffected (doc §57).
+	 * Hand a pending entry to the checkout service and forward the visitor
+	 * to the hosted payment page. When the service is unavailable or the
+	 * call fails the entry simply stays pending and the normal confirmation
+	 * flow continues — never a dead end for the visitor (payments doc §4).
 	 *
-	 * @param Form           $form           Form entity.
-	 * @param int            $entryId        Stored entry ID.
-	 * @param Classification $classification Validated classification.
+	 * @param Form                 $form    Form entity.
+	 * @param int                  $entryId Stored entry ID.
+	 * @param array<string, mixed> $payment Breakdown recorded on the entry.
+	 * @param PaymentService       $service Payment state service.
 	 */
-	private static function notifySmsIfNeeded( Form $form, int $entryId, Classification $classification ): void {
-		$alert = new SmsAlert();
+	private static function startPayment( Form $form, int $entryId, array $payment, PaymentService $service ): void {
+		$gateway = new CloudPaymentsGateway();
+		$session = $gateway->isAvailable()
+			? $gateway->createSession( $form, $entryId, $payment, self::requestUrl() )
+			: null;
 
-		if ( ! $alert->shouldSend( $classification, $form ) ) {
+		if ( null === $session ) {
+			self::failPaymentSession( $entryId, $form->id );
+
 			return;
 		}
 
-		try {
-			$delivery = $alert->send( $form, $entryId, $classification );
+		$checkout = esc_url_raw( (string) ( $session['checkout_url'] ?? '' ) );
 
-			( new EntryRepository() )->updateMeta(
-				$entryId,
-				'_sms_alert',
-				null !== $delivery
-					? [
-						'status'      => (string) ( $delivery['status'] ?? 'queued' ),
-						'delivery_id' => (int) ( $delivery['delivery_id'] ?? 0 ),
-						'at'          => current_time( 'mysql', true ),
-					]
-					: [
-						'status' => 'failed',
-						'at'     => current_time( 'mysql', true ),
-					]
-			);
+		if ( ! in_array( (string) wp_parse_url( $checkout, PHP_URL_SCHEME ), [ 'http', 'https' ], true ) ) {
+			self::failPaymentSession( $entryId, $form->id );
 
-			EventRecorder::record(
-				$entryId,
-				null !== $delivery ? 'sms_alert_sent' : 'sms_alert_failed',
-				[
-					'attention_score' => $classification->attentionScore,
-					'delivery_id'     => (int) ( $delivery['delivery_id'] ?? 0 ),
-				]
-			);
-		} catch ( \Throwable $exception ) {
-			Logger::warning(
-				'Managed SMS step failed',
-				[
-					'entry_id'  => $entryId,
-					'exception' => $exception->getMessage(),
-				]
-			);
+			return;
 		}
+
+		$service->recordSession( $entryId, $session );
+
+		do_action( 'relevant_forms_payment_redirect', $session, $entryId, $form->id );
+
+		// Off-site by design: `wp_safe_redirect()` would DNS-validate the
+		// checkout host and silently fall back to wp-admin when resolution
+		// fails — unacceptable mid-payment. The URL is scheme-checked above
+		// and produced by our own cloud for this entry.
+		wp_redirect( $checkout ); // phpcs:ignore WordPress.Security.SafeRedirect.wp_redirect_wp_redirect -- validated absolute http(s) checkout URL.
+		exit;
+	}
+
+	/**
+	 * Checkout unavailable: the entry stays pending and the visitor falls
+	 * back to the normal confirmation (payments doc §4).
+	 *
+	 * @param int $entryId Stored entry ID.
+	 * @param int $formId  Form ID.
+	 */
+	private static function failPaymentSession( int $entryId, int $formId ): void {
+		Logger::warning(
+			'Payment session could not be created',
+			[
+				'entry_id' => $entryId,
+				'form_id'  => $formId,
+			]
+		);
+		EventRecorder::record( $entryId, 'payment_session_failed', [ 'form_id' => $formId ] );
 	}
 
 	/**

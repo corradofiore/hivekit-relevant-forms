@@ -12,6 +12,7 @@ namespace RelevantForms\Forms;
 use JsonSerializable;
 use RelevantForms\Forms\Fields\FieldTypeRegistry;
 use RelevantForms\Forms\Visibility\VisibilityRules;
+use RelevantForms\Payments\Money;
 
 /**
  * Vendor-independent JSON representation of a form.
@@ -55,6 +56,7 @@ final class FormSchema implements JsonSerializable {
 			[
 				'schema_version' => self::SCHEMA_VERSION,
 				'name'           => $name,
+				'currency'       => Money::DEFAULT_CURRENCY,
 				'fields'         => [],
 				'notifications'  => [],
 				'confirmation'   => [
@@ -93,6 +95,7 @@ final class FormSchema implements JsonSerializable {
 			[
 				'schema_version' => self::SCHEMA_VERSION,
 				'name'           => isset( $data['name'] ) ? (string) $data['name'] : '',
+				'currency'       => Money::normalizeCurrency( $data['currency'] ?? '' ),
 				'fields'         => $fields,
 				'notifications'  => isset( $data['notifications'] ) && is_array( $data['notifications'] ) ? array_values( $data['notifications'] ) : [],
 				'confirmation'   => [
@@ -167,6 +170,26 @@ final class FormSchema implements JsonSerializable {
 	public function withName( string $name ): self {
 		$copy         = $this->data;
 		$copy['name'] = $name;
+
+		return new self( $copy );
+	}
+
+	/**
+	 * Payment currency (ISO 4217, lowercase). Unset or unsupported values
+	 * fall back to Money::DEFAULT_CURRENCY.
+	 */
+	public function currency(): string {
+		return Money::normalizeCurrency( $this->data['currency'] ?? '' );
+	}
+
+	/**
+	 * Copy with a new payment currency.
+	 *
+	 * @param string $currency ISO 4217 currency code.
+	 */
+	public function withCurrency( string $currency ): self {
+		$copy             = $this->data;
+		$copy['currency'] = Money::normalizeCurrency( $currency );
 
 		return new self( $copy );
 	}

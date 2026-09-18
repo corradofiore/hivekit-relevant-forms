@@ -136,20 +136,22 @@ final class PaymentSingleField extends PaymentField {
 
 		if ( ! $this->isUserAmount( $definition ) ) {
 			$control = sprintf(
-				'<p class="relevant-forms-payment-amount" id="%1$s">%2$s</p>',
+				'<p class="relevant-forms-payment-amount" id="%1$s" data-rf-price="%3$d">%2$s</p>',
 				esc_attr( FieldMarkup::id( $definition, $formId ) ),
-				esc_html( Money::format( $this->amountMinor( $definition ), $currency ) )
+				esc_html( Money::format( $this->amountMinor( $definition ), $currency ) ),
+				$this->amountMinor( $definition )
 			);
 
 			return FieldMarkup::wrap( $definition, $formId, $control, $error );
 		}
 
 		$control = sprintf(
-			'<input type="text" inputmode="decimal" autocomplete="off" class="relevant-forms-payment-input" name="%1$s" id="%2$s" value="%3$s"%4$s>',
+			'<input type="text" inputmode="decimal" autocomplete="off" class="relevant-forms-payment-input" name="%1$s" id="%2$s" value="%3$s" data-rf-amount="1" data-rf-decimals="%5$d"%4$s>',
 			esc_attr( FieldMarkup::name( $definition ) ),
 			esc_attr( FieldMarkup::id( $definition, $formId ) ),
 			esc_attr( is_scalar( $value ) ? (string) $value : '' ),
-			! empty( $definition['required'] ) ? ' required' : ''
+			! empty( $definition['required'] ) ? ' required' : '',
+			Money::decimals( $currency )
 		);
 
 		return FieldMarkup::wrap( $definition, $formId, $control, $error );
@@ -166,6 +168,24 @@ final class PaymentSingleField extends PaymentField {
 		$value = is_scalar( $raw ) ? (string) $raw : '';
 
 		return Money::toMinor( $value, $this->currency( $definition ) ) ?? 0;
+	}
+
+	/**
+	 * {@inheritDoc}
+	 */
+	public function itemsForRaw( array $definition, mixed $raw ): array {
+		$minor = $this->contributionMinor( $definition, $raw );
+
+		if ( $minor <= 0 ) {
+			return [];
+		}
+
+		return [
+			[
+				'detail'       => $this->isUserAmount( $definition ) ? Money::format( $minor, $this->currency( $definition ) ) : '',
+				'amount_minor' => $minor,
+			],
+		];
 	}
 
 	/**
