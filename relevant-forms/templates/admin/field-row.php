@@ -23,6 +23,11 @@ $isChoice  = in_array( (string) $definition['type'], [ 'select', 'radio', 'check
 $isHidden  = 'hidden' === (string) $definition['type'];
 $isSection = 'section' === (string) $definition['type'];
 
+$fieldType       = (string) $definition['type'];
+$isPricedPayment = in_array( $fieldType, [ 'payment-select', 'payment-multiple', 'payment-checkbox' ], true );
+$isPaymentSingle = 'payment-single' === $fieldType;
+$isPaymentTotal  = 'payment-total' === $fieldType;
+
 // Base DOM id of the preview controls, used by admin.js to update the
 // preview (label, required, placeholder, help text...) while typing.
 $controlId = 'relevant-field-' . (string) $form->id . '-' . $fieldId;
@@ -49,7 +54,7 @@ $inputIdBase = 'rf-field-' . $fieldId;
 				</tr>
 			<?php endif; ?>
 
-			<?php if ( ! $isHidden && ! $isSection ) : ?>
+			<?php if ( ! $isHidden && ! $isSection && ! $isPaymentTotal ) : ?>
 				<tr>
 					<th scope="row"><label for="<?php echo esc_attr( $inputIdBase . '-required' ); ?>"><?php esc_html_e( 'Required', 'relevant-forms' ); ?></label></th>
 					<td>
@@ -74,7 +79,33 @@ $inputIdBase = 'rf-field-' . $fieldId;
 				</tr>
 			<?php endif; ?>
 
-			<?php if ( ! $isHidden && ! in_array( (string) $definition['type'], [ 'consent', 'section' ], true ) ) : ?>
+			<?php if ( $isPaymentSingle ) : ?>
+				<tr>
+					<th scope="row"><label for="<?php echo esc_attr( $inputIdBase . '-amount' ); ?>"><?php esc_html_e( 'Amount', 'relevant-forms' ); ?></label></th>
+					<td>
+						<input type="text" inputmode="decimal" class="rf-input-payment-amount" id="<?php echo esc_attr( $inputIdBase . '-amount' ); ?>" name="relevant_fields[<?php echo esc_attr( $fieldId ); ?>][amount]" value="<?php echo esc_attr( (string) ( $definition['amount'] ?? '0.00' ) ); ?>">
+						<p class="description"><?php esc_html_e( 'Ignored when the visitor enters the amount.', 'relevant-forms' ); ?></p>
+					</td>
+				</tr>
+				<tr>
+					<th scope="row"><label for="<?php echo esc_attr( $inputIdBase . '-user-amount' ); ?>"><?php esc_html_e( 'Visitor enters the amount', 'relevant-forms' ); ?></label></th>
+					<td>
+						<input type="checkbox" id="<?php echo esc_attr( $inputIdBase . '-user-amount' ); ?>" name="relevant_fields[<?php echo esc_attr( $fieldId ); ?>][user_amount]" value="1" <?php checked( ! empty( $definition['user_amount'] ) ); ?>>
+						<p class="description"><?php esc_html_e( 'Donation style: the visitor chooses how much to pay.', 'relevant-forms' ); ?></p>
+					</td>
+				</tr>
+				<tr>
+					<th scope="row"><label for="<?php echo esc_attr( $inputIdBase . '-min-amount' ); ?>"><?php esc_html_e( 'Minimum amount', 'relevant-forms' ); ?></label></th>
+					<td>
+						<input type="text" inputmode="decimal" id="<?php echo esc_attr( $inputIdBase . '-min-amount' ); ?>" name="relevant_fields[<?php echo esc_attr( $fieldId ); ?>][min_amount]" value="<?php echo esc_attr( (string) ( $definition['min_amount'] ?? '' ) ); ?>">
+						<label for="<?php echo esc_attr( $inputIdBase . '-max-amount' ); ?>"><?php esc_html_e( 'Maximum amount', 'relevant-forms' ); ?></label>
+						<input type="text" inputmode="decimal" id="<?php echo esc_attr( $inputIdBase . '-max-amount' ); ?>" name="relevant_fields[<?php echo esc_attr( $fieldId ); ?>][max_amount]" value="<?php echo esc_attr( (string) ( $definition['max_amount'] ?? '' ) ); ?>">
+						<p class="description"><?php esc_html_e( 'Used when the visitor enters the amount. Leave empty for no custom limits.', 'relevant-forms' ); ?></p>
+					</td>
+				</tr>
+			<?php endif; ?>
+
+			<?php if ( ! $isHidden && ! in_array( (string) $definition['type'], [ 'consent', 'section', 'payment-total' ], true ) ) : ?>
 				<tr>
 					<th scope="row"><label for="<?php echo esc_attr( $inputIdBase . '-placeholder' ); ?>"><?php esc_html_e( 'Placeholder', 'relevant-forms' ); ?></label></th>
 					<td>
@@ -89,11 +120,11 @@ $inputIdBase = 'rf-field-' . $fieldId;
 				</tr>
 			<?php endif; ?>
 
-			<?php if ( $isChoice ) : ?>
+			<?php if ( $isChoice || $isPricedPayment ) : ?>
 				<tr>
 					<th scope="row"><label for="<?php echo esc_attr( $inputIdBase . '-choices' ); ?>"><?php esc_html_e( 'Choices', 'relevant-forms' ); ?></label></th>
 					<td>
-						<textarea class="widefat" id="<?php echo esc_attr( $inputIdBase . '-choices' ); ?>" rows="4" name="relevant_fields[<?php echo esc_attr( $fieldId ); ?>][choices]" placeholder="<?php esc_attr_e( 'One per line. Optional value separated by |\ne.g. Red|red', 'relevant-forms' ); ?>"><?php echo esc_textarea( implode( "\n", array_map( static fn ( array $choice ): string => $choice['label'] === $choice['value'] ? $choice['label'] : $choice['label'] . '|' . $choice['value'], $field_type->normalizeChoices( $definition ) ) ) ); ?></textarea>
+						<textarea class="widefat" id="<?php echo esc_attr( $inputIdBase . '-choices' ); ?>" rows="4" name="relevant_fields[<?php echo esc_attr( $fieldId ); ?>][choices]" placeholder="<?php echo esc_attr( $isPricedPayment ? __( 'One per line: Item|Price\ne.g. T-shirt|25.00', 'relevant-forms' ) : __( 'One per line. Optional value separated by |\ne.g. Red|red', 'relevant-forms' ) ); ?>"><?php echo esc_textarea( implode( "\n", array_map( static fn ( array $choice ): string => $choice['label'] === $choice['value'] ? $choice['label'] : $choice['label'] . '|' . $choice['value'], $field_type->normalizeChoices( $definition ) ) ) ); ?></textarea>
 					</td>
 				</tr>
 			<?php endif; ?>
@@ -142,7 +173,7 @@ $inputIdBase = 'rf-field-' . $fieldId;
 				</tr>
 			<?php endif; ?>
 
-			<?php if ( ! $isSection ) : ?>
+			<?php if ( ! $isSection && ! $isPaymentTotal && ! $isPricedPayment ) : ?>
 				<tr>
 					<th scope="row"><label for="<?php echo esc_attr( $inputIdBase . '-default' ); ?>"><?php esc_html_e( 'Default value', 'relevant-forms' ); ?></label></th>
 					<td>

@@ -208,6 +208,9 @@
 		var group = wrapper.querySelector( '.relevant-forms-choice-group' );
 		var name = null;
 		var checked = [];
+		// Payment fields submit the choice POSITION (never the price).
+		var isPayment = 0 === type.indexOf( 'payment-' );
+		var isCheckbox = 'checkbox' === type || 'payment-checkbox' === type;
 
 		if ( select ) {
 			// Keep the localized "— Select —" placeholder option.
@@ -215,10 +218,10 @@
 				select.remove( 1 );
 			}
 
-			choices.forEach( function ( choice ) {
+			choices.forEach( function ( choice, index ) {
 				var option = document.createElement( 'option' );
 
-				option.setAttribute( 'value', choice.value );
+				option.setAttribute( 'value', isPayment ? String( index ) : choice.value );
 				option.textContent = choice.label;
 				select.appendChild( option );
 			} );
@@ -240,7 +243,7 @@
 			}
 		} );
 
-		name = name || ( 'relevant_field_' + fieldId + ( 'checkbox' === type ? '[]' : '' ) );
+		name = name || ( 'relevant_field_' + fieldId + ( isCheckbox ? '[]' : '' ) );
 
 		group.textContent = '';
 
@@ -251,13 +254,13 @@
 
 			item.className = 'relevant-forms-choice';
 
-			input.setAttribute( 'type', 'checkbox' === type ? 'checkbox' : 'radio' );
+			input.setAttribute( 'type', isCheckbox ? 'checkbox' : 'radio' );
 			input.setAttribute( 'name', name );
 			input.setAttribute( 'id', baseId + '-' + index );
-			input.setAttribute( 'value', choice.value );
+			input.setAttribute( 'value', isPayment ? String( index ) : choice.value );
 			input.setAttribute( 'form', 'relevant-forms-preview' );
 
-			if ( checked.indexOf( choice.value ) !== -1 ) {
+			if ( checked.indexOf( input.value ) !== -1 ) {
 				input.checked = true;
 			}
 

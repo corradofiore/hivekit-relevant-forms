@@ -82,6 +82,11 @@ final class FieldTypeRegistry {
 			new HiddenField(),
 			new DateField(),
 			new FileField(),
+			new PaymentSingleField(),
+			new PaymentSelectField(),
+			new PaymentMultipleField(),
+			new PaymentCheckboxField(),
+			new PaymentTotalField(),
 		];
 	}
 }
