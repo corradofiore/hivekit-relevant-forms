@@ -35,6 +35,7 @@ rsync -a --delete \
 	--exclude '.phpunit.cache/' \
 	--exclude '.wp-env.json' \
 	--exclude '.wp-env.test.json' \
+	--exclude '.wp-env.override.json' \
 	--exclude '.editorconfig' \
 	--exclude '.gitignore' \
 	--exclude '.DS_Store' \
