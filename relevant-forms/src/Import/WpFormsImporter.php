@@ -11,6 +11,7 @@ namespace RelevantForms\Import;
 
 use RelevantForms\Forms\FormRepository;
 use RelevantForms\Forms\FormSchema;
+use RelevantForms\Payments\Money;
 use RelevantForms\Support\Logger;
 
 /**
@@ -125,7 +126,7 @@ final class WpFormsImporter {
 		$notification = $form->notifications();
 		$confirmation = $form->confirmation();
 
-		return FormSchema::empty( $form->title )
+		$schema = FormSchema::empty( $form->title )
 			->withFields( $fields )
 			->withNotifications( $notification['emails'] )
 			->withConfirmation( $confirmation['message'], $confirmation['redirect'] )
@@ -136,6 +137,37 @@ final class WpFormsImporter {
 					'imported_at'     => current_time( 'mysql', true ),
 				]
 			);
+
+		if ( self::hasPaymentFields( $form ) ) {
+			$schema = $schema->withCurrency( self::wpFormsCurrency() );
+		}
+
+		return $schema;
+	}
+
+	/**
+	 * Whether the mapped fields contain payment types.
+	 */
+	private static function hasPaymentFields( WpFormsForm $form ): bool {
+		foreach ( $form->mappedFields() as $entry ) {
+			if ( str_starts_with( (string) ( $entry['definition']['type'] ?? '' ), 'payment-' ) ) {
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	/**
+	 * WPForms' account-wide currency setting (their payment fields store bare
+	 * amounts). Falls back to the Relevant default when WPForms never
+	 * configured one; the schema normalizes unsupported codes.
+	 */
+	private static function wpFormsCurrency(): string {
+		$settings = get_option( 'wpforms_settings' );
+		$code     = is_array( $settings ) ? ( $settings['currency'] ?? '' ) : '';
+
+		return is_string( $code ) && '' !== trim( $code ) ? trim( $code ) : Money::DEFAULT_CURRENCY;
 	}
 
 	/**
@@ -158,6 +190,10 @@ final class WpFormsImporter {
 			if ( ! in_array( $note, $notes, true ) ) {
 				$notes[] = $note;
 			}
+		}
+
+		if ( self::hasPaymentFields( $form ) ) {
+			$notes[] = __( 'Payment amounts were imported as-is (currency from the WPForms settings when present). WPForms gateway connections are not migrated: connect Stripe from Relevant Forms → Settings to accept payments.', 'relevant-forms' );
 		}
 
 		$notes[] = __( 'Imported as a draft: review and publish when ready. Original WPForms data is untouched.', 'relevant-forms' );

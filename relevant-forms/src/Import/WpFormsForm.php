@@ -290,14 +290,12 @@ final class WpFormsForm {
 		$integrations = $this->usesIntegrations();
 
 		if ( $integrations ) {
-			$issues[] = __( 'Payment or marketing integrations are not imported.', 'relevant-forms' );
+			$issues[] = __( 'Payment gateway and marketing connections are not imported; reconnect Stripe from the Relevant Forms settings after import.', 'relevant-forms' );
 		}
 
 		$status = self::STATUS_COMPATIBLE;
 
-		if ( $integrations ) {
-			$status = self::STATUS_UNSUPPORTED;
-		} elseif ( [] !== $skipped || $conditionalIssues['unmapped'] ) {
+		if ( $integrations || [] !== $skipped || $conditionalIssues['unmapped'] ) {
 			$status = self::STATUS_REVIEW;
 		}
 
@@ -356,21 +354,14 @@ final class WpFormsForm {
 	}
 
 	/**
-	 * Whether the form references payment/marketing integrations.
+	 * Whether the form references external gateway or marketing connections.
+	 *
+	 * Payment FIELDS import fine (phase 5); the connection itself never does:
+	 * the site reconnects Stripe through the Relevant Forms settings.
 	 */
 	private function usesIntegrations(): bool {
 		$settings = $this->settings;
 
-		if ( ! empty( $settings['payments'] ) || ! empty( $settings['providers'] ) ) {
-			return true;
-		}
-
-		foreach ( $this->fields as $field ) {
-			if ( str_starts_with( strtolower( (string) ( $field['type'] ?? '' ) ), 'payment' ) ) {
-				return true;
-			}
-		}
-
-		return false;
+		return ! empty( $settings['payments'] ) || ! empty( $settings['providers'] );
 	}
 }

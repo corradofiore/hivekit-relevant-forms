@@ -16,7 +16,7 @@ Free WordPress forms with entries, local anti-spam and optional Relevant Cloud s
 
 Create forms, store entries, send email notifications, use local anti-spam controls and manage everyday form workflows without purchasing any subscription.
 
-When a site needs more than ordinary form handling, administrators can optionally connect **Relevant Cloud**, a paid external service performing substantive remote functionality: semantic message classification, managed SMS alerts, private object storage and malware scanning.
+When a site needs more than ordinary form handling, administrators can optionally connect **Relevant Cloud**, a paid external service performing substantive remote functionality: semantic message classification, managed SMS alerts, private object storage, malware scanning and payment brokering.
 
 Core does not require Relevant Cloud to render or accept ordinary forms.
 
@@ -26,6 +26,7 @@ Core functionality includes:
 
 * Common form fields (text, textarea, email, telephone, number, URL, select, radio, checkbox, consent, hidden, date, file)
 * Conditional field visibility: show or hide fields based on earlier answers, with rule groups (AND within a group, OR across groups)
+* Payment fields: fixed single items, priced dropdowns and choices, donation-style user-entered amounts and an automatic live total (collecting payments requires connecting your own Stripe account)
 * Entry storage in your own WordPress database
 * Entries inbox with statuses and spam/suspicious triage
 * Email notifications
@@ -79,7 +80,7 @@ This plugin works fully without contacting any external service. The services be
 
 = Relevant Cloud =
 
-Relevant Cloud provides the paid managed functionality described above (semantic classification, managed SMS alerts, managed private storage and malware scanning). Core sends only the information needed by the capability the administrator has enabled, to the Cloud URL configured on the settings screen.
+Relevant Cloud provides the paid managed functionality described above (semantic classification, managed SMS alerts, managed private storage, malware scanning and payment brokering). Core sends only the information needed by the capability the administrator has enabled, to the Cloud URL configured on the settings screen.
 
 Service terms: [INSERT RELEVANT CLOUD TERMS URL]
 Privacy policy: [INSERT RELEVANT PRIVACY POLICY URL]
@@ -97,6 +98,15 @@ When managed SMS is enabled, Relevant Cloud transmits the destination telephone 
 
 When managed secure uploads are enabled, uploaded files are stored in private object storage and processed by the configured malware-scanning infrastructure before being released for authorized download.
 
+= Stripe (payments) =
+
+Payment fields are local and free: nothing leaves the site until an administrator connects a Stripe account and enables the Payments capability. When enabled, Relevant Cloud creates the hosted Stripe Checkout session for each submission on the site owner's own Stripe account, so buyers pay the site owner directly and card data is entered on Stripe's pages only — it never touches this plugin or its database. Checkout amounts, currency and item descriptions defined in the form are sent to Relevant Cloud for this purpose. Relevant Cloud retains a 2% platform fee from each charge; the remainder settles on the connected Stripe account.
+
+Stripe services agreement: https://stripe.com/legal/connect-account
+Stripe privacy policy: https://stripe.com/privacy
+Relevant Cloud platform fee terms: [INSERT RELEVANT CLOUD TERMS URL]
+Subprocessors (including Stripe): [INSERT RELEVANT SUBPROCESSORS URL]
+
 == Installation ==
 
 1. Upload the plugin files to the `/wp-content/plugins/relevant-forms` directory, or install the plugin through the WordPress Plugins screen directly.
@@ -112,9 +122,13 @@ When managed secure uploads are enabled, uploaded files are stored in private ob
 
 Yes. Core is intended to remain useful without purchasing Relevant Cloud or Relevant Pro.
 
+= How do card payments work, and what does Relevant Cloud charge? =
+
+Payment fields are free and fully local; no payment provider is contacted until you connect your own Stripe account and enable the Payments capability. Buyers pay you directly on your Stripe account (hosted Stripe Checkout). Relevant Cloud brokers the connection and monitors each payment, and retains a 2% platform fee from each charge.
+
 = What is Relevant Cloud? =
 
-Relevant Cloud is an optional paid external service that performs remote functions such as semantic classification, managed SMS, managed private storage and malware scanning.
+Relevant Cloud is an optional paid external service that performs remote functions such as semantic classification, managed SMS, managed private storage, malware scanning and payment brokering through Stripe.
 
 = Does my form stop working if Relevant Cloud is unavailable or my subscription ends? =
 
@@ -142,6 +156,7 @@ Relevant Forms is an independent product and is not affiliated with or endorsed 
 * Security: honeypot, timing checks, rate limiting, duplicate detection, spam signals, local spam triage.
 * Uploads: local private quarantine with strict validation and a scan-before-download policy.
 * Migration: WPForms compatibility scanner and draft importer (field types, notifications, confirmations and conditional logic converted to visibility rules), plus a Tier 1 hook compatibility layer that runs only while WPForms itself is not active.
+* Payments: Stripe Connect card payments (fixed items, priced choices, donation-style amounts, live total), hosted Stripe Checkout on the site owner's own Stripe account, 2% platform fee, admin refunds and WPForms payment-field import with amounts preserved.
 * Optional Relevant Cloud: explicit consent connection flow, semantic classification with redaction, priority SMS alerts, managed secure uploads, usage metering and per-site subscriptions with hosted checkout.
 * Privacy: no external calls before explicit configuration; the plugin is fully functional without Relevant Cloud.
 

@@ -368,3 +368,69 @@ it(
 		expect( WpFormsConditionals::convert( $payload, rf_cond_fields(), rf_cond_definitions() )['notes'] )->toBe( [] );
 	}
 );
+
+it(
+	'resolves payment choice rules to imported option positions',
+	function () {
+		$fields = rf_cond_fields(
+			[
+				'3' => [
+					'id'      => '3',
+					'type'    => 'payment-select',
+					'label'   => 'Merch',
+					'choices' => [
+						'1' => [
+							'label' => 'T-shirt',
+							'value' => '25.00',
+						],
+						'2' => [
+							'label' => 'Cap',
+							'value' => '10',
+						],
+					],
+				],
+			]
+		);
+
+		$definitions = rf_cond_definitions(
+			[
+				'3' => [
+					'id'      => '3',
+					'type'    => 'payment-select',
+					'choices' => [ 'T-shirt|25.00', 'Cap|10' ],
+				],
+			]
+		);
+
+		$payload = [
+			'conditional_type' => 'show',
+			'conditionals'     => [
+				'1' => [
+					'1' => [
+						'field'    => '3',
+						'operator' => '==',
+						'value'    => '2',
+					],
+				],
+			],
+		];
+
+		$result = WpFormsConditionals::convert( $payload, $fields, $definitions );
+
+		expect( $result['visibility']['groups'][0][0] )->toBe(
+			[
+				'field'    => '3',
+				'operator' => 'is',
+				'value'    => '1',
+			]
+		);
+
+		// A rule referencing an option that was not imported drops the group.
+		$payload['conditionals']['1']['1']['value'] = '5';
+
+		$dropped = WpFormsConditionals::convert( $payload, $fields, $definitions );
+
+		expect( $dropped['visibility'] )->toBe( [] );
+		expect( implode( ' ', $dropped['notes'] ) )->toContain( 'dropped' );
+	}
+);
