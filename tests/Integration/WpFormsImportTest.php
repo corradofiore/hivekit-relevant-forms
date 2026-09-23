@@ -104,12 +104,12 @@ final class WpFormsImportTest extends TestCase {
 				'fields' => [
 					[
 						'id'    => '0',
-						'type'  => 'payment-single',
-						'label' => 'Pay',
+						'type'  => 'signature',
+						'label' => 'Sign',
 					],
 				],
 			],
-			'Payments'
+			'Signatures'
 		);
 
 		$forms = ( new WpFormsScanner() )->forms();
@@ -236,6 +236,76 @@ final class WpFormsImportTest extends TestCase {
 
 		$form = ( new FormRepository() )->find( (int) $report['rows'][0]['form_id'] );
 		$this->assertNotNull( $form );
+	}
+
+	/**
+	 * Payment fields import with amounts, currency and the reconnect note.
+	 */
+	public function testImportMapsPaymentFieldsWithCurrency(): void {
+		update_option( 'wpforms_settings', [ 'currency' => 'EUR' ] );
+
+		$this->createWpFormsForm(
+			[
+				'fields'   => [
+					'0' => [
+						'id'     => '0',
+						'type'   => 'payment-single',
+						'label'  => 'Deposit',
+						'format' => 'single',
+						'price'  => '25',
+					],
+					'1' => [
+						'id'      => '1',
+						'type'    => 'payment-select',
+						'label'   => 'Merch',
+						'choices' => [
+							'1' => [
+								'label' => 'T-shirt',
+								'value' => '25.00',
+							],
+							'2' => [
+								'label' => 'Cap',
+								'value' => '10.00',
+							],
+						],
+					],
+					'2' => [
+						'id'    => '2',
+						'type'  => 'payment-total',
+						'label' => 'Total',
+					],
+				],
+				'settings' => [ 'form_title' => 'Checkout' ],
+			],
+			'Checkout'
+		);
+
+		try {
+			$forms = ( new WpFormsScanner() )->forms();
+
+			$this->assertCount( 1, $forms );
+			$this->assertSame( WpFormsForm::STATUS_COMPATIBLE, $forms[0]->analysis()['status'] );
+
+			$row = ( new WpFormsImporter() )->import( $forms[0] );
+
+			$this->assertSame( 'imported', $row['status'] );
+			$this->assertSame( 3, $row['imported_fields'] );
+			$this->assertStringContainsString( 'connect Stripe', implode( ' ', $row['notes'] ) );
+
+			$form   = ( new FormRepository() )->find( (int) $row['form_id'] );
+			$schema = $form->schema;
+
+			$this->assertSame( 'eur', $schema->currency() );
+
+			$fields = $schema->fields();
+			$this->assertSame( 'payment-single', $fields[0]['type'] );
+			$this->assertSame( '25', $fields[0]['amount'] );
+			$this->assertSame( 'payment-select', $fields[1]['type'] );
+			$this->assertSame( [ 'T-shirt|25.00', 'Cap|10.00' ], $fields[1]['choices'] );
+			$this->assertSame( 'payment-total', $fields[2]['type'] );
+		} finally {
+			delete_option( 'wpforms_settings' );
+		}
 	}
 
 	/**

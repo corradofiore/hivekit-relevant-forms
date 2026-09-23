@@ -153,11 +153,13 @@ it(
 it(
 	'skips unsupported and unknown field types',
 	function () {
+		// Unknown payment types (addon fields) stay unsupported; the standard
+		// payment fields map with amounts preserved (phase 5).
 		expect(
 			WpFormsFieldMapper::map(
 				[
 					'id'   => '10',
-					'type' => 'payment-single',
+					'type' => 'payment-coupon',
 				]
 			)
 		)->toBeNull();
@@ -201,6 +203,101 @@ it(
 				]
 			)
 		)->toBeNull();
+	}
+);
+
+it(
+	'maps payment fields with amounts preserved',
+	function () {
+		$single = WpFormsFieldMapper::map(
+			[
+				'id'     => '20',
+				'type'   => 'payment-single',
+				'label'  => 'Deposit',
+				'format' => 'single',
+				'price'  => '25.00',
+			]
+		);
+
+		expect( $single['definition']['type'] )->toBe( 'payment-single' );
+		expect( $single['definition']['amount'] )->toBe( '25.00' );
+		expect( $single['definition']['user_amount'] ?? false )->toBeFalse();
+
+		$donation = WpFormsFieldMapper::map(
+			[
+				'id'        => '21',
+				'type'      => 'payment-single',
+				'label'     => 'Donation',
+				'format'    => 'user',
+				'min_price' => '5',
+			]
+		);
+
+		expect( $donation['definition']['user_amount'] )->toBeTrue();
+		expect( $donation['definition']['min_amount'] )->toBe( '5' );
+		expect( implode( ' ', $donation['notes'] ) )->toContain( 'donation' );
+
+		$select = WpFormsFieldMapper::map(
+			[
+				'id'      => '22',
+				'type'    => 'payment-select',
+				'label'   => 'Merch',
+				'choices' => [
+					'1' => [
+						'label' => 'T-shirt',
+						'value' => '25.00',
+					],
+					'2' => [
+						'label' => 'Cap',
+						'value' => '10',
+					],
+					'3' => [ 'label' => 'Samples' ],
+				],
+			]
+		);
+
+		expect( $select['definition']['type'] )->toBe( 'payment-select' );
+		expect( $select['definition']['choices'] )->toBe( [ 'T-shirt|25.00', 'Cap|10' ] );
+		expect( implode( ' ', $select['notes'] ) )->toContain( 'skipped' );
+
+		$total = WpFormsFieldMapper::map(
+			[
+				'id'    => '23',
+				'type'  => 'payment-total',
+				'label' => 'Total',
+			]
+		);
+
+		expect( $total['definition']['type'] )->toBe( 'payment-total' );
+	}
+);
+
+it(
+	'resolves payment choice keys to imported option positions',
+	function () {
+		$field = [
+			'choices' => [
+				'1' => [
+					'label' => 'T-shirt',
+					'value' => '25.00',
+				],
+				'2' => [
+					'label' => 'Cap',
+					'value' => '10',
+				],
+				'3' => [
+					'label' => 'Broken',
+					'value' => 'nope',
+				],
+			],
+		];
+
+		expect( WpFormsFieldMapper::paymentPositionByKey( '1', $field ) )->toBe( '0' );
+		expect( WpFormsFieldMapper::paymentPositionByKey( '2', $field ) )->toBe( '1' );
+		// The skipped option and unknown keys have no position.
+		expect( WpFormsFieldMapper::paymentPositionByKey( '3', $field ) )->toBeNull();
+		expect( WpFormsFieldMapper::paymentPositionByKey( '9', $field ) )->toBeNull();
+		expect( WpFormsFieldMapper::paymentPositionByKey( '1', null ) )->toBeNull();
 	}
 );
 

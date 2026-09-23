@@ -185,19 +185,34 @@ it(
 		expect( $review->skippedFields() )->toHaveCount( 1 );
 		expect( implode( ' ', $review->analysis()['issues'] ) )->toContain( 'Signature' );
 
-		$unsupported = rf_wpforms_form(
+		// Payment fields import with amounts preserved (phase 5).
+		$payment = rf_wpforms_form(
 			[
 				'fields' => [
 					[
 						'id'    => '0',
 						'type'  => 'payment-single',
 						'label' => 'Pay',
+						'price' => '10',
 					],
 				],
 			]
 		);
 
-		expect( $unsupported->analysis()['status'] )->toBe( WpFormsForm::STATUS_UNSUPPORTED );
+		expect( $payment->analysis()['status'] )->toBe( WpFormsForm::STATUS_COMPATIBLE );
+		expect( $payment->mappedFields() )->toHaveCount( 1 );
+
+		// Gateway connections are flagged for review, not skipped entirely.
+		$integration = rf_wpforms_form(
+			[
+				'settings' => [
+					'payments' => [ 'stripe' => [ 'account' => 'acct_1' ] ],
+				],
+			]
+		);
+
+		expect( $integration->analysis()['status'] )->toBe( WpFormsForm::STATUS_REVIEW );
+		expect( implode( ' ', $integration->analysis()['issues'] ) )->toContain( 'Stripe' );
 	}
 );
 

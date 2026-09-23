@@ -78,6 +78,15 @@ final class WpFormsConditionals {
 	private const CHOICE_SOURCE_TYPES = [ 'select', 'radio', 'checkbox' ];
 
 	/**
+	 * Payment choice sources: their rendered fields submit choice POSITIONS
+	 * (0-based, among the imported options), so rule values resolve to the
+	 * position of the referenced option.
+	 *
+	 * @var array<int, string>
+	 */
+	private const PAYMENT_CHOICE_SOURCE_TYPES = [ 'payment-select', 'payment-multiple', 'payment-checkbox' ];
+
+	/**
 	 * Operators that carry no value in the Relevant engine.
 	 *
 	 * @var array<int, string>
@@ -202,6 +211,34 @@ final class WpFormsConditionals {
 		$value    = is_scalar( $rawRule['value'] ?? null ) ? (string) $rawRule['value'] : '';
 
 		$type = strtolower( (string) ( $definitions[ $fieldId ]['type'] ?? '' ) );
+
+		if ( in_array( $type, self::PAYMENT_CHOICE_SOURCE_TYPES, true ) ) {
+			$native = self::CHOICE_OPERATOR_MAP[ $operator ] ?? null;
+
+			if ( null === $native ) {
+				return null;
+			}
+
+			if ( in_array( $native, self::VALUELESS_OPERATORS, true ) ) {
+				return [
+					'field'    => $fieldId,
+					'operator' => $native,
+					'value'    => '',
+				];
+			}
+
+			$position = WpFormsFieldMapper::paymentPositionByKey( $value, $rawById[ $fieldId ] ?? null );
+
+			if ( null === $position ) {
+				return null;
+			}
+
+			return [
+				'field'    => $fieldId,
+				'operator' => $native,
+				'value'    => $position,
+			];
+		}
 
 		if ( in_array( $type, self::CHOICE_SOURCE_TYPES, true ) ) {
 			$native = self::CHOICE_OPERATOR_MAP[ $operator ] ?? null;
