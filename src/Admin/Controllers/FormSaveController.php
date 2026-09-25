@@ -207,6 +207,14 @@ final class FormSaveController {
 				$definition['max_amount']  = sanitize_text_field( (string) ( $rawField['max_amount'] ?? '' ) );
 			}
 
+			if ( 'entry-preview' === $type ) {
+				$definition['notice_enable'] = ! empty( $rawField['notice_enable'] );
+				$definition['notice']        = sanitize_textarea_field( (string) ( $rawField['notice'] ?? '' ) );
+				$previewStyle                = sanitize_key( (string) ( $rawField['style'] ?? '' ) );
+
+				$definition['style'] = in_array( $previewStyle, [ 'basic', 'compact', 'table', 'table_compact' ], true ) ? $previewStyle : 'basic';
+			}
+
 			if ( 'file' === $type ) {
 				$definition['upload_policy'] = [
 					'allowed_ext' => self::parseExtensions( (string) ( $rawField['upload_policy']['allowed_ext'] ?? '' ) ),

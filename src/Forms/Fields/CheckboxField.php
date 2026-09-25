@@ -12,7 +12,7 @@ namespace RelevantForms\Forms\Fields;
 /**
  * Multiple checkboxes; values stored as a list.
  */
-final class CheckboxField implements FieldType {
+final class CheckboxField implements FieldType, ChoiceFieldType {
 
 	use ChoiceTrait;
 

@@ -9,10 +9,12 @@ declare(strict_types=1);
 
 namespace RelevantForms\Forms;
 
+use RelevantForms\Forms\Fields\ChoiceFieldType;
 use RelevantForms\Forms\Fields\FieldTypeRegistry;
 use RelevantForms\Forms\Fields\PaymentField;
 use RelevantForms\Forms\Fields\TextareaField;
 use RelevantForms\Forms\Visibility\VisibilityRules;
+use RelevantForms\Payments\Money;
 
 /**
  * Renders published forms as accessible markup and registers the shortcode.
@@ -76,12 +78,14 @@ final class FormRenderer {
 
 		$definitions = $form->schema->fields();
 		$visibility  = VisibilityRules::evaluate( $definitions, $values );
+		$definitions = self::prepareDefinitions( $definitions, $visibility, $values, $form->schema->currency() );
 		$pages       = self::groupPages( $definitions, $visibility );
 
 		$hasFileField       = false;
 		$hasLimitedTextarea = false;
 		$hasVisibility      = false;
 		$hasPaymentFields   = false;
+		$hasEntryPreview    = false;
 
 		foreach ( $definitions as $definition ) {
 			$fieldType = (string) ( $definition['type'] ?? '' );
@@ -100,6 +104,10 @@ final class FormRenderer {
 
 			if ( FieldTypeRegistry::get( $fieldType ) instanceof PaymentField ) {
 				$hasPaymentFields = true;
+			}
+
+			if ( 'entry-preview' === $fieldType ) {
+				$hasEntryPreview = true;
 			}
 		}
 
@@ -121,6 +129,10 @@ final class FormRenderer {
 
 		if ( null !== $pages ) {
 			wp_enqueue_script( 'relevant-forms-pages' );
+		}
+
+		if ( $hasEntryPreview ) {
+			wp_enqueue_script( 'relevant-forms-preview' );
 		}
 
 		$output   = [];
@@ -336,6 +348,193 @@ final class FormRenderer {
 		}
 
 		return $pages;
+	}
+
+	/**
+	 * Inject payloads into definitions before rendering.
+	 *
+	 * Entry preview rows are computed here (never earlier) so both the plain
+	 * and the paginated paths receive them. Definitions without preview
+	 * fields pass through untouched.
+	 *
+	 * @param array<int, array<string, mixed>> $definitions Field definitions in order.
+	 * @param array<string, bool>              $visibility  Visibility map keyed by field id.
+	 * @param array<string, mixed>             $values      Entered values keyed by field id.
+	 * @param string                           $currency    Form currency.
+	 * @return array<int, array<string, mixed>>
+	 */
+	private static function prepareDefinitions( array $definitions, array $visibility, array $values, string $currency ): array {
+		$hasPreview = false;
+
+		foreach ( $definitions as $definition ) {
+			if ( 'entry-preview' === (string) ( $definition['type'] ?? '' ) ) {
+				$hasPreview = true;
+				break;
+			}
+		}
+
+		if ( ! $hasPreview ) {
+			return $definitions;
+		}
+
+		foreach ( $definitions as $index => $definition ) {
+			if ( 'entry-preview' !== (string) ( $definition['type'] ?? '' ) ) {
+				continue;
+			}
+
+			$definitions[ $index ]['preview_rows'] = self::previewRows( $definitions, $index, $visibility, $values, $currency );
+		}
+
+		return $definitions;
+	}
+
+	/**
+	 * Rows for one entry preview field: the data fields entered before it.
+	 *
+	 * Empty values and fields hidden by conditional logic keep their row but
+	 * start hidden, so the front-end script can reveal them without a server
+	 * round trip. Fields between two previews are only reported once, on the
+	 * later preview, mirroring WPForms.
+	 *
+	 * @param array<int, array<string, mixed>> $definitions Field definitions in order.
+	 * @param int                              $index       Preview field index.
+	 * @param array<string, bool>              $visibility  Visibility map keyed by field id.
+	 * @param array<string, mixed>             $values      Entered values keyed by field id.
+	 * @param string                           $currency    Form currency.
+	 * @return array<int, array{id: string, label: string, value: string, hidden_by_rule: bool}>
+	 */
+	private static function previewRows( array $definitions, int $index, array $visibility, array $values, string $currency ): array {
+		$start = 0;
+
+		for ( $i = $index - 1; $i >= 0; --$i ) {
+			if ( 'entry-preview' === (string) ( $definitions[ $i ]['type'] ?? '' ) ) {
+				$start = $i + 1;
+				break;
+			}
+		}
+
+		$rows = [];
+
+		foreach ( array_slice( $definitions, $start, $index - $start ) as $definition ) {
+			$type  = (string) ( $definition['type'] ?? '' );
+			$id    = (string) ( $definition['id'] ?? '' );
+			$label = trim( (string) ( $definition['label'] ?? '' ) );
+
+			if ( in_array( $type, [ 'section', 'pagebreak', 'entry-preview' ], true ) || '' === $id || '' === $label ) {
+				continue;
+			}
+
+			$rows[] = [
+				'id'             => $id,
+				'label'          => $label,
+				'value'          => self::previewValue( $type, $definition, $values[ $id ] ?? '', $currency ),
+				'hidden_by_rule' => false === ( $visibility[ $id ] ?? true ),
+			];
+		}
+
+		return $rows;
+	}
+
+	/**
+	 * Human-readable preview text for one entered value.
+	 *
+	 * Choice values resolve to their labels, priced choices to the same
+	 * "Label (price)" text the visitor picked, and payment amounts to the
+	 * form currency. The live total is left empty on purpose: the front-end
+	 * script reads it from the total element.
+	 *
+	 * @param string               $type       Field type.
+	 * @param array<string, mixed> $definition Field definition.
+	 * @param mixed                $raw        Entered value.
+	 * @param string               $currency   Form currency.
+	 */
+	private static function previewValue( string $type, array $definition, mixed $raw, string $currency ): string {
+		if ( 'consent' === $type ) {
+			return ! empty( $raw ) ? __( 'Yes', 'relevant-forms' ) : '';
+		}
+
+		if ( 'payment-total' === $type ) {
+			return '';
+		}
+
+		if ( 'payment-single' === $type ) {
+			$amount = is_scalar( $raw ) ? trim( (string) $raw ) : '';
+			$minor  = '' !== $amount ? Money::toMinor( $amount, $currency ) : null;
+
+			return null !== $minor ? Money::format( $minor, $currency ) : $amount;
+		}
+
+		$isPayment = in_array( $type, [ 'payment-select', 'payment-multiple', 'payment-checkbox' ], true );
+		$isChoice  = $isPayment || in_array( $type, [ 'select', 'radio', 'checkbox' ], true );
+
+		if ( is_array( $raw ) ) {
+			$labels = [];
+
+			foreach ( $raw as $item ) {
+				if ( ! is_scalar( $item ) ) {
+					continue;
+				}
+
+				$labels[] = $isChoice ? self::previewChoiceLabel( $definition, (string) $item, $isPayment, $currency ) : (string) $item;
+			}
+
+			return implode( ', ', $labels );
+		}
+
+		if ( ! is_scalar( $raw ) ) {
+			return '';
+		}
+
+		$value = trim( (string) $raw );
+
+		if ( '' === $value ) {
+			return '';
+		}
+
+		return $isChoice ? self::previewChoiceLabel( $definition, $value, $isPayment, $currency ) : $value;
+	}
+
+	/**
+	 * Label for a submitted choice value (with its price when priced).
+	 *
+	 * Priced payment fields submit the option position, everything else
+	 * submits the option value (falling back to the label, like the entry
+	 * storage).
+	 *
+	 * @param array<string, mixed> $definition Field definition.
+	 * @param string               $value      Submitted value (or position).
+	 * @param bool                 $priced     Whether this is a priced payment field.
+	 * @param string               $currency   Form currency.
+	 */
+	private static function previewChoiceLabel( array $definition, string $value, bool $priced, string $currency ): string {
+		$type = FieldTypeRegistry::get( (string) ( $definition['type'] ?? '' ) );
+
+		if ( ! $type instanceof ChoiceFieldType ) {
+			return $value;
+		}
+
+		$choices = $type->normalizeChoices( $definition );
+
+		if ( $priced ) {
+			$index = (int) $value;
+
+			if ( ! isset( $choices[ $index ] ) ) {
+				return $value;
+			}
+
+			$label = $choices[ $index ]['label'];
+			$minor = Money::toMinor( $choices[ $index ]['value'], $currency );
+
+			return null !== $minor && $minor > 0 ? $label . ' (' . Money::format( $minor, $currency ) . ')' : $label;
+		}
+
+		foreach ( $choices as $choice ) {
+			if ( (string) $choice['value'] === $value ) {
+				return $choice['label'];
+			}
+		}
+
+		return $value;
 	}
 
 	/**

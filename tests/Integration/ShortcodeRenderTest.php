@@ -371,4 +371,80 @@ final class ShortcodeRenderTest extends TestCase {
 		$this->assertStringNotContainsString( 'Step 1', $html );
 		$this->assertFalse( wp_script_is( 'relevant-forms-pages', 'enqueued' ) );
 	}
+
+	/**
+	 * Entry previews render one row per data field above them, keep empty
+	 * rows hidden, show the notice and load their sync script lazily.
+	 */
+	public function testEntryPreviewRendersRowsAndLoadsItsScript(): void {
+		FrontendAssets::registerAssets();
+
+		$repository = new FormRepository();
+
+		$id = $repository->create(
+			'Preview Form',
+			FormSchema::empty( 'Preview Form' )->withFields(
+				[
+					[
+						'id'    => 'f_name',
+						'type'  => 'text',
+						'label' => 'Name',
+					],
+					[
+						'id'      => 'f_plan',
+						'type'    => 'select',
+						'label'   => 'Plan',
+						'choices' => [ 'Starter|starter', 'Pro|pro' ],
+					],
+					[
+						'id'            => 'f_preview',
+						'type'          => 'entry-preview',
+						'label'         => '',
+						'notice_enable' => true,
+						'notice'        => 'Check your answers',
+						'style'         => 'table',
+					],
+				]
+			),
+			'published'
+		);
+
+		$html = do_shortcode( '[relevant_form id="' . $id . '"]' );
+
+		$this->assertStringContainsString( 'data-rf-preview', $html );
+		$this->assertStringContainsString( 'relevant-forms-entry-preview--table', $html );
+		$this->assertStringContainsString( 'Check your answers', $html );
+		$this->assertStringContainsString( 'data-rf-preview-row="f_name"', $html );
+		$this->assertStringContainsString( 'data-rf-preview-row="f_plan"', $html );
+
+		// The preview field itself and layout fields get no rows; without a
+		// value every row starts hidden and the empty state is visible.
+		$this->assertStringNotContainsString( 'data-rf-preview-row="f_preview"', $html );
+		$this->assertStringContainsString( 'data-rf-preview-row="f_name" hidden', $html );
+		$this->assertStringContainsString( 'data-rf-preview-empty>', $html );
+		$this->assertStringNotContainsString( 'data-rf-preview-empty hidden', $html );
+
+		$this->assertTrue( wp_script_is( 'relevant-forms-preview', 'enqueued' ) );
+
+		wp_dequeue_script( 'relevant-forms-preview' );
+
+		// Forms without a preview never load the script.
+		$plain = $repository->create(
+			'No Preview Form',
+			FormSchema::empty( 'No Preview Form' )->withFields(
+				[
+					[
+						'id'    => 'f_name',
+						'type'  => 'text',
+						'label' => 'Name',
+					],
+				]
+			),
+			'published'
+		);
+
+		do_shortcode( '[relevant_form id="' . $plain . '"]' );
+
+		$this->assertFalse( wp_script_is( 'relevant-forms-preview', 'enqueued' ) );
+	}
 }

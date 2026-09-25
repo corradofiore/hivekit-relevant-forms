@@ -342,6 +342,12 @@ final class FrontendSubmissionTest extends TestCase {
 					'label'    => 'Email',
 					'required' => true,
 				],
+				[
+					'id'            => 'f_preview',
+					'type'          => 'entry-preview',
+					'label'         => '',
+					'notice_enable' => false,
+				],
 			]
 		);
 
@@ -377,6 +383,7 @@ final class FrontendSubmissionTest extends TestCase {
 		$this->assertSame( 'Ada Lovelace', $entries[0]->meta['f_name'] );
 		$this->assertSame( 'ada@example.com', $entries[0]->meta['f_email'] );
 		$this->assertArrayNotHasKey( 'f_break', $entries[0]->meta );
+		$this->assertArrayNotHasKey( 'f_preview', $entries[0]->meta );
 	}
 
 	/**
@@ -407,6 +414,12 @@ final class FrontendSubmissionTest extends TestCase {
 		$this->assertNotFalse( $pageTwo );
 		$this->assertNotFalse( $error );
 		$this->assertGreaterThan( $pageTwo, $error );
+
+		// The preview inside page two echoes the preserved value and keeps
+		// the still-empty email row hidden.
+		$this->assertStringContainsString( 'relevant-forms-preview-value">Ada</span>', $html );
+		$this->assertStringNotContainsString( 'data-rf-preview-row="f_name" hidden', $html );
+		$this->assertStringContainsString( 'data-rf-preview-row="f_email" hidden', $html );
 	}
 
 	/**

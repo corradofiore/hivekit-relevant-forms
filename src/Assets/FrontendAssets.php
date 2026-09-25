@@ -74,5 +74,13 @@ final class FrontendAssets {
 			AssetVersion::get( 'assets/js/frontend-pages.js' ),
 			true
 		);
+
+		wp_register_script(
+			'relevant-forms-preview',
+			RELEVANT_FORMS_URL . 'assets/js/frontend-preview.js',
+			[],
+			AssetVersion::get( 'assets/js/frontend-preview.js' ),
+			true
+		);
 	}
 }

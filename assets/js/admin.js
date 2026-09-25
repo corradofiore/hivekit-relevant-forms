@@ -327,6 +327,59 @@
 			return;
 		}
 
+		// Entry previews: sync the heading, the notice text and the style.
+		if ( 'entry-preview' === type ) {
+			var box = wrapper.querySelector( '[data-rf-preview]' );
+
+			if ( ! box ) {
+				return;
+			}
+
+			var heading = wrapper.querySelector( '.relevant-forms-preview-heading' );
+			var headingText = labelInput ? labelInput.value : '';
+
+			if ( '' === headingText ) {
+				if ( heading ) {
+					heading.remove();
+				}
+			} else {
+				if ( ! heading ) {
+					heading = document.createElement( 'h3' );
+					heading.className = 'relevant-forms-preview-heading';
+					box.insertBefore( heading, box.firstChild );
+				}
+
+				heading.textContent = headingText;
+			}
+
+			var noticeEnable = editor.querySelector( '[name$="[notice_enable]"]' );
+			var noticeInput = editor.querySelector( '[name$="[notice]"]' );
+			var notice = wrapper.querySelector( '.relevant-forms-preview-notice' );
+			var enabled = ! noticeEnable || noticeEnable.checked;
+
+			if ( enabled && ! notice ) {
+				notice = document.createElement( 'p' );
+				notice.className = 'relevant-forms-preview-notice';
+				box.insertBefore( notice, box.querySelector( '.relevant-forms-preview-rows' ) );
+			}
+
+			if ( notice ) {
+				notice.hidden = ! enabled;
+
+				if ( enabled && noticeInput ) {
+					notice.textContent = noticeInput.value || noticeInput.getAttribute( 'placeholder' ) || '';
+				}
+			}
+
+			var styleSelect = editor.querySelector( 'select[name$="[style]"]' );
+
+			if ( styleSelect ) {
+				box.className = box.className.replace( /relevant-forms-entry-preview--[a-z_]+/, 'relevant-forms-entry-preview--' + styleSelect.value );
+			}
+
+			return;
+		}
+
 		fieldset = wrapper.querySelector( 'fieldset' );
 		control = document.getElementById( baseId );
 		label = null;
@@ -586,7 +639,7 @@
 		previousFieldItems( block.getAttribute( 'data-for' ) ).forEach( function ( item ) {
 			var id = item.getAttribute( 'data-for' );
 
-			if ( 'section' === fieldTypeOf( id ) || 'pagebreak' === fieldTypeOf( id ) || known[ id ] ) {
+			if ( 'section' === fieldTypeOf( id ) || 'pagebreak' === fieldTypeOf( id ) || 'entry-preview' === fieldTypeOf( id ) || known[ id ] ) {
 				return;
 			}
 
@@ -1306,13 +1359,21 @@
 			var input = event.target;
 			var editor, item, marker;
 
-			if ( ! input.name || input.name.indexOf( '[required]' ) === -1 ) {
+			if ( ! input.name ) {
 				return;
 			}
 
 			editor = input.closest( '.rf-field-editor' );
 
 			if ( ! editor ) {
+				return;
+			}
+
+			if ( input.name.indexOf( '[required]' ) === -1 ) {
+				// Other change-driven settings (the entry preview notice
+				// toggle and style) only need the sample refreshed.
+				syncSample( editor );
+
 				return;
 			}
 

@@ -80,6 +80,7 @@ final class FieldTypeRegistry {
 			new ConsentField(),
 			new SectionField(),
 			new PagebreakField(),
+			new EntryPreviewField(),
 			new HiddenField(),
 			new DateField(),
 			new FileField(),
