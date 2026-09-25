@@ -20,10 +20,17 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 $fieldId  = (string) $definition['id'];
 $isHidden = 'hidden' === (string) $definition['type'];
-$sample   = $isHidden
-	? '<p class="description">' . esc_html__( 'Hidden fields are not visible on the front end.', 'relevant-forms' ) . '</p>'
-	: $field_type->render( $definition, null, null, (string) $form->id );
-$summary  = RelevantForms\Forms\Visibility\VisibilityRules::summary( $definition, $form->schema->fields() );
+$isHtml   = 'html' === (string) $definition['type'];
+
+if ( $isHidden ) {
+	$sample = '<p class="description">' . esc_html__( 'Hidden fields are not visible on the front end.', 'relevant-forms' ) . '</p>';
+} elseif ( $isHtml ) {
+	// Never execute raw author code inside wp-admin: render a placeholder.
+	$sample = '<p class="description">' . esc_html__( 'Custom HTML block: rendered as authored on the live form, so it is not previewed here.', 'relevant-forms' ) . '</p>';
+} else {
+	$sample = $field_type->render( $definition, null, null, (string) $form->id );
+}
+$summary = RelevantForms\Forms\Visibility\VisibilityRules::summary( $definition, $form->schema->fields() );
 
 // The preview must never take part in the save form: pointing its controls
 // at a non-existent form id leaves them without a form owner, so browser

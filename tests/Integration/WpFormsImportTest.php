@@ -309,6 +309,54 @@ final class WpFormsImportTest extends TestCase {
 	}
 
 	/**
+	 * Custom HTML fields import as authored for users who may save
+	 * unfiltered HTML and are sanitized (with a report note) for everyone
+	 * else, e.g. multisite site administrators and CLI imports.
+	 */
+	public function testImportGatesRawCustomHtmlOnTheUnfilteredCapability(): void {
+		$payload = [
+			'fields'   => [
+				'0' => [
+					'id'    => '0',
+					'type'  => 'text',
+					'label' => 'Name',
+				],
+				'1' => [
+					'id'   => '1',
+					'type' => 'html',
+					'code' => '<p>Map</p><script>window.map=1;</script>',
+				],
+			],
+			'settings' => [ 'form_title' => 'Embed' ],
+		];
+
+		// The source record must be written by a user with unfiltered_html,
+		// otherwise WordPress itself sanitizes the payload on insert.
+		wp_set_current_user( self::factory()->user->create( [ 'role' => 'administrator' ] ) );
+
+		$this->createWpFormsForm( $payload, 'Embed' );
+
+		$forms = ( new WpFormsScanner() )->forms();
+		$row   = ( new WpFormsImporter() )->import( $forms[0] );
+		$form  = ( new FormRepository() )->find( (int) $row['form_id'] );
+
+		$this->assertSame( 'html', $form->schema->fields()[1]['type'] );
+		$this->assertStringContainsString( '<script>', $form->schema->fields()[1]['code'] );
+
+		// Without the capability the code is sanitized and the report says so.
+		// User-level deny: remove_cap() is a no-op for role-granted caps.
+		wp_get_current_user()->add_cap( 'unfiltered_html', false );
+
+		$forms = ( new WpFormsScanner() )->forms();
+		$row   = ( new WpFormsImporter() )->import( $forms[0] );
+		$form  = ( new FormRepository() )->find( (int) $row['form_id'] );
+
+		$this->assertStringNotContainsString( '<script', $form->schema->fields()[1]['code'] );
+		$this->assertStringContainsString( '<p>Map</p>', $form->schema->fields()[1]['code'] );
+		$this->assertContains( 'Custom HTML fields were sanitized: your user cannot save unfiltered HTML.', $row['notes'] );
+	}
+
+	/**
 	 * Canonical payload: two common fields, a file field and an unsupported one.
 	 *
 	 * @return array<string, mixed>

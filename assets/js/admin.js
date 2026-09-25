@@ -409,6 +409,11 @@
 			return;
 		}
 
+		// Custom HTML never renders its raw code inside wp-admin.
+		if ( 'html' === type ) {
+			return;
+		}
+
 		fieldset = wrapper.querySelector( 'fieldset' );
 		control = document.getElementById( baseId );
 		label = null;
@@ -668,7 +673,7 @@
 		previousFieldItems( block.getAttribute( 'data-for' ) ).forEach( function ( item ) {
 			var id = item.getAttribute( 'data-for' );
 
-			if ( 'section' === fieldTypeOf( id ) || 'pagebreak' === fieldTypeOf( id ) || 'entry-preview' === fieldTypeOf( id ) || 'content' === fieldTypeOf( id ) || known[ id ] ) {
+			if ( 'section' === fieldTypeOf( id ) || 'pagebreak' === fieldTypeOf( id ) || 'entry-preview' === fieldTypeOf( id ) || 'content' === fieldTypeOf( id ) || 'html' === fieldTypeOf( id ) || known[ id ] ) {
 				return;
 			}
 

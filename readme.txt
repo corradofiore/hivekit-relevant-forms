@@ -27,7 +27,7 @@ Core functionality includes:
 * Common form fields (text, textarea, email, telephone, number, URL, select, radio, checkbox, consent, hidden, date, file)
 * Multi-page forms: page breaks split long forms into steps with Previous/Next navigation and a "Step X of Y" indicator
 * Entry preview: an optional review step that shows the answers entered so far, updated live, before the visitor submits
-* Content blocks for formatted instructions (headings, links, lists and images) between fields
+* Content blocks for formatted instructions (headings, links, lists and images) between fields, plus a custom HTML field for embedded code (rendered as authored and editable only by users who may save unfiltered HTML)
 * Conditional field visibility: show or hide fields based on earlier answers, with rule groups (AND within a group, OR across groups)
 * Payment fields: fixed single items, priced dropdowns and choices, donation-style user-entered amounts and an automatic live total (collecting payments requires connecting your own Stripe account)
 * Entry storage in your own WordPress database
@@ -36,7 +36,7 @@ Core functionality includes:
 * Shortcode and template function embedding: `[relevant_form id="123"]` and `relevant_forms_render( 123 )`
 * Local anti-abuse controls: honeypot, timing checks, rate limiting, duplicate detection and spam signals
 * Local secure-upload fallback: files are stored privately with strict validation and a scan-before-download policy
-* WPForms compatibility scanner and importer for supported field types — including page breaks, dividers, entry previews and content blocks — and conditional logic (drafts only; your WPForms data is never modified)
+* WPForms compatibility scanner and importer for supported field types — including page breaks, dividers, entry previews, content blocks and custom HTML — and conditional logic (drafts only; your WPForms data is never modified)
 
 = Optional Relevant Cloud – forms that understand the message =
 
@@ -155,10 +155,10 @@ Relevant Forms is an independent product and is not affiliated with or endorsed 
 
 = 1.0.0 =
 * Initial release.
-* Forms: builder with the common field set, multi-page forms (page breaks with step navigation and a progress indicator), entry preview review steps, content blocks, conditional field visibility (show/hide rules with AND/OR groups), schema versioning, entries inbox, email notifications.
+* Forms: builder with the common field set, multi-page forms (page breaks with step navigation and a progress indicator), entry preview review steps, content blocks, custom HTML, conditional field visibility (show/hide rules with AND/OR groups), schema versioning, entries inbox, email notifications.
 * Security: honeypot, timing checks, rate limiting, duplicate detection, spam signals, local spam triage.
 * Uploads: local private quarantine with strict validation and a scan-before-download policy.
-* Migration: WPForms compatibility scanner and draft importer (field types including page breaks, dividers, entry previews and content blocks, notifications, confirmations and conditional logic converted to visibility rules), plus a Tier 1 hook compatibility layer that runs only while WPForms itself is not active.
+* Migration: WPForms compatibility scanner and draft importer (field types including page breaks, dividers, entry previews, content blocks and custom HTML code blocks, notifications, confirmations and conditional logic converted to visibility rules), plus a Tier 1 hook compatibility layer that runs only while WPForms itself is not active.
 * Payments: Stripe Connect card payments (fixed items, priced choices, donation-style amounts, live total), hosted Stripe Checkout on the site owner's own Stripe account, 2% platform fee, admin refunds and WPForms payment-field import with amounts preserved.
 * Optional Relevant Cloud: explicit consent connection flow, semantic classification with redaction, priority SMS alerts, managed secure uploads, usage metering and per-site subscriptions with hosted checkout.
 * Privacy: no external calls before explicit configuration; the plugin is fully functional without Relevant Cloud.

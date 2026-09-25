@@ -484,4 +484,37 @@ final class ShortcodeRenderTest extends TestCase {
 		// Disallowed markup never survives rendering.
 		$this->assertStringNotContainsString( '<script', $html );
 	}
+
+	/**
+	 * Custom HTML blocks are output as authored — no escaping and no
+	 * shortcode execution — matching the WPForms HTML field.
+	 */
+	public function testCustomHtmlBlocksRenderAsAuthored(): void {
+		$repository = new FormRepository();
+
+		$id = $repository->create(
+			'HTML Form',
+			FormSchema::empty( 'HTML Form' )->withFields(
+				[
+					[
+						'id'    => 'f_name',
+						'type'  => 'text',
+						'label' => 'Name',
+					],
+					[
+						'id'   => 'f_html',
+						'type' => 'html',
+						'code' => '<p id="embed">Map</p><script>window.embed=1;</script>',
+					],
+				]
+			),
+			'published'
+		);
+
+		$html = do_shortcode( '[relevant_form id="' . $id . '"]' );
+
+		$this->assertStringContainsString( 'relevant-forms-field--html', $html );
+		$this->assertStringContainsString( '<p id="embed">Map</p>', $html );
+		$this->assertStringContainsString( '<script>window.embed=1;</script>', $html );
+	}
 }

@@ -712,6 +712,98 @@ final class FormEditorFieldsTest extends TestCase {
 	}
 
 	/**
+	 * Custom HTML fields edit raw code; the admin preview shows a safe
+	 * placeholder instead of executing it.
+	 */
+	public function testCustomHtmlFieldsRenderCodeEditorAndSafePlaceholder(): void {
+		wp_set_current_user( self::factory()->user->create( [ 'role' => 'administrator' ] ) );
+
+		$repository = new FormRepository();
+		$schema     = FormSchema::empty( 'HTML' )->withFields(
+			[
+				[
+					'id'    => 'f_name',
+					'type'  => 'text',
+					'label' => 'Name',
+				],
+				[
+					'id'   => 'f_html',
+					'type' => 'html',
+					'code' => '<script>window.x=1;</script>',
+				],
+			]
+		);
+		$formId     = $repository->create( 'HTML', $schema, 'draft' );
+
+		$html = $this->renderEditor( $formId );
+
+		$this->assertStringContainsString( '<option value="html">Custom HTML</option>', $html );
+		$this->assertStringContainsString( '<label for="rf-field-f_html-label">Name (editor only)</label>', $html );
+		$this->assertStringContainsString( 'name="relevant_fields[f_html][code]"', $html );
+		$this->assertStringNotContainsString( 'name="relevant_fields[f_html][required]"', $html );
+		$this->assertStringNotContainsString( 'name="relevant_fields[f_html][placeholder]"', $html );
+
+		// The preview panel shows a placeholder: raw code never runs here.
+		$this->assertStringContainsString( 'it is not previewed here', $html );
+		$this->assertStringNotContainsString( '<script>window.x=1;</script>', $html );
+	}
+
+	/**
+	 * Raw code persists for users who may save unfiltered HTML; it is
+	 * sanitized (with an editor warning) for everyone else.
+	 */
+	public function testSavingCustomHtmlRespectsTheUnfilteredCapability(): void {
+		wp_set_current_user( self::factory()->user->create( [ 'role' => 'administrator' ] ) );
+
+		$formId = $this->makeForm();
+
+		$_POST = [
+			'form_id'         => $formId,
+			'form_name'       => 'Contact',
+			'form_status'     => 'published',
+			'relevant_fields' => [
+				'f_name' => [
+					'id'    => 'f_name',
+					'type'  => 'text',
+					'label' => 'Name',
+				],
+				'f_html' => [
+					'id'   => 'f_html',
+					'type' => 'html',
+					'code' => '<p>Map</p><script>window.x=1;</script>',
+				],
+			],
+		];
+
+		$_REQUEST['_wpnonce'] = wp_create_nonce( 'relevant_form_save' );
+
+		$url = $this->saveAndCaptureRedirect();
+
+		$this->assertStringContainsString( 'saved=1', $url );
+
+		$fields = ( new FormRepository() )->find( $formId )->schema->fields();
+
+		$this->assertSame( 'html', $fields[1]['type'] );
+		$this->assertSame( '<p>Map</p><script>window.x=1;</script>', $fields[1]['code'] );
+
+		// Drop the capability: the editor warns and the next save strips it.
+		// User-level deny: remove_cap() is a no-op for role-granted caps.
+		wp_get_current_user()->add_cap( 'unfiltered_html', false );
+
+		$editor = $this->renderEditor( $formId );
+		$this->assertStringContainsString( 'Your role cannot save raw code', $editor );
+
+		$_POST['relevant_fields']['f_html']['code'] = '<p>Map</p><script>window.x=2;</script>';
+		$_REQUEST['_wpnonce']                       = wp_create_nonce( 'relevant_form_save' );
+
+		$this->saveAndCaptureRedirect();
+
+		$fields = ( new FormRepository() )->find( $formId )->schema->fields();
+		$this->assertStringNotContainsString( '<script', $fields[1]['code'] );
+		$this->assertStringContainsString( '<p>Map</p>', $fields[1]['code'] );
+	}
+
+	/**
 	 * Run the save controller and capture its redirect target.
 	 */
 	private function saveAndCaptureRedirect(): string {
