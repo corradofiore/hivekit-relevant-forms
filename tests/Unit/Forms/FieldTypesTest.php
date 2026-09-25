@@ -125,9 +125,9 @@ it(
 );
 
 it(
-	'registers all nineteen built-in types',
+	'registers all twenty built-in types',
 	function () {
-		expect( FieldTypeRegistry::all() )->toHaveCount( 19 );
+		expect( FieldTypeRegistry::all() )->toHaveCount( 20 );
 	}
 );
 
@@ -315,5 +315,29 @@ it(
 
 		expect( $bare )->not->toContain( 'relevant-forms-section-title' );
 		expect( $bare )->toContain( '<hr class="relevant-forms-section-separator">' );
+	}
+);
+
+it(
+	'renders page breaks as value-less layout markers',
+	function () {
+		$type = FieldTypeRegistry::get( 'pagebreak' );
+
+		// Page breaks carry no value: nothing to validate or store.
+		expect( $type->validate( [], '' ) )->toBeNull();
+		expect( $type->sanitize( [], '' ) )->toBeNull();
+
+		$markup = $type->render(
+			[
+				'id'    => 'f_break',
+				'type'  => 'pagebreak',
+				'label' => '',
+			],
+			null,
+			null,
+			'7'
+		);
+
+		expect( $markup )->toContain( '<hr class="relevant-forms-pagebreak" role="separator">' );
 	}
 );

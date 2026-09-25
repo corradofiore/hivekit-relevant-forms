@@ -43,6 +43,10 @@ final class WpFormsFieldMapper {
 		'file'             => 'file',
 		// Compound fields are flattened to a single text input.
 		'name'             => 'text',
+		// Layout fields: page breaks drive the multi-page step navigation,
+		// dividers become section separators.
+		'pagebreak'        => 'pagebreak',
+		'divider'          => 'section',
 		// Payment fields (phase 5): amounts are preserved.
 		'payment-single'   => 'payment-single',
 		'payment-select'   => 'payment-select',
@@ -64,7 +68,7 @@ final class WpFormsFieldMapper {
 	 *
 	 * @var array<int, string>
 	 */
-	public const UNSUPPORTED_PREFIXES = [ 'signature', 'address', 'likert', 'rating', 'entry-preview', 'captcha', 'divider', 'pagebreak', 'html' ];
+	public const UNSUPPORTED_PREFIXES = [ 'signature', 'address', 'likert', 'rating', 'entry-preview', 'captcha', 'html' ];
 
 	/**
 	 * Map one WPForms field, or null when unsupported.
@@ -93,7 +97,14 @@ final class WpFormsFieldMapper {
 		$relevantType = self::TYPE_MAP[ $wpType ];
 		$label        = trim( (string) ( $field['label'] ?? '' ) );
 
-		if ( '' === $label ) {
+		if ( '' === $label && 'pagebreak' === $wpType ) {
+			// WPForms keeps the page title in the `title` key.
+			$label = trim( (string) ( $field['title'] ?? '' ) );
+		}
+
+		// Layout fields may intentionally carry no label (a bare divider or a
+		// page without a title), so no humanized fallback for them.
+		if ( '' === $label && ! in_array( $wpType, [ 'divider', 'pagebreak' ], true ) ) {
 			$label = ucfirst( str_replace( '-', ' ', $wpType ) );
 		}
 
@@ -362,7 +373,7 @@ final class WpFormsFieldMapper {
 			return __( 'Payment gateway widget: card entry is provided by the Stripe checkout flow after connecting Stripe; the widget itself is not migrated.', 'relevant-forms' );
 		}
 
-		if ( in_array( $type, [ 'pagebreak', 'divider', 'html', 'content', 'entry-preview' ], true ) ) {
+		if ( in_array( $type, [ 'html', 'content', 'entry-preview' ], true ) ) {
 			return __( 'Layout element: not a data field, so it is not imported.', 'relevant-forms' );
 		}
 

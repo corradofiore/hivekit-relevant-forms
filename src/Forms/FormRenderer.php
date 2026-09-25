@@ -74,12 +74,16 @@ final class FormRenderer {
 
 		wp_enqueue_style( 'relevant-forms' );
 
+		$definitions = $form->schema->fields();
+		$visibility  = VisibilityRules::evaluate( $definitions, $values );
+		$pages       = self::groupPages( $definitions, $visibility );
+
 		$hasFileField       = false;
 		$hasLimitedTextarea = false;
 		$hasVisibility      = false;
 		$hasPaymentFields   = false;
 
-		foreach ( $form->schema->fields() as $definition ) {
+		foreach ( $definitions as $definition ) {
 			$fieldType = (string) ( $definition['type'] ?? '' );
 
 			if ( 'file' === $fieldType ) {
@@ -115,16 +119,30 @@ final class FormRenderer {
 			wp_enqueue_script( 'relevant-forms-total' );
 		}
 
+		if ( null !== $pages ) {
+			wp_enqueue_script( 'relevant-forms-pages' );
+		}
+
 		$output   = [];
 		$output[] = self::successMessage( $form );
 		$output[] = self::paymentNotice( $form );
 		// Empty action: the browser posts to this very page, where the
 		// front-end submission handler renders errors inline and redirects
 		// after success — user pages never post to wp-admin.
+		$pagesAttr = null === $pages
+			? ''
+			: sprintf(
+				' data-rf-page-prev="%1$s" data-rf-page-next="%2$s" data-rf-page-step="%3$s"',
+				esc_attr__( 'Previous', 'relevant-forms' ),
+				esc_attr__( 'Next', 'relevant-forms' ),
+				/* translators: 1: current page number, 2: total number of pages. */
+				esc_attr__( 'Step %1$d of %2$d', 'relevant-forms' )
+			);
 		$output[] = sprintf(
-			'<form class="relevant-forms" data-form-id="%d" data-upload-nonce="%s" method="post" action="" novalidate>',
+			'<form class="relevant-forms" data-form-id="%d" data-upload-nonce="%s"%s method="post" action="" novalidate>',
 			$form->id,
-			esc_attr( wp_create_nonce( 'relevant_upload_' . $form->id ) )
+			esc_attr( wp_create_nonce( 'relevant_upload_' . $form->id ) ),
+			$pagesAttr
 		);
 		$output[] = '<input type="hidden" name="action" value="relevant_forms_submit">';
 		$output[] = sprintf( '<input type="hidden" name="_relevant_form_id" value="%d">', $form->id );
@@ -132,46 +150,192 @@ final class FormRenderer {
 		$output[] = wp_nonce_field( 'relevant_form_' . $form->id, '_relevant_form_nonce', true, false );
 		$output[] = self::honeypot();
 
-		$visibility = VisibilityRules::evaluate( $form->schema->fields(), $values );
-		$currency   = $form->schema->currency();
+		$currency = $form->schema->currency();
 
-		foreach ( $form->schema->fields() as $definition ) {
-			// Payment fields format and validate with the form currency.
-			$definition['currency'] = $currency;
+		if ( null === $pages ) {
+			foreach ( $definitions as $definition ) {
+				$markup = self::renderField( $definition, $currency, $values, $errors, $visibility, (string) $form->id );
 
-			$type = FieldTypeRegistry::get( (string) ( $definition['type'] ?? '' ) );
+				if ( '' !== $markup ) {
+					$output[] = $markup;
+				}
+			}
 
-			if ( null === $type ) {
+			$output[] = sprintf(
+				'<button type="submit" class="relevant-forms-submit">%s</button>',
+				esc_html__( 'Submit', 'relevant-forms' )
+			);
+		} else {
+			$total = count( $pages );
+			$break = FieldTypeRegistry::get( 'pagebreak' );
+
+			foreach ( $pages as $index => $page ) {
+				$output[] = sprintf( '<div class="relevant-forms-page" data-rf-page="%d">', $index + 1 );
+
+				// The break marker opens every page after the first; it is a
+				// plain divider and disappears together with its page.
+				if ( $index > 0 && null !== $break && null !== $page['break'] ) {
+					$output[] = $break->render( (array) $page['break'], null, null, (string) $form->id );
+				}
+				$output[] = sprintf(
+					'<p class="relevant-forms-page-indicator" data-rf-page-indicator>%s</p>',
+					esc_html(
+						sprintf(
+							/* translators: 1: current page number, 2: total number of pages. */
+							__( 'Step %1$d of %2$d', 'relevant-forms' ),
+							$index + 1,
+							$total
+						)
+					)
+				);
+
+				$title = (string) ( $page['title'] ?? '' );
+
+				if ( '' !== $title ) {
+					$output[] = sprintf( '<h3 class="relevant-forms-page-title">%s</h3>', esc_html( $title ) );
+				}
+
+				foreach ( $page['fields'] as $definition ) {
+					$markup = self::renderField( $definition, $currency, $values, $errors, $visibility, (string) $form->id );
+
+					if ( '' !== $markup ) {
+						$output[] = $markup;
+					}
+				}
+
+				$output[] = '</div>';
+			}
+
+			$output[] = '<div class="relevant-forms-submit-row" data-rf-submit-row>';
+			$output[] = sprintf(
+				'<button type="submit" class="relevant-forms-submit">%s</button>',
+				esc_html__( 'Submit', 'relevant-forms' )
+			);
+			$output[] = '</div>';
+		}
+		$output[] = '</form>';
+
+		return implode( "\n", $output );
+	}
+
+	/**
+	 * Render one field with its visibility state applied.
+	 *
+	 * @param array<string, mixed>   $definition Field definition.
+	 * @param string                 $currency   Form currency.
+	 * @param array<string, mixed>   $values     Submitted values keyed by field id.
+	 * @param array<string, string>  $errors     Validation errors keyed by field id.
+	 * @param array<string, bool>    $visibility Visibility map keyed by field id.
+	 * @param string                 $formId     Form id for control ids.
+	 */
+	private static function renderField( array $definition, string $currency, array $values, array $errors, array $visibility, string $formId ): string {
+		// Payment fields format and validate with the form currency.
+		$definition['currency'] = $currency;
+
+		$type = FieldTypeRegistry::get( (string) ( $definition['type'] ?? '' ) );
+
+		if ( null === $type ) {
+			return '';
+		}
+
+		$fieldId = (string) ( $definition['id'] ?? '' );
+		$value   = array_key_exists( $fieldId, $values ) ? $values[ $fieldId ] : ( $definition['default_value'] ?? '' );
+		$error   = isset( $errors[ $fieldId ] ) ? (string) $errors[ $fieldId ] : null;
+
+		if ( isset( $visibility[ $fieldId ] ) ) {
+			$hidden = false === $visibility[ $fieldId ];
+
+			// A hidden required field must not block a no-JS submission;
+			// the script restores the flag when the field is revealed.
+			if ( $hidden ) {
+				$definition['visibility_required'] = ! empty( $definition['required'] );
+				$definition['required']            = false;
+			}
+
+			$definition['visibility_hidden'] = $hidden;
+		}
+
+		return $type->render( $definition, $value, $error, $formId );
+	}
+
+	/**
+	 * Group definitions into pages at page breaks.
+	 *
+	 * Returns null when the form has no visible page breaks, so ordinary
+	 * forms keep the original single-page markup. Hidden page breaks do not
+	 * start a page (their fields flow on); pages that end up empty merge
+	 * away.
+	 *
+	 * @param array<int, array<string, mixed>> $definitions Field definitions in order.
+	 * @param array<string, bool>              $visibility  Visibility map keyed by field id.
+	 * @return array<int, array{break: array<string, mixed>|null, title: string, fields: array<int, array<string, mixed>>}>|null
+	 */
+	private static function groupPages( array $definitions, array $visibility ): ?array {
+		$hasBreak = false;
+
+		foreach ( $definitions as $definition ) {
+			if ( 'pagebreak' !== (string) ( $definition['type'] ?? '' ) ) {
 				continue;
 			}
 
 			$fieldId = (string) ( $definition['id'] ?? '' );
-			$value   = array_key_exists( $fieldId, $values ) ? $values[ $fieldId ] : ( $definition['default_value'] ?? '' );
-			$error   = isset( $errors[ $fieldId ] ) ? (string) $errors[ $fieldId ] : null;
 
-			if ( isset( $visibility[ $fieldId ] ) ) {
-				$hidden = false === $visibility[ $fieldId ];
-
-				// A hidden required field must not block a no-JS submission;
-				// the script restores the flag when the field is revealed.
-				if ( $hidden ) {
-					$definition['visibility_required'] = ! empty( $definition['required'] );
-					$definition['required']            = false;
-				}
-
-				$definition['visibility_hidden'] = $hidden;
+			if ( isset( $visibility[ $fieldId ] ) && false === $visibility[ $fieldId ] ) {
+				continue;
 			}
 
-			$output[] = $type->render( $definition, $value, $error, (string) $form->id );
+			$hasBreak = true;
+			break;
 		}
 
-		$output[] = sprintf(
-			'<button type="submit" class="relevant-forms-submit">%s</button>',
-			esc_html__( 'Submit', 'relevant-forms' )
-		);
-		$output[] = '</form>';
+		if ( ! $hasBreak ) {
+			return null;
+		}
 
-		return implode( "\n", $output );
+		$raw = [
+			[
+				'break'  => null,
+				'fields' => [],
+			],
+		];
+
+		foreach ( $definitions as $definition ) {
+			if ( 'pagebreak' === (string) ( $definition['type'] ?? '' ) ) {
+				$fieldId = (string) ( $definition['id'] ?? '' );
+
+				if ( isset( $visibility[ $fieldId ] ) && false === $visibility[ $fieldId ] ) {
+					continue;
+				}
+
+				$raw[] = [
+					'break'  => $definition,
+					'fields' => [],
+				];
+
+				continue;
+			}
+
+			$raw[ count( $raw ) - 1 ]['fields'][] = $definition;
+		}
+
+		$pages = [];
+
+		foreach ( $raw as $page ) {
+			if ( [] === $page['fields'] ) {
+				continue;
+			}
+
+			$page['title'] = trim( (string) ( $page['break']['label'] ?? '' ) );
+			$pages[]       = $page;
+		}
+
+		// A single page (for example a trailing break with no fields after it)
+		// is not a wizard; keep the plain single-page markup.
+		if ( count( $pages ) < 2 ) {
+			return null;
+		}
+
+		return $pages;
 	}
 
 	/**

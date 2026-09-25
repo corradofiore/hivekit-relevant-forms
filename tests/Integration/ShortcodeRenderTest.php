@@ -244,4 +244,131 @@ final class ShortcodeRenderTest extends TestCase {
 	public function testUnknownFormRendersNothing(): void {
 		$this->assertSame( '', FormRenderer::render( 999999 ) );
 	}
+
+	/**
+	 * Page breaks turn the markup into labelled step containers, load the
+	 * navigation script and move the submit button into a dedicated row.
+	 */
+	public function testPaginatedFormsRenderAsSteps(): void {
+		FrontendAssets::registerAssets();
+
+		$repository = new FormRepository();
+
+		$id = $repository->create(
+			'Stepped Form',
+			FormSchema::empty( 'Stepped Form' )->withFields(
+				[
+					[
+						'id'    => 'f_name',
+						'type'  => 'text',
+						'label' => 'Name',
+					],
+					[
+						'id'    => 'f_break_1',
+						'type'  => 'pagebreak',
+						'label' => 'Trip details',
+					],
+					[
+						'id'    => 'f_city',
+						'type'  => 'text',
+						'label' => 'City',
+					],
+					[
+						'id'    => 'f_break_2',
+						'type'  => 'pagebreak',
+						'label' => '',
+					],
+					[
+						'id'    => 'f_email',
+						'type'  => 'email',
+						'label' => 'Email',
+					],
+				]
+			),
+			'published'
+		);
+
+		$html = do_shortcode( '[relevant_form id="' . $id . '"]' );
+
+		$this->assertStringContainsString( 'data-rf-page="1"', $html );
+		$this->assertStringContainsString( 'data-rf-page="2"', $html );
+		$this->assertStringContainsString( 'data-rf-page="3"', $html );
+		$this->assertStringContainsString( 'Step 1 of 3', $html );
+		$this->assertStringContainsString( 'Step 2 of 3', $html );
+		$this->assertStringContainsString( 'Step 3 of 3', $html );
+
+		// The labeled break titles its page; the unlabeled one stays bare.
+		$this->assertStringContainsString( '<h3 class="relevant-forms-page-title">Trip details</h3>', $html );
+		$this->assertSame( 1, substr_count( $html, 'relevant-forms-page-title' ) );
+
+		// Every page after the first opens with the break divider.
+		$this->assertSame( 2, substr_count( $html, 'relevant-forms-pagebreak' ) );
+
+		$this->assertStringContainsString( 'data-rf-submit-row', $html );
+		$this->assertStringContainsString( 'data-rf-page-prev="Previous" data-rf-page-next="Next" data-rf-page-step="Step %1$d of %2$d"', $html );
+		$this->assertTrue( wp_script_is( 'relevant-forms-pages', 'enqueued' ) );
+
+		// Fields arrive in page order and the submit row closes the last page.
+		$this->assertLessThan( strpos( $html, 'data-rf-page="2"' ), strpos( $html, 'name="relevant_field_f_name"' ) );
+		$this->assertLessThan( strpos( $html, 'data-rf-submit-row' ), strpos( $html, 'name="relevant_field_f_email"' ) );
+
+		wp_dequeue_script( 'relevant-forms-pages' );
+	}
+
+	/**
+	 * Forms without usable breaks keep the plain single-page markup: no
+	 * containers, no step indicators and no navigation script.
+	 */
+	public function testSinglePageFormsKeepPlainMarkup(): void {
+		FrontendAssets::registerAssets();
+
+		$repository = new FormRepository();
+
+		$plain = $repository->create(
+			'Plain Form',
+			FormSchema::empty( 'Plain Form' )->withFields(
+				[
+					[
+						'id'    => 'f_name',
+						'type'  => 'text',
+						'label' => 'Name',
+					],
+				]
+			),
+			'published'
+		);
+
+		$html = do_shortcode( '[relevant_form id="' . $plain . '"]' );
+
+		$this->assertStringNotContainsString( 'data-rf-page=', $html );
+		$this->assertStringNotContainsString( 'data-rf-submit-row', $html );
+		$this->assertStringNotContainsString( 'data-rf-page-step', $html );
+		$this->assertFalse( wp_script_is( 'relevant-forms-pages', 'enqueued' ) );
+
+		// A trailing break with no fields after it merges away: still plain.
+		$trailing = $repository->create(
+			'Trailing Form',
+			FormSchema::empty( 'Trailing Form' )->withFields(
+				[
+					[
+						'id'    => 'f_name',
+						'type'  => 'text',
+						'label' => 'Name',
+					],
+					[
+						'id'    => 'f_break',
+						'type'  => 'pagebreak',
+						'label' => 'Never shown',
+					],
+				]
+			),
+			'published'
+		);
+
+		$html = do_shortcode( '[relevant_form id="' . $trailing . '"]' );
+
+		$this->assertStringNotContainsString( 'data-rf-page=', $html );
+		$this->assertStringNotContainsString( 'Step 1', $html );
+		$this->assertFalse( wp_script_is( 'relevant-forms-pages', 'enqueued' ) );
+	}
 }

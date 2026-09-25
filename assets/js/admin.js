@@ -322,6 +322,11 @@
 			return;
 		}
 
+		// Page breaks render as a divider: there is no control to sync.
+		if ( 'pagebreak' === type ) {
+			return;
+		}
+
 		fieldset = wrapper.querySelector( 'fieldset' );
 		control = document.getElementById( baseId );
 		label = null;
@@ -581,7 +586,7 @@
 		previousFieldItems( block.getAttribute( 'data-for' ) ).forEach( function ( item ) {
 			var id = item.getAttribute( 'data-for' );
 
-			if ( 'section' === fieldTypeOf( id ) || known[ id ] ) {
+			if ( 'section' === fieldTypeOf( id ) || 'pagebreak' === fieldTypeOf( id ) || known[ id ] ) {
 				return;
 			}
 
