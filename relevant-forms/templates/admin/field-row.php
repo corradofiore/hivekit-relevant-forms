@@ -18,11 +18,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 // phpcs:disable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- template scope variables.
 
-$fieldId     = (string) $definition['id'];
-$isChoice    = in_array( (string) $definition['type'], [ 'select', 'radio', 'checkbox' ], true );
-$isHidden    = 'hidden' === (string) $definition['type'];
-$isSection   = 'section' === (string) $definition['type'];
-$isPagebreak = 'pagebreak' === (string) $definition['type'];
+$fieldId        = (string) $definition['id'];
+$isChoice       = in_array( (string) $definition['type'], [ 'select', 'radio', 'checkbox' ], true );
+$isHidden       = 'hidden' === (string) $definition['type'];
+$isSection      = 'section' === (string) $definition['type'];
+$isPagebreak    = 'pagebreak' === (string) $definition['type'];
+$isEntryPreview = 'entry-preview' === (string) $definition['type'];
 
 $labelHeading = __( 'Label', 'relevant-forms' );
 
@@ -30,6 +31,8 @@ if ( $isSection ) {
 	$labelHeading = __( 'Section header', 'relevant-forms' );
 } elseif ( $isPagebreak ) {
 	$labelHeading = __( 'Page title', 'relevant-forms' );
+} elseif ( $isEntryPreview ) {
+	$labelHeading = __( 'Heading (optional)', 'relevant-forms' );
 }
 
 $fieldType       = (string) $definition['type'];
@@ -61,12 +64,37 @@ $inputIdBase = 'rf-field-' . $fieldId;
 						<input type="text" class="widefat rf-input-label" id="<?php echo esc_attr( $inputIdBase . '-label' ); ?>" name="relevant_fields[<?php echo esc_attr( $fieldId ); ?>][label]" value="<?php echo esc_attr( (string) ( $definition['label'] ?? '' ) ); ?>">
 						<?php if ( $isPagebreak ) : ?>
 							<p class="description"><?php esc_html_e( 'Shown above the step indicator. Leave empty for an untitled page.', 'relevant-forms' ); ?></p>
+						<?php elseif ( $isEntryPreview ) : ?>
+							<p class="description"><?php esc_html_e( 'Shown above the preview. Leave empty for no heading.', 'relevant-forms' ); ?></p>
 						<?php endif; ?>
 					</td>
 				</tr>
 			<?php endif; ?>
 
-			<?php if ( ! $isHidden && ! $isSection && ! $isPagebreak && ! $isPaymentTotal ) : ?>
+			<?php if ( $isEntryPreview ) : ?>
+				<tr>
+					<th scope="row"><?php esc_html_e( 'Preview notice', 'relevant-forms' ); ?></th>
+					<td>
+						<label><input type="checkbox" id="<?php echo esc_attr( $inputIdBase . '-notice-enable' ); ?>" name="relevant_fields[<?php echo esc_attr( $fieldId ); ?>][notice_enable]" value="1" <?php checked( ! empty( $definition['notice_enable'] ) ); ?>> <?php esc_html_e( 'Display a notice above the previewed answers.', 'relevant-forms' ); ?></label>
+						<p><textarea class="widefat" id="<?php echo esc_attr( $inputIdBase . '-notice' ); ?>" name="relevant_fields[<?php echo esc_attr( $fieldId ); ?>][notice]" rows="3" placeholder="<?php echo esc_attr( (string) \RelevantForms\Forms\Fields\EntryPreviewField::notice( [ 'notice_enable' => true ] ) ); ?>"><?php echo esc_textarea( (string) ( $definition['notice'] ?? '' ) ); ?></textarea></p>
+						<p class="description"><?php esc_html_e( 'Leave empty to use the default notice.', 'relevant-forms' ); ?></p>
+					</td>
+				</tr>
+				<tr>
+					<th scope="row"><label for="<?php echo esc_attr( $inputIdBase . '-style' ); ?>"><?php esc_html_e( 'Style', 'relevant-forms' ); ?></label></th>
+					<td>
+						<?php $previewStyle = (string) ( $definition['style'] ?? 'basic' ); ?>
+						<select id="<?php echo esc_attr( $inputIdBase . '-style' ); ?>" name="relevant_fields[<?php echo esc_attr( $fieldId ); ?>][style]">
+							<option value="basic"<?php selected( $previewStyle, 'basic' ); ?>><?php esc_html_e( 'Basic', 'relevant-forms' ); ?></option>
+							<option value="compact"<?php selected( $previewStyle, 'compact' ); ?>><?php esc_html_e( 'Compact', 'relevant-forms' ); ?></option>
+							<option value="table"<?php selected( $previewStyle, 'table' ); ?>><?php esc_html_e( 'Table', 'relevant-forms' ); ?></option>
+							<option value="table_compact"<?php selected( $previewStyle, 'table_compact' ); ?>><?php esc_html_e( 'Table, compact', 'relevant-forms' ); ?></option>
+						</select>
+					</td>
+				</tr>
+			<?php endif; ?>
+
+			<?php if ( ! $isHidden && ! $isSection && ! $isPagebreak && ! $isEntryPreview && ! $isPaymentTotal ) : ?>
 				<tr>
 					<th scope="row"><label for="<?php echo esc_attr( $inputIdBase . '-required' ); ?>"><?php esc_html_e( 'Required', 'relevant-forms' ); ?></label></th>
 					<td>
@@ -117,7 +145,7 @@ $inputIdBase = 'rf-field-' . $fieldId;
 				</tr>
 			<?php endif; ?>
 
-			<?php if ( ! $isHidden && ! in_array( (string) $definition['type'], [ 'consent', 'section', 'pagebreak', 'payment-total' ], true ) ) : ?>
+			<?php if ( ! $isHidden && ! in_array( (string) $definition['type'], [ 'consent', 'section', 'pagebreak', 'entry-preview', 'payment-total' ], true ) ) : ?>
 				<tr>
 					<th scope="row"><label for="<?php echo esc_attr( $inputIdBase . '-placeholder' ); ?>"><?php esc_html_e( 'Placeholder', 'relevant-forms' ); ?></label></th>
 					<td>
@@ -185,7 +213,7 @@ $inputIdBase = 'rf-field-' . $fieldId;
 				</tr>
 			<?php endif; ?>
 
-			<?php if ( ! $isSection && ! $isPagebreak && ! $isPaymentTotal && ! $isPricedPayment ) : ?>
+			<?php if ( ! $isSection && ! $isPagebreak && ! $isEntryPreview && ! $isPaymentTotal && ! $isPricedPayment ) : ?>
 				<tr>
 					<th scope="row"><label for="<?php echo esc_attr( $inputIdBase . '-default' ); ?>"><?php esc_html_e( 'Default value', 'relevant-forms' ); ?></label></th>
 					<td>

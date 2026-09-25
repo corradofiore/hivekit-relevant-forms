@@ -7,6 +7,7 @@
 
 declare(strict_types=1);
 
+use Brain\Monkey;
 use RelevantForms\Import\WpFormsFieldMapper;
 
 it(
@@ -335,7 +336,7 @@ it(
 	'explains skip reasons for known types',
 	function () {
 		expect( WpFormsFieldMapper::skipReason( 'stripe-credit-card' ) )->toContain( 'Stripe' );
-		expect( WpFormsFieldMapper::skipReason( 'entry-preview' ) )->toContain( 'Layout' );
+		expect( WpFormsFieldMapper::skipReason( 'html' ) )->toContain( 'Layout' );
 		expect( WpFormsFieldMapper::skipReason( 'signature' ) )->toContain( 'Unsupported' );
 	}
 );
@@ -379,6 +380,43 @@ it(
 
 		expect( $mapped['definition']['type'] )->toBe( 'section' );
 		expect( $mapped['definition']['label'] )->toBe( '' );
+	}
+);
+
+it(
+	'maps entry previews with notice and style',
+	function () {
+		Monkey\Functions\when( 'wp_strip_all_tags' )->alias( 'strip_tags' );
+
+		$mapped = WpFormsFieldMapper::map(
+			[
+				'id'                    => '119',
+				'type'                  => 'entry-preview',
+				'preview-notice-enable' => '1',
+				'preview-notice'        => "<strong>This is a preview.</strong>\r\nVerify your answers",
+				'style'                 => 'table_compact',
+			]
+		);
+
+		expect( $mapped['definition']['type'] )->toBe( 'entry-preview' );
+		expect( $mapped['definition']['label'] )->toBe( '' );
+		expect( $mapped['definition']['notice_enable'] )->toBeTrue();
+		expect( $mapped['definition']['notice'] )->toBe( "This is a preview.\nVerify your answers" );
+		expect( $mapped['definition']['style'] )->toBe( 'table_compact' );
+		expect( implode( ' ', $mapped['notes'] ) )->toContain( 'plain text' );
+
+		// Missing toggle and an unknown style fall back safely.
+		$bare = WpFormsFieldMapper::map(
+			[
+				'id'    => '119',
+				'type'  => 'entry-preview',
+				'style' => 'wild',
+			]
+		);
+
+		expect( $bare['definition']['notice_enable'] )->toBeFalse();
+		expect( $bare['definition']['notice'] )->toBe( '' );
+		expect( $bare['definition']['style'] )->toBe( 'basic' );
 	}
 );
 

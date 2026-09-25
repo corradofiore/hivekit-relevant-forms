@@ -11,9 +11,11 @@ declare(strict_types=1);
 namespace RelevantForms\Tests\Integration;
 
 use RelevantForms\Admin\Assets\AdminAssets;
+use RelevantForms\Admin\Controllers\FormSaveController;
 use RelevantForms\Admin\Pages\FormEditPage;
 use RelevantForms\Forms\FormRepository;
 use RelevantForms\Forms\FormSchema;
+use RelevantForms\Tests\Integration\Support\RedirectedException;
 
 /**
  * {@inheritdoc}
@@ -538,10 +540,123 @@ final class FormEditorFieldsTest extends TestCase {
 	}
 
 	/**
+	 * The entry preview editor exposes heading, notice and style controls,
+	 * hides input-only rows and renders a review sample.
+	 */
+	public function testEntryPreviewsRenderNoticeAndStyleControls(): void {
+		wp_set_current_user( self::factory()->user->create( [ 'role' => 'administrator' ] ) );
+
+		$repository = new FormRepository();
+		$schema     = FormSchema::empty( 'Preview' )->withFields(
+			[
+				[
+					'id'    => 'f_name',
+					'type'  => 'text',
+					'label' => 'Name',
+				],
+				[
+					'id'            => 'f_preview',
+					'type'          => 'entry-preview',
+					'label'         => '',
+					'notice_enable' => true,
+					'notice'        => 'Check your answers',
+					'style'         => 'table',
+				],
+			]
+		);
+		$formId     = $repository->create( 'Preview', $schema, 'draft' );
+
+		$html = $this->renderEditor( $formId );
+
+		// Palette entry with the dedicated controls.
+		$this->assertStringContainsString( '<option value="entry-preview">Entry preview</option>', $html );
+		$this->assertStringContainsString( '<label for="rf-field-f_preview-label">Heading (optional)</label>', $html );
+		$this->assertStringContainsString( 'name="relevant_fields[f_preview][notice_enable]"', $html );
+		$this->assertStringContainsString( 'name="relevant_fields[f_preview][notice]"', $html );
+		$this->assertStringContainsString( 'name="relevant_fields[f_preview][style]"', $html );
+
+		// Input-only rows stay out of the preview editor.
+		$this->assertStringNotContainsString( 'name="relevant_fields[f_preview][required]"', $html );
+		$this->assertStringNotContainsString( 'name="relevant_fields[f_preview][placeholder]"', $html );
+		$this->assertStringNotContainsString( 'name="relevant_fields[f_preview][help_text]"', $html );
+		$this->assertStringNotContainsString( 'name="relevant_fields[f_preview][default_value]"', $html );
+
+		// The preview panel renders the review container with the saved style.
+		$this->assertStringContainsString( 'relevant-forms-entry-preview--table', $html );
+		$this->assertStringContainsString( 'Check your answers', $html );
+		$this->assertStringContainsString( '<option value="table" selected=\'selected\'>Table</option>', $html );
+	}
+
+	/**
+	 * Entry preview settings post through the editor controller and stick.
+	 */
+	public function testSavingPersistsEntryPreviewConfiguration(): void {
+		wp_set_current_user( self::factory()->user->create( [ 'role' => 'administrator' ] ) );
+
+		$formId = $this->makeForm();
+
+		$_POST = [
+			'form_id'         => $formId,
+			'form_name'       => 'Contact',
+			'form_status'     => 'published',
+			'relevant_fields' => [
+				'f_name'    => [
+					'id'    => 'f_name',
+					'type'  => 'text',
+					'label' => 'Name',
+				],
+				'f_preview' => [
+					'id'            => 'f_preview',
+					'type'          => 'entry-preview',
+					'label'         => '',
+					'notice_enable' => '1',
+					'notice'        => "Check your answers\nbefore sending",
+					'style'         => 'compact',
+				],
+			],
+		];
+
+		$_REQUEST['_wpnonce'] = wp_create_nonce( 'relevant_form_save' );
+
+		$url = $this->saveAndCaptureRedirect();
+
+		$this->assertStringContainsString( 'saved=1', $url );
+
+		$fields = ( new FormRepository() )->find( $formId )->schema->fields();
+
+		$this->assertSame( 'entry-preview', $fields[1]['type'] );
+		$this->assertTrue( $fields[1]['notice_enable'] );
+		$this->assertSame( "Check your answers\nbefore sending", $fields[1]['notice'] );
+		$this->assertSame( 'compact', $fields[1]['style'] );
+	}
+
+	/**
+	 * Run the save controller and capture its redirect target.
+	 */
+	private function saveAndCaptureRedirect(): string {
+		add_filter(
+			'wp_redirect',
+			static function ( string $location ): string {
+				// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- handler-generated URL, assertions only.
+				throw new RedirectedException( $location );
+			}
+		);
+
+		try {
+			FormSaveController::handle();
+			$this->fail( 'The controller should redirect.' );
+		} catch ( RedirectedException $redirected ) {
+			return $redirected->url;
+		} finally {
+			remove_all_filters( 'wp_redirect' );
+		}
+	}
+
+	/**
 	 * Tear down.
 	 */
 	public function tearDown(): void {
-		unset( $_GET['form_id'] );
+		unset( $_GET['form_id'], $_REQUEST['_wpnonce'] );
 
 		parent::tearDown();
 	}

@@ -12,7 +12,7 @@ namespace RelevantForms\Forms\Fields;
 /**
  * Radio buttons with allowed-value enforcement.
  */
-final class RadioField implements FieldType {
+final class RadioField implements FieldType, ChoiceFieldType {
 
 	use ChoiceTrait;
 

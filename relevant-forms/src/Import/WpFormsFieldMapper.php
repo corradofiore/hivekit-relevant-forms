@@ -47,6 +47,8 @@ final class WpFormsFieldMapper {
 		// dividers become section separators.
 		'pagebreak'        => 'pagebreak',
 		'divider'          => 'section',
+		// The WPForms entry preview becomes a native review step.
+		'entry-preview'    => 'entry-preview',
 		// Payment fields (phase 5): amounts are preserved.
 		'payment-single'   => 'payment-single',
 		'payment-select'   => 'payment-select',
@@ -68,7 +70,7 @@ final class WpFormsFieldMapper {
 	 *
 	 * @var array<int, string>
 	 */
-	public const UNSUPPORTED_PREFIXES = [ 'signature', 'address', 'likert', 'rating', 'entry-preview', 'captcha', 'html' ];
+	public const UNSUPPORTED_PREFIXES = [ 'signature', 'address', 'likert', 'rating', 'captcha', 'html' ];
 
 	/**
 	 * Map one WPForms field, or null when unsupported.
@@ -102,9 +104,9 @@ final class WpFormsFieldMapper {
 			$label = trim( (string) ( $field['title'] ?? '' ) );
 		}
 
-		// Layout fields may intentionally carry no label (a bare divider or a
-		// page without a title), so no humanized fallback for them.
-		if ( '' === $label && ! in_array( $wpType, [ 'divider', 'pagebreak' ], true ) ) {
+		// Layout fields may intentionally carry no label (a bare divider, a
+		// page without a title or a preview block), so no humanized fallback.
+		if ( '' === $label && ! in_array( $wpType, [ 'divider', 'pagebreak', 'entry-preview' ], true ) ) {
 			$label = ucfirst( str_replace( '-', ' ', $wpType ) );
 		}
 
@@ -131,6 +133,18 @@ final class WpFormsFieldMapper {
 			if ( 'date' !== $mode ) {
 				$definition['type'] = 'text';
 				$notes[]            = __( 'Date & time field imported as a single line of text: a date field cannot carry the time of day.', 'relevant-forms' );
+			}
+		} elseif ( 'entry-preview' === $wpType ) {
+			$rawNotice = (string) ( $field['preview-notice'] ?? '' );
+			$notice    = trim( str_replace( [ "\r\n", "\r" ], "\n", wp_strip_all_tags( $rawNotice ) ) );
+			$style     = strtolower( trim( (string) ( $field['style'] ?? '' ) ) );
+
+			$definition['notice_enable'] = ! empty( $field['preview-notice-enable'] );
+			$definition['notice']        = $notice;
+			$definition['style']         = in_array( $style, [ 'basic', 'compact', 'table', 'table_compact' ], true ) ? $style : 'basic';
+
+			if ( '' !== $rawNotice && $notice !== trim( $rawNotice ) ) {
+				$notes[] = __( 'The preview notice was imported as plain text (formatting removed).', 'relevant-forms' );
 			}
 		}
 
@@ -373,7 +387,7 @@ final class WpFormsFieldMapper {
 			return __( 'Payment gateway widget: card entry is provided by the Stripe checkout flow after connecting Stripe; the widget itself is not migrated.', 'relevant-forms' );
 		}
 
-		if ( in_array( $type, [ 'html', 'content', 'entry-preview' ], true ) ) {
+		if ( in_array( $type, [ 'html', 'content' ], true ) ) {
 			return __( 'Layout element: not a data field, so it is not imported.', 'relevant-forms' );
 		}
 

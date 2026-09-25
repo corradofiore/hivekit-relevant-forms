@@ -12,7 +12,7 @@ namespace RelevantForms\Forms\Fields;
 /**
  * select with allowed-value enforcement.
  */
-final class SelectField implements FieldType {
+final class SelectField implements FieldType, ChoiceFieldType {
 
 	use ChoiceTrait;
 

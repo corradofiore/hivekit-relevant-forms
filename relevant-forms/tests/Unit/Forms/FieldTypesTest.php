@@ -125,9 +125,9 @@ it(
 );
 
 it(
-	'registers all twenty built-in types',
+	'registers all twenty-one built-in types',
 	function () {
-		expect( FieldTypeRegistry::all() )->toHaveCount( 20 );
+		expect( FieldTypeRegistry::all() )->toHaveCount( 21 );
 	}
 );
 
@@ -339,5 +339,107 @@ it(
 		);
 
 		expect( $markup )->toContain( '<hr class="relevant-forms-pagebreak" role="separator">' );
+	}
+);
+
+it(
+	'renders entry previews with value rows, notice and style',
+	function () {
+		Monkey\Functions\when( 'esc_attr' )->returnArg();
+		Monkey\Functions\when( 'esc_html' )->returnArg();
+		Monkey\Functions\when( 'esc_attr__' )->returnArg();
+		Monkey\Functions\when( 'esc_html__' )->returnArg();
+		Monkey\Functions\when( '__' )->returnArg();
+
+		$type = FieldTypeRegistry::get( 'entry-preview' );
+
+		// Previews carry no value: nothing to validate or store.
+		expect( $type->validate( [], '' ) )->toBeNull();
+		expect( $type->sanitize( [], '' ) )->toBeNull();
+
+		$markup = $type->render(
+			[
+				'id'            => 'f_preview',
+				'type'          => 'entry-preview',
+				'label'         => 'Review',
+				'notice_enable' => true,
+				'notice'        => 'Check your answers',
+				'style'         => 'table_compact',
+				'preview_rows'  => [
+					[
+						'id'    => 'f_a',
+						'label' => 'Name',
+						'value' => 'Ada',
+					],
+					[
+						'id'    => 'f_b',
+						'label' => 'Email',
+						'value' => '',
+					],
+					[
+						'id'             => 'f_c',
+						'label'          => 'City',
+						'value'          => 'Rome',
+						'hidden_by_rule' => true,
+					],
+				],
+			],
+			null,
+			null,
+			'7'
+		);
+
+		expect( $markup )->toContain( 'relevant-forms-entry-preview--table_compact' );
+		expect( $markup )->toContain( '<h3 class="relevant-forms-preview-heading">Review</h3>' );
+		expect( $markup )->toContain( '<p class="relevant-forms-preview-notice">Check your answers</p>' );
+
+		// Filled rows show; empty and rule-hidden rows start hidden.
+		expect( $markup )->toContain( 'data-rf-preview-row="f_a">' );
+		expect( $markup )->not->toContain( 'data-rf-preview-row="f_a" hidden' );
+		expect( $markup )->toContain( 'data-rf-preview-row="f_b" hidden' );
+		expect( $markup )->toContain( 'data-rf-preview-row="f_c" hidden' );
+
+		// One row is filled: the empty state stays hidden.
+		expect( $markup )->toContain( 'data-rf-preview-empty hidden' );
+
+		// Disabled notice, unknown style and no filled rows.
+		$bare = $type->render(
+			[
+				'id'            => 'f_preview',
+				'type'          => 'entry-preview',
+				'notice_enable' => false,
+				'style'         => 'wild',
+				'preview_rows'  => [
+					[
+						'id'    => 'f_a',
+						'label' => 'Name',
+						'value' => '',
+					],
+				],
+			],
+			null,
+			null,
+			'7'
+		);
+
+		expect( $bare )->toContain( 'relevant-forms-entry-preview--basic' );
+		expect( $bare )->not->toContain( 'relevant-forms-preview-notice' );
+		expect( $bare )->not->toContain( 'relevant-forms-preview-heading' );
+		expect( $bare )->toContain( 'data-rf-preview-empty>' );
+
+		// Enabled but empty notice: the default message takes over.
+		$default = $type->render(
+			[
+				'id'            => 'f_preview',
+				'type'          => 'entry-preview',
+				'notice_enable' => true,
+				'notice'        => '',
+			],
+			null,
+			null,
+			'7'
+		);
+
+		expect( $default )->toContain( 'Please review your answers before submitting' );
 	}
 );

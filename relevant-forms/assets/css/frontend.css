@@ -164,3 +164,63 @@
 	margin: 1.5em 0;
 	opacity: 0.4;
 }
+
+/* Entry preview: an optional review step listing the visitor's own answers. */
+
+.relevant-forms-preview-heading {
+	margin: 0 0 0.5em;
+}
+
+.relevant-forms-preview-notice {
+	background: #f0f6fc;
+	border-left: 4px solid #72aee6;
+	margin: 0 0 1em;
+	padding: 0.75em 1em;
+	white-space: pre-line;
+}
+
+.relevant-forms-preview-rows {
+	border-top: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.relevant-forms-preview-row {
+	border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+	padding: 0.5em 0;
+}
+
+.relevant-forms-preview-row[hidden],
+.relevant-forms-preview-empty[hidden] {
+	display: none;
+}
+
+.relevant-forms-preview-label {
+	display: block;
+	font-weight: 600;
+}
+
+.relevant-forms-preview-value {
+	display: block;
+	white-space: pre-line;
+}
+
+.relevant-forms-preview-empty {
+	color: #646970;
+	font-style: italic;
+	margin: 0.75em 0 0;
+}
+
+/* Table styles put labels and values side by side. */
+
+.relevant-forms-entry-preview--table .relevant-forms-preview-row,
+.relevant-forms-entry-preview--table_compact .relevant-forms-preview-row {
+	display: grid;
+	gap: 0 1em;
+	grid-template-columns: minmax(140px, 40%) 1fr;
+}
+
+/* Compact styles tighten the row spacing. */
+
+.relevant-forms-entry-preview--compact .relevant-forms-preview-row,
+.relevant-forms-entry-preview--table_compact .relevant-forms-preview-row {
+	padding: 0.25em 0;
+}

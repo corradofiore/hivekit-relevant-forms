@@ -20,7 +20,7 @@ use RelevantForms\Payments\Money;
 /**
  * Priced choices, position lookups and per-field contribution math.
  */
-abstract class PaymentField implements FieldType {
+abstract class PaymentField implements FieldType, ChoiceFieldType {
 
 	use ChoiceTrait;
 
