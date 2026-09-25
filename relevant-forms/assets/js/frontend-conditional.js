@@ -272,6 +272,10 @@
 			wrapper.hidden = ! visible;
 			syncRequired( wrapper, visible );
 		} );
+
+		// Let sibling behaviours (for example multi-page navigation) react to
+		// the new visibility state.
+		form.dispatchEvent( new CustomEvent( 'relevant-forms:visibility' ) );
 	}
 
 	document.querySelectorAll( 'form.relevant-forms' ).forEach( function ( form ) {

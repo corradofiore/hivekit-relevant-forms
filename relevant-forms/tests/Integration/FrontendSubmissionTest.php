@@ -318,6 +318,98 @@ final class FrontendSubmissionTest extends TestCase {
 	}
 
 	/**
+	 * Create a published form split into two pages by a page break.
+	 */
+	private function makePaginatedForm(): Form {
+		$repository = new FormRepository();
+
+		$schema = FormSchema::empty( 'Stepped Request' )->withFields(
+			[
+				[
+					'id'       => 'f_name',
+					'type'     => 'text',
+					'label'    => 'Name',
+					'required' => true,
+				],
+				[
+					'id'    => 'f_break',
+					'type'  => 'pagebreak',
+					'label' => 'Contact',
+				],
+				[
+					'id'       => 'f_email',
+					'type'     => 'email',
+					'label'    => 'Email',
+					'required' => true,
+				],
+			]
+		);
+
+		$id = $repository->create( 'Stepped Request', $schema, 'published' );
+
+		return $repository->find( $id );
+	}
+
+	/**
+	 * Paginated forms submit in one POST: only real field values are stored,
+	 * the page break itself never reaches the entry, and validation errors
+	 * render inside their page container.
+	 */
+	public function testPaginatedSubmissionStoresOnlyFieldValues(): void {
+		$form = $this->makePaginatedForm();
+
+		$_POST                        = [
+			'action'                 => 'relevant_forms_submit',
+			'_relevant_form_id'      => $form->id,
+			'_relevant_form_nonce'   => wp_create_nonce( 'relevant_form_' . $form->id ),
+			'_wp_http_referer'       => '/relevant-demo/',
+			'relevant_field_f_name'  => 'Ada Lovelace',
+			'relevant_field_f_email' => 'ada@example.com',
+		];
+		$_REQUEST['_wp_http_referer'] = '/relevant-demo/';
+
+		$url = $this->frontendSubmitAndCaptureRedirect();
+
+		$this->assertStringContainsString( 'relevant_form_success=' . $form->id, $url );
+
+		$entries = ( new EntryRepository() )->findMany( [ 'form_id' => $form->id ] );
+		$this->assertCount( 1, $entries );
+		$this->assertSame( 'Ada Lovelace', $entries[0]->meta['f_name'] );
+		$this->assertSame( 'ada@example.com', $entries[0]->meta['f_email'] );
+		$this->assertArrayNotHasKey( 'f_break', $entries[0]->meta );
+	}
+
+	/**
+	 * A missing value on a later page renders its error inside that page's
+	 * container, so the navigation script can reopen it (and readers without
+	 * JavaScript see it in the stacked flow).
+	 */
+	public function testPaginatedValidationErrorRendersInsideItsPage(): void {
+		$form = $this->makePaginatedForm();
+
+		$_POST = [
+			'action'                 => 'relevant_forms_submit',
+			'_relevant_form_id'      => $form->id,
+			'_relevant_form_nonce'   => wp_create_nonce( 'relevant_form_' . $form->id ),
+			'relevant_field_f_name'  => 'Ada',
+			'relevant_field_f_email' => '',
+		];
+
+		SubmissionHandler::maybeHandleFrontendSubmission();
+
+		$this->assertCount( 0, ( new EntryRepository() )->findMany( [ 'form_id' => $form->id ] ) );
+
+		$html = FormRenderer::renderForm( $form );
+
+		$pageTwo = strpos( $html, 'data-rf-page="2"' );
+		$error   = strpos( $html, 'relevant-field-' . $form->id . '-f_email-error' );
+
+		$this->assertNotFalse( $pageTwo );
+		$this->assertNotFalse( $error );
+		$this->assertGreaterThan( $pageTwo, $error );
+	}
+
+	/**
 	 * Tear down.
 	 */
 	public function tearDown(): void {

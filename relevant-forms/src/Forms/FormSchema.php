@@ -428,7 +428,7 @@ final class FormSchema implements JsonSerializable {
 				);
 			}
 
-			if ( 'hidden' !== $type && '' === trim( (string) ( $field['label'] ?? '' ) ) ) {
+			if ( ! in_array( $type, [ 'hidden', 'section', 'pagebreak' ], true ) && '' === trim( (string) ( $field['label'] ?? '' ) ) ) {
 				$errors[] = sprintf(
 					/* translators: %s: field id */
 					__( 'Field "%s" is missing a label.', 'relevant-forms' ),

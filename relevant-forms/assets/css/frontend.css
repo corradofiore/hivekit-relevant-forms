@@ -118,3 +118,49 @@
 .relevant-forms-field[hidden] {
 	display: none;
 }
+
+/* Multi-page forms: one page is visible at a time, navigation sits at the
+   bottom of each page and the step indicator doubles as the page eyebrow. */
+
+.relevant-forms-page[hidden],
+.relevant-forms-submit-row[hidden] {
+	display: none;
+}
+
+.relevant-forms-page-indicator {
+	color: #646970;
+	font-size: 0.8125em;
+	font-weight: 600;
+	letter-spacing: 0.04em;
+	margin: 0 0 0.5em;
+	text-transform: uppercase;
+}
+
+.relevant-forms-page-title {
+	margin: 0 0 1em;
+}
+
+.relevant-forms-page-nav {
+	align-items: center;
+	display: flex;
+	gap: 0.5rem;
+	margin-top: 1.5rem;
+}
+
+.relevant-forms-page-back,
+.relevant-forms-page-next {
+	cursor: pointer;
+}
+
+.relevant-forms-page-next {
+	margin-left: auto;
+}
+
+/* Page break dividers only show when every page is stacked (no JavaScript). */
+
+.relevant-forms-pagebreak {
+	border: 0;
+	border-top: 1px solid currentColor;
+	margin: 1.5em 0;
+	opacity: 0.4;
+}

@@ -335,8 +335,50 @@ it(
 	'explains skip reasons for known types',
 	function () {
 		expect( WpFormsFieldMapper::skipReason( 'stripe-credit-card' ) )->toContain( 'Stripe' );
-		expect( WpFormsFieldMapper::skipReason( 'pagebreak' ) )->toContain( 'Layout' );
+		expect( WpFormsFieldMapper::skipReason( 'entry-preview' ) )->toContain( 'Layout' );
 		expect( WpFormsFieldMapper::skipReason( 'signature' ) )->toContain( 'Unsupported' );
+	}
+);
+
+it(
+	'maps page breaks with the page title as label',
+	function () {
+		$titled = WpFormsFieldMapper::map(
+			[
+				'id'    => '2',
+				'type'  => 'pagebreak',
+				'title' => 'Passenger details',
+			]
+		);
+
+		expect( $titled['definition']['type'] )->toBe( 'pagebreak' );
+		expect( $titled['definition']['label'] )->toBe( 'Passenger details' );
+
+		// A page break without a title stays label-less on purpose.
+		$bare = WpFormsFieldMapper::map(
+			[
+				'id'   => '3',
+				'type' => 'pagebreak',
+			]
+		);
+
+		expect( $bare['definition']['type'] )->toBe( 'pagebreak' );
+		expect( $bare['definition']['label'] )->toBe( '' );
+	}
+);
+
+it(
+	'maps dividers to label-less sections',
+	function () {
+		$mapped = WpFormsFieldMapper::map(
+			[
+				'id'   => '4',
+				'type' => 'divider',
+			]
+		);
+
+		expect( $mapped['definition']['type'] )->toBe( 'section' );
+		expect( $mapped['definition']['label'] )->toBe( '' );
 	}
 );
 

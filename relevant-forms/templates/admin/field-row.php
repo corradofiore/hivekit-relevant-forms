@@ -18,10 +18,19 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 // phpcs:disable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- template scope variables.
 
-$fieldId   = (string) $definition['id'];
-$isChoice  = in_array( (string) $definition['type'], [ 'select', 'radio', 'checkbox' ], true );
-$isHidden  = 'hidden' === (string) $definition['type'];
-$isSection = 'section' === (string) $definition['type'];
+$fieldId     = (string) $definition['id'];
+$isChoice    = in_array( (string) $definition['type'], [ 'select', 'radio', 'checkbox' ], true );
+$isHidden    = 'hidden' === (string) $definition['type'];
+$isSection   = 'section' === (string) $definition['type'];
+$isPagebreak = 'pagebreak' === (string) $definition['type'];
+
+$labelHeading = __( 'Label', 'relevant-forms' );
+
+if ( $isSection ) {
+	$labelHeading = __( 'Section header', 'relevant-forms' );
+} elseif ( $isPagebreak ) {
+	$labelHeading = __( 'Page title', 'relevant-forms' );
+}
 
 $fieldType       = (string) $definition['type'];
 $isPricedPayment = in_array( $fieldType, [ 'payment-select', 'payment-multiple', 'payment-checkbox' ], true );
@@ -47,14 +56,17 @@ $inputIdBase = 'rf-field-' . $fieldId;
 			</tr>
 			<?php if ( ! $isHidden ) : ?>
 				<tr>
-					<th scope="row"><label for="<?php echo esc_attr( $inputIdBase . '-label' ); ?>"><?php echo esc_html( $isSection ? __( 'Section header', 'relevant-forms' ) : __( 'Label', 'relevant-forms' ) ); ?></label></th>
+					<th scope="row"><label for="<?php echo esc_attr( $inputIdBase . '-label' ); ?>"><?php echo esc_html( $labelHeading ); ?></label></th>
 					<td>
 						<input type="text" class="widefat rf-input-label" id="<?php echo esc_attr( $inputIdBase . '-label' ); ?>" name="relevant_fields[<?php echo esc_attr( $fieldId ); ?>][label]" value="<?php echo esc_attr( (string) ( $definition['label'] ?? '' ) ); ?>">
+						<?php if ( $isPagebreak ) : ?>
+							<p class="description"><?php esc_html_e( 'Shown above the step indicator. Leave empty for an untitled page.', 'relevant-forms' ); ?></p>
+						<?php endif; ?>
 					</td>
 				</tr>
 			<?php endif; ?>
 
-			<?php if ( ! $isHidden && ! $isSection && ! $isPaymentTotal ) : ?>
+			<?php if ( ! $isHidden && ! $isSection && ! $isPagebreak && ! $isPaymentTotal ) : ?>
 				<tr>
 					<th scope="row"><label for="<?php echo esc_attr( $inputIdBase . '-required' ); ?>"><?php esc_html_e( 'Required', 'relevant-forms' ); ?></label></th>
 					<td>
@@ -105,7 +117,7 @@ $inputIdBase = 'rf-field-' . $fieldId;
 				</tr>
 			<?php endif; ?>
 
-			<?php if ( ! $isHidden && ! in_array( (string) $definition['type'], [ 'consent', 'section', 'payment-total' ], true ) ) : ?>
+			<?php if ( ! $isHidden && ! in_array( (string) $definition['type'], [ 'consent', 'section', 'pagebreak', 'payment-total' ], true ) ) : ?>
 				<tr>
 					<th scope="row"><label for="<?php echo esc_attr( $inputIdBase . '-placeholder' ); ?>"><?php esc_html_e( 'Placeholder', 'relevant-forms' ); ?></label></th>
 					<td>
@@ -173,7 +185,7 @@ $inputIdBase = 'rf-field-' . $fieldId;
 				</tr>
 			<?php endif; ?>
 
-			<?php if ( ! $isSection && ! $isPaymentTotal && ! $isPricedPayment ) : ?>
+			<?php if ( ! $isSection && ! $isPagebreak && ! $isPaymentTotal && ! $isPricedPayment ) : ?>
 				<tr>
 					<th scope="row"><label for="<?php echo esc_attr( $inputIdBase . '-default' ); ?>"><?php esc_html_e( 'Default value', 'relevant-forms' ); ?></label></th>
 					<td>

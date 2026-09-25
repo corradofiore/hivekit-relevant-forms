@@ -79,6 +79,7 @@ final class FieldTypeRegistry {
 			new CheckboxField(),
 			new ConsentField(),
 			new SectionField(),
+			new PagebreakField(),
 			new HiddenField(),
 			new DateField(),
 			new FileField(),
