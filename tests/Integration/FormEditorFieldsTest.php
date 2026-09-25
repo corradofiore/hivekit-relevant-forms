@@ -631,6 +631,87 @@ final class FormEditorFieldsTest extends TestCase {
 	}
 
 	/**
+	 * Content blocks edit a heading and an HTML body and render a preview.
+	 */
+	public function testContentBlocksRenderEditorControlsAndPreview(): void {
+		wp_set_current_user( self::factory()->user->create( [ 'role' => 'administrator' ] ) );
+
+		$repository = new FormRepository();
+		$schema     = FormSchema::empty( 'Content' )->withFields(
+			[
+				[
+					'id'    => 'f_name',
+					'type'  => 'text',
+					'label' => 'Name',
+				],
+				[
+					'id'      => 'f_content',
+					'type'    => 'content',
+					'label'   => '',
+					'content' => '<h4>Fees</h4><p>Pay <strong>now</strong></p>',
+				],
+			]
+		);
+		$formId     = $repository->create( 'Content', $schema, 'draft' );
+
+		$html = $this->renderEditor( $formId );
+
+		// Palette entry with the heading and HTML controls only.
+		$this->assertStringContainsString( '<option value="content">Content block</option>', $html );
+		$this->assertStringContainsString( '<label for="rf-field-f_content-label">Heading (optional)</label>', $html );
+		$this->assertStringContainsString( 'name="relevant_fields[f_content][content]"', $html );
+		$this->assertStringNotContainsString( 'name="relevant_fields[f_content][required]"', $html );
+		$this->assertStringNotContainsString( 'name="relevant_fields[f_content][placeholder]"', $html );
+		$this->assertStringNotContainsString( 'name="relevant_fields[f_content][default_value]"', $html );
+
+		// The preview renders the formatted block.
+		$this->assertStringContainsString( 'relevant-forms-field--content', $html );
+		$this->assertStringContainsString( '<h4>Fees</h4>', $html );
+		$this->assertStringContainsString( '<strong>now</strong>', $html );
+	}
+
+	/**
+	 * Content block HTML posts through the editor controller, is sanitized
+	 * and sticks.
+	 */
+	public function testSavingPersistsContentBlocks(): void {
+		wp_set_current_user( self::factory()->user->create( [ 'role' => 'administrator' ] ) );
+
+		$formId = $this->makeForm();
+
+		$_POST = [
+			'form_id'         => $formId,
+			'form_name'       => 'Contact',
+			'form_status'     => 'published',
+			'relevant_fields' => [
+				'f_name'    => [
+					'id'    => 'f_name',
+					'type'  => 'text',
+					'label' => 'Name',
+				],
+				'f_content' => [
+					'id'      => 'f_content',
+					'type'    => 'content',
+					'label'   => '',
+					'content' => '<h4>Fees</h4><p>Pay <strong>now</strong></p><script>alert(1)</script>',
+				],
+			],
+		];
+
+		$_REQUEST['_wpnonce'] = wp_create_nonce( 'relevant_form_save' );
+
+		$url = $this->saveAndCaptureRedirect();
+
+		$this->assertStringContainsString( 'saved=1', $url );
+
+		$fields = ( new FormRepository() )->find( $formId )->schema->fields();
+
+		$this->assertSame( 'content', $fields[1]['type'] );
+		$this->assertStringContainsString( '<h4>Fees</h4><p>Pay <strong>now</strong></p>', $fields[1]['content'] );
+		$this->assertStringNotContainsString( '<script', $fields[1]['content'] );
+	}
+
+	/**
 	 * Run the save controller and capture its redirect target.
 	 */
 	private function saveAndCaptureRedirect(): string {

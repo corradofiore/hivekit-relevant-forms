@@ -421,6 +421,23 @@ it(
 );
 
 it(
+	'maps content blocks with their html preserved',
+	function () {
+		$mapped = WpFormsFieldMapper::map(
+			[
+				'id'      => '130',
+				'type'    => 'content',
+				'content' => "  <h4>Payment</h4>\nBank: <strong>CBA</strong>  ",
+			]
+		);
+
+		expect( $mapped['definition']['type'] )->toBe( 'content' );
+		expect( $mapped['definition']['label'] )->toBe( '' );
+		expect( $mapped['definition']['content'] )->toBe( "<h4>Payment</h4>\nBank: <strong>CBA</strong>" );
+	}
+);
+
+it(
 	'leaves conditional logic to the form-level conversion',
 	function () {
 		$mapped = WpFormsFieldMapper::map(

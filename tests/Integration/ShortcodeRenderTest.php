@@ -447,4 +447,41 @@ final class ShortcodeRenderTest extends TestCase {
 
 		$this->assertFalse( wp_script_is( 'relevant-forms-preview', 'enqueued' ) );
 	}
+
+	/**
+	 * Content blocks render the author's HTML with formatting preserved and
+	 * without executing shortcodes.
+	 */
+	public function testContentBlocksRenderAuthorHtml(): void {
+		$repository = new FormRepository();
+
+		$id = $repository->create(
+			'Content Form',
+			FormSchema::empty( 'Content Form' )->withFields(
+				[
+					[
+						'id'    => 'f_name',
+						'type'  => 'text',
+						'label' => 'Name',
+					],
+					[
+						'id'      => 'f_content',
+						'type'    => 'content',
+						'label'   => '',
+						'content' => "<h4>Payment</h4>\nBank: <strong>CBA</strong>",
+					],
+				]
+			),
+			'published'
+		);
+
+		$html = do_shortcode( '[relevant_form id="' . $id . '"]' );
+
+		$this->assertStringContainsString( 'relevant-forms-field--content', $html );
+		$this->assertStringContainsString( '<h4>Payment</h4>', $html );
+		$this->assertStringContainsString( 'Bank: <strong>CBA</strong>', $html );
+
+		// Disallowed markup never survives rendering.
+		$this->assertStringNotContainsString( '<script', $html );
+	}
 }

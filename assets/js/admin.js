@@ -380,6 +380,35 @@
 			return;
 		}
 
+		// Content blocks: sync the heading and the HTML body.
+		if ( 'content' === type ) {
+			var contentInput = editor.querySelector( '[name$="[content]"]' );
+			var contentBody = wrapper.querySelector( '.relevant-forms-content' );
+
+			if ( contentInput && contentBody ) {
+				contentBody.innerHTML = contentInput.value;
+			}
+
+			var contentTitle = wrapper.querySelector( '.relevant-forms-content-title' );
+			var contentHeading = labelInput ? labelInput.value : '';
+
+			if ( '' === contentHeading ) {
+				if ( contentTitle ) {
+					contentTitle.remove();
+				}
+			} else {
+				if ( ! contentTitle ) {
+					contentTitle = document.createElement( 'h3' );
+					contentTitle.className = 'relevant-forms-content-title';
+					wrapper.insertBefore( contentTitle, wrapper.firstChild );
+				}
+
+				contentTitle.textContent = contentHeading;
+			}
+
+			return;
+		}
+
 		fieldset = wrapper.querySelector( 'fieldset' );
 		control = document.getElementById( baseId );
 		label = null;
@@ -639,7 +668,7 @@
 		previousFieldItems( block.getAttribute( 'data-for' ) ).forEach( function ( item ) {
 			var id = item.getAttribute( 'data-for' );
 
-			if ( 'section' === fieldTypeOf( id ) || 'pagebreak' === fieldTypeOf( id ) || 'entry-preview' === fieldTypeOf( id ) || known[ id ] ) {
+			if ( 'section' === fieldTypeOf( id ) || 'pagebreak' === fieldTypeOf( id ) || 'entry-preview' === fieldTypeOf( id ) || 'content' === fieldTypeOf( id ) || known[ id ] ) {
 				return;
 			}
 
