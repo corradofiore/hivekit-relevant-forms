@@ -82,6 +82,7 @@ final class FieldTypeRegistry {
 			new PagebreakField(),
 			new EntryPreviewField(),
 			new ContentField(),
+			new HtmlField(),
 			new HiddenField(),
 			new DateField(),
 			new FileField(),

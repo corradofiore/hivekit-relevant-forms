@@ -219,6 +219,15 @@ final class FormSaveController {
 				$definition['content'] = wp_kses_post( (string) ( $rawField['content'] ?? '' ) );
 			}
 
+			if ( 'html' === $type ) {
+				$code = trim( (string) ( $rawField['code'] ?? '' ) );
+
+				// Raw code is storable only by users WordPress trusts with
+				// unfiltered HTML; everyone else saves sanitized code, like
+				// core does for post content.
+				$definition['code'] = current_user_can( 'unfiltered_html' ) ? $code : wp_kses_post( $code );
+			}
+
 			if ( 'file' === $type ) {
 				$definition['upload_policy'] = [
 					'allowed_ext' => self::parseExtensions( (string) ( $rawField['upload_policy']['allowed_ext'] ?? '' ) ),

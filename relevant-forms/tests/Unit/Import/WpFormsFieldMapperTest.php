@@ -336,7 +336,6 @@ it(
 	'explains skip reasons for known types',
 	function () {
 		expect( WpFormsFieldMapper::skipReason( 'stripe-credit-card' ) )->toContain( 'Stripe' );
-		expect( WpFormsFieldMapper::skipReason( 'html' ) )->toContain( 'Layout' );
 		expect( WpFormsFieldMapper::skipReason( 'signature' ) )->toContain( 'Unsupported' );
 	}
 );
@@ -434,6 +433,24 @@ it(
 		expect( $mapped['definition']['type'] )->toBe( 'content' );
 		expect( $mapped['definition']['label'] )->toBe( '' );
 		expect( $mapped['definition']['content'] )->toBe( "<h4>Payment</h4>\nBank: <strong>CBA</strong>" );
+	}
+);
+
+it(
+	'maps custom html fields as raw code with a review note',
+	function () {
+		$mapped = WpFormsFieldMapper::map(
+			[
+				'id'   => '5',
+				'type' => 'html',
+				'code' => "  <div id=\"map\"></div>\n<script>init();</script>  ",
+			]
+		);
+
+		expect( $mapped['definition']['type'] )->toBe( 'html' );
+		expect( $mapped['definition']['label'] )->toBe( '' );
+		expect( $mapped['definition']['code'] )->toBe( "<div id=\"map\"></div>\n<script>init();</script>" );
+		expect( implode( ' ', $mapped['notes'] ) )->toContain( 'authored' );
 	}
 );
 

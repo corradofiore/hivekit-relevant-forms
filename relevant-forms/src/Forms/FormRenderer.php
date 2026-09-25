@@ -420,7 +420,7 @@ final class FormRenderer {
 			$id    = (string) ( $definition['id'] ?? '' );
 			$label = trim( (string) ( $definition['label'] ?? '' ) );
 
-			if ( in_array( $type, [ 'section', 'pagebreak', 'entry-preview' ], true ) || '' === $id || '' === $label ) {
+			if ( in_array( $type, [ 'section', 'pagebreak', 'entry-preview', 'content', 'html' ], true ) || '' === $id || '' === $label ) {
 				continue;
 			}
 
