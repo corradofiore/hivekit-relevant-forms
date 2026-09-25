@@ -33,6 +33,9 @@ final class WpFormsFieldMapper {
 		'hidden'           => 'hidden',
 		'number'           => 'number',
 		'date'             => 'date',
+		// The WPForms Date/Time field is `date-time`; date-only mode maps to
+		// the native date field, date+time mode is handled in map().
+		'date-time'        => 'date',
 		'time'             => 'text',
 		'url'              => 'url',
 		'website'          => 'url',
@@ -111,6 +114,13 @@ final class WpFormsFieldMapper {
 
 		if ( in_array( $wpType, self::PAYMENT_TYPES, true ) ) {
 			$definition = self::paymentDefinition( $wpType, $definition, $field, $notes );
+		} elseif ( 'date-time' === $wpType ) {
+			$mode = strtolower( trim( (string) ( $field['format'] ?? 'date' ) ) );
+
+			if ( 'date' !== $mode ) {
+				$definition['type'] = 'text';
+				$notes[]            = __( 'Date & time field imported as a single line of text: a date field cannot carry the time of day.', 'relevant-forms' );
+			}
 		}
 
 		if ( 'file' === $relevantType ) {
@@ -336,6 +346,27 @@ final class WpFormsFieldMapper {
 		}
 
 		return $result;
+	}
+
+	/**
+	 * Human-readable reason shown in the migration report when a type is
+	 * skipped. Gateway widgets and layout elements get tailored reasons so
+	 * payment migrations are not misread as unsupported.
+	 *
+	 * @param string $type Raw WPForms type.
+	 */
+	public static function skipReason( string $type ): string {
+		$type = strtolower( trim( $type ) );
+
+		if ( str_starts_with( $type, 'stripe-' ) || 'payment-coupon' === $type ) {
+			return __( 'Payment gateway widget: card entry is provided by the Stripe checkout flow after connecting Stripe; the widget itself is not migrated.', 'relevant-forms' );
+		}
+
+		if ( in_array( $type, [ 'pagebreak', 'divider', 'html', 'content', 'entry-preview' ], true ) ) {
+			return __( 'Layout element: not a data field, so it is not imported.', 'relevant-forms' );
+		}
+
+		return __( 'Unsupported field type (not part of the initial importer scope).', 'relevant-forms' );
 	}
 
 	/**
