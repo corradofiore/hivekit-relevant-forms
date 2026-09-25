@@ -165,6 +165,25 @@
 	opacity: 0.4;
 }
 
+/* Content blocks: author-provided HTML between fields. */
+
+.relevant-forms-content-title {
+	margin: 0 0 0.5em;
+}
+
+.relevant-forms-content > :first-child {
+	margin-top: 0;
+}
+
+.relevant-forms-content > :last-child {
+	margin-bottom: 0;
+}
+
+.relevant-forms-content img {
+	height: auto;
+	max-width: 100%;
+}
+
 /* Entry preview: an optional review step listing the visitor's own answers. */
 
 .relevant-forms-preview-heading {

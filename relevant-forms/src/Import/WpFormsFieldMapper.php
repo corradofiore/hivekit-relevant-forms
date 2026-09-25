@@ -49,6 +49,8 @@ final class WpFormsFieldMapper {
 		'divider'          => 'section',
 		// The WPForms entry preview becomes a native review step.
 		'entry-preview'    => 'entry-preview',
+		// The WPForms Content field becomes a rich-text display block.
+		'content'          => 'content',
 		// Payment fields (phase 5): amounts are preserved.
 		'payment-single'   => 'payment-single',
 		'payment-select'   => 'payment-select',
@@ -105,8 +107,9 @@ final class WpFormsFieldMapper {
 		}
 
 		// Layout fields may intentionally carry no label (a bare divider, a
-		// page without a title or a preview block), so no humanized fallback.
-		if ( '' === $label && ! in_array( $wpType, [ 'divider', 'pagebreak', 'entry-preview' ], true ) ) {
+		// page without a title, a preview block or a content block), so no
+		// humanized fallback for them.
+		if ( '' === $label && ! in_array( $wpType, [ 'divider', 'pagebreak', 'entry-preview', 'content' ], true ) ) {
 			$label = ucfirst( str_replace( '-', ' ', $wpType ) );
 		}
 
@@ -146,6 +149,9 @@ final class WpFormsFieldMapper {
 			if ( '' !== $rawNotice && $notice !== trim( $rawNotice ) ) {
 				$notes[] = __( 'The preview notice was imported as plain text (formatting removed).', 'relevant-forms' );
 			}
+		} elseif ( 'content' === $wpType ) {
+			// The block HTML is kept as authored; rendering sanitizes it.
+			$definition['content'] = trim( (string) ( $field['content'] ?? '' ) );
 		}
 
 		if ( 'file' === $relevantType ) {
@@ -387,7 +393,7 @@ final class WpFormsFieldMapper {
 			return __( 'Payment gateway widget: card entry is provided by the Stripe checkout flow after connecting Stripe; the widget itself is not migrated.', 'relevant-forms' );
 		}
 
-		if ( in_array( $type, [ 'html', 'content' ], true ) ) {
+		if ( 'html' === $type ) {
 			return __( 'Layout element: not a data field, so it is not imported.', 'relevant-forms' );
 		}
 

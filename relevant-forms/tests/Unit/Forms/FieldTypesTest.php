@@ -125,9 +125,9 @@ it(
 );
 
 it(
-	'registers all twenty-one built-in types',
+	'registers all twenty-two built-in types',
 	function () {
-		expect( FieldTypeRegistry::all() )->toHaveCount( 21 );
+		expect( FieldTypeRegistry::all() )->toHaveCount( 22 );
 	}
 );
 
@@ -441,5 +441,49 @@ it(
 		);
 
 		expect( $default )->toContain( 'Please review your answers before submitting' );
+	}
+);
+
+it(
+	'renders content blocks with sanitized html and an optional heading',
+	function () {
+		Monkey\Functions\when( 'esc_html' )->returnArg();
+		Monkey\Functions\when( 'wp_kses_post' )->returnArg();
+		Monkey\Functions\when( 'wpautop' )->returnArg();
+
+		$type = FieldTypeRegistry::get( 'content' );
+
+		// Content blocks carry no value: nothing to validate or store.
+		expect( $type->validate( [], '' ) )->toBeNull();
+		expect( $type->sanitize( [], '' ) )->toBeNull();
+
+		$markup = $type->render(
+			[
+				'id'      => 'f_content',
+				'type'    => 'content',
+				'label'   => 'Payment details',
+				'content' => '<h4>Payment</h4>',
+			],
+			null,
+			null,
+			'7'
+		);
+
+		expect( $markup )->toContain( 'relevant-forms-field--content' );
+		expect( $markup )->toContain( '<h3 class="relevant-forms-content-title">Payment details</h3>' );
+		expect( $markup )->toContain( '<div class="relevant-forms-content"><h4>Payment</h4></div>' );
+
+		// A fully empty block renders nothing at all.
+		expect(
+			$type->render(
+				[
+					'id'   => 'f',
+					'type' => 'content',
+				],
+				null,
+				null,
+				'7'
+			)
+		)->toBe( '' );
 	}
 );

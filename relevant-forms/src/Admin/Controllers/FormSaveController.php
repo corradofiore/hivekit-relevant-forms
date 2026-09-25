@@ -215,6 +215,10 @@ final class FormSaveController {
 				$definition['style'] = in_array( $previewStyle, [ 'basic', 'compact', 'table', 'table_compact' ], true ) ? $previewStyle : 'basic';
 			}
 
+			if ( 'content' === $type ) {
+				$definition['content'] = wp_kses_post( (string) ( $rawField['content'] ?? '' ) );
+			}
+
 			if ( 'file' === $type ) {
 				$definition['upload_policy'] = [
 					'allowed_ext' => self::parseExtensions( (string) ( $rawField['upload_policy']['allowed_ext'] ?? '' ) ),

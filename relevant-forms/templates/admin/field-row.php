@@ -24,6 +24,7 @@ $isHidden       = 'hidden' === (string) $definition['type'];
 $isSection      = 'section' === (string) $definition['type'];
 $isPagebreak    = 'pagebreak' === (string) $definition['type'];
 $isEntryPreview = 'entry-preview' === (string) $definition['type'];
+$isContent      = 'content' === (string) $definition['type'];
 
 $labelHeading = __( 'Label', 'relevant-forms' );
 
@@ -31,7 +32,7 @@ if ( $isSection ) {
 	$labelHeading = __( 'Section header', 'relevant-forms' );
 } elseif ( $isPagebreak ) {
 	$labelHeading = __( 'Page title', 'relevant-forms' );
-} elseif ( $isEntryPreview ) {
+} elseif ( $isEntryPreview || $isContent ) {
 	$labelHeading = __( 'Heading (optional)', 'relevant-forms' );
 }
 
@@ -66,6 +67,8 @@ $inputIdBase = 'rf-field-' . $fieldId;
 							<p class="description"><?php esc_html_e( 'Shown above the step indicator. Leave empty for an untitled page.', 'relevant-forms' ); ?></p>
 						<?php elseif ( $isEntryPreview ) : ?>
 							<p class="description"><?php esc_html_e( 'Shown above the preview. Leave empty for no heading.', 'relevant-forms' ); ?></p>
+						<?php elseif ( $isContent ) : ?>
+							<p class="description"><?php esc_html_e( 'Shown above the content block. Leave empty for no heading.', 'relevant-forms' ); ?></p>
 						<?php endif; ?>
 					</td>
 				</tr>
@@ -94,7 +97,17 @@ $inputIdBase = 'rf-field-' . $fieldId;
 				</tr>
 			<?php endif; ?>
 
-			<?php if ( ! $isHidden && ! $isSection && ! $isPagebreak && ! $isEntryPreview && ! $isPaymentTotal ) : ?>
+			<?php if ( $isContent ) : ?>
+				<tr>
+					<th scope="row"><label for="<?php echo esc_attr( $inputIdBase . '-content' ); ?>"><?php esc_html_e( 'Content', 'relevant-forms' ); ?></label></th>
+					<td>
+						<textarea class="widefat" id="<?php echo esc_attr( $inputIdBase . '-content' ); ?>" name="relevant_fields[<?php echo esc_attr( $fieldId ); ?>][content]" rows="8"><?php echo esc_textarea( (string) ( $definition['content'] ?? '' ) ); ?></textarea>
+						<p class="description"><?php esc_html_e( 'Basic HTML is allowed: headings, bold, links and lists. Line breaks become paragraphs.', 'relevant-forms' ); ?></p>
+					</td>
+				</tr>
+			<?php endif; ?>
+
+			<?php if ( ! $isHidden && ! $isSection && ! $isPagebreak && ! $isEntryPreview && ! $isContent && ! $isPaymentTotal ) : ?>
 				<tr>
 					<th scope="row"><label for="<?php echo esc_attr( $inputIdBase . '-required' ); ?>"><?php esc_html_e( 'Required', 'relevant-forms' ); ?></label></th>
 					<td>
@@ -145,7 +158,7 @@ $inputIdBase = 'rf-field-' . $fieldId;
 				</tr>
 			<?php endif; ?>
 
-			<?php if ( ! $isHidden && ! in_array( (string) $definition['type'], [ 'consent', 'section', 'pagebreak', 'entry-preview', 'payment-total' ], true ) ) : ?>
+			<?php if ( ! $isHidden && ! in_array( (string) $definition['type'], [ 'consent', 'section', 'pagebreak', 'entry-preview', 'content', 'payment-total' ], true ) ) : ?>
 				<tr>
 					<th scope="row"><label for="<?php echo esc_attr( $inputIdBase . '-placeholder' ); ?>"><?php esc_html_e( 'Placeholder', 'relevant-forms' ); ?></label></th>
 					<td>
@@ -213,7 +226,7 @@ $inputIdBase = 'rf-field-' . $fieldId;
 				</tr>
 			<?php endif; ?>
 
-			<?php if ( ! $isSection && ! $isPagebreak && ! $isEntryPreview && ! $isPaymentTotal && ! $isPricedPayment ) : ?>
+			<?php if ( ! $isSection && ! $isPagebreak && ! $isEntryPreview && ! $isContent && ! $isPaymentTotal && ! $isPricedPayment ) : ?>
 				<tr>
 					<th scope="row"><label for="<?php echo esc_attr( $inputIdBase . '-default' ); ?>"><?php esc_html_e( 'Default value', 'relevant-forms' ); ?></label></th>
 					<td>
