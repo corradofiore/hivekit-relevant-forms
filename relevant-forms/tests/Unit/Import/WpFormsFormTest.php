@@ -107,6 +107,42 @@ it(
 );
 
 it(
+	'skips disabled notifications and honors the form-level switch',
+	function () {
+		$disabledForm = rf_wpforms_form(
+			[
+				'settings' => [
+					'notification_enable' => '',
+					'notifications'       => [ '1' => [ 'email' => 'a@example.com' ] ],
+				],
+			]
+		);
+
+		expect( $disabledForm->notifications()['emails'] )->toBe( [] );
+		expect( implode( ' ', $disabledForm->notifications()['notes'] ) )->toContain( 'disabled' );
+
+		$mixed = rf_wpforms_form(
+			[
+				'settings' => [
+					'notifications' => [
+						'1' => [
+							'email'  => 'a@example.com',
+							'enable' => '',
+						],
+						'2' => [
+							'email'  => 'b@example.com',
+							'enable' => '1',
+						],
+					],
+				],
+			]
+		);
+
+		expect( $mixed->notifications()['emails'] )->toBe( [ 'b@example.com' ] );
+	}
+);
+
+it(
 	'extracts message and redirect confirmations',
 	function () {
 		$message = rf_wpforms_form(

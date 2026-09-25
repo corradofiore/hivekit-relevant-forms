@@ -12,3 +12,6 @@
 /.wp-env.test.override.json
 
 .phpunit.cache/
+
+# Runtime storage (exports, logs, QA corpora).
+/storage/

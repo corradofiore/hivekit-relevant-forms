@@ -163,7 +163,7 @@ final class WpFormsForm {
 			$skipped[] = [
 				'label'  => (string) ( $field['label'] ?? $field['id'] ?? '' ),
 				'type'   => $type,
-				'reason' => __( 'Unsupported field type (not part of the initial importer scope).', 'relevant-forms' ),
+				'reason' => WpFormsFieldMapper::skipReason( $type ),
 			];
 		}
 
@@ -172,6 +172,11 @@ final class WpFormsForm {
 
 	/**
 	 * Notification recipient emails (smart tags fall back to the admin).
+	 *
+	 * Disabled notifications are never imported: the notification's own
+	 * `enable` flag and the form-level `notification_enable` switch are
+	 * honored so the imported form does not start sending mail the source
+	 * form had turned off.
 	 *
 	 * @return array{emails: array<int, string>, notes: array<int, string>}
 	 */
@@ -185,11 +190,22 @@ final class WpFormsForm {
 			];
 		}
 
+		if ( isset( $this->settings['notification_enable'] ) && in_array( (string) $this->settings['notification_enable'], [ '', '0' ], true ) ) {
+			return [
+				'emails' => [],
+				'notes'  => [ __( 'Notifications were disabled in WPForms, so none were imported.', 'relevant-forms' ) ],
+			];
+		}
+
 		$emails = [];
 		$notes  = [];
 
 		foreach ( $notifications as $notification ) {
 			if ( ! is_array( $notification ) ) {
+				continue;
+			}
+
+			if ( isset( $notification['enable'] ) && in_array( (string) $notification['enable'], [ '', '0' ], true ) ) {
 				continue;
 			}
 

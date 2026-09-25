@@ -302,6 +302,45 @@ it(
 );
 
 it(
+	'maps date-time fields by their format mode',
+	function () {
+		$date = WpFormsFieldMapper::map(
+			[
+				'id'       => '30',
+				'type'     => 'date-time',
+				'label'    => 'DOB',
+				'format'   => 'date',
+				'required' => '1',
+			]
+		);
+
+		expect( $date['definition']['type'] )->toBe( 'date' );
+		expect( $date['definition']['required'] )->toBeTrue();
+
+		$datetime = WpFormsFieldMapper::map(
+			[
+				'id'     => '31',
+				'type'   => 'date-time',
+				'label'  => 'Appointment',
+				'format' => 'date-time',
+			]
+		);
+
+		expect( $datetime['definition']['type'] )->toBe( 'text' );
+		expect( implode( ' ', $datetime['notes'] ) )->toContain( 'time' );
+	}
+);
+
+it(
+	'explains skip reasons for known types',
+	function () {
+		expect( WpFormsFieldMapper::skipReason( 'stripe-credit-card' ) )->toContain( 'Stripe' );
+		expect( WpFormsFieldMapper::skipReason( 'pagebreak' ) )->toContain( 'Layout' );
+		expect( WpFormsFieldMapper::skipReason( 'signature' ) )->toContain( 'Unsupported' );
+	}
+);
+
+it(
 	'leaves conditional logic to the form-level conversion',
 	function () {
 		$mapped = WpFormsFieldMapper::map(
