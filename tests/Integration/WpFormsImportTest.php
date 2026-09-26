@@ -10,6 +10,7 @@ declare(strict_types=1);
 namespace RelevantForms\Tests\Integration;
 
 use RelevantForms\Admin\Controllers\ImportController;
+use RelevantForms\Admin\Pages\ImportPage;
 use RelevantForms\Forms\FormRepository;
 use RelevantForms\Import\WpFormsForm;
 use RelevantForms\Import\WpFormsImporter;
@@ -405,6 +406,67 @@ final class WpFormsImportTest extends TestCase {
 		$this->assertSame( 'imported', $row['status'] );
 		$this->assertSame( [], $row['skipped'] );
 		$this->assertSame( 1, $row['imported_fields'] );
+	}
+
+	/**
+	 * The migration report links imported rows to their form editor: the
+	 * title and the draft number are clickable; failed rows stay unlinked.
+	 */
+	public function testMigrationReportLinksImportedForms(): void {
+		wp_set_current_user( self::factory()->user->create( [ 'role' => 'administrator' ] ) );
+
+		$payload = $this->payload();
+		$this->createWpFormsForm( $payload, 'Contact Us' );
+
+		$forms = ( new WpFormsScanner() )->forms();
+		$row   = ( new WpFormsImporter() )->import( $forms[0] );
+
+		WpFormsImporter::rememberReport(
+			[
+				'at'   => '2026-09-26 00:00:00',
+				'rows' => [
+					$row,
+					[
+						'source_id'       => '99',
+						'title'           => 'Empty Form',
+						'status'          => 'failed',
+						'form_id'         => 0,
+						'imported_fields' => 0,
+						'skipped'         => [],
+						'notes'           => [],
+						'error'           => 'No importable fields were found.',
+					],
+				],
+			]
+		);
+
+		$html = $this->renderImportPage();
+
+		$editUrl = esc_url( admin_url( 'admin.php?page=relevant-form-edit&form_id=' . (int) $row['form_id'] ) );
+
+		// Imported row: the title and the draft number link to the editor.
+		$this->assertStringContainsString( '<a href="' . $editUrl . '"><strong>Contact Us</strong></a>', $html );
+
+		// The draft link passes through wp_kses, which normalizes the URL
+		// entities — match it structurally instead of byte-for-byte.
+		$this->assertMatchesRegularExpression(
+			'~<a href="[^"]*page=relevant-form-edit[^"]*form_id=' . (int) $row['form_id'] . '">draft #' . (int) $row['form_id'] . '</a>\.~',
+			$html
+		);
+
+		// Failed row: the title stays unlinked.
+		$this->assertStringContainsString( '<strong>Empty Form</strong>', $html );
+		$this->assertStringNotContainsString( '<strong>Empty Form</strong></a>', $html );
+	}
+
+	/**
+	 * Render the import screen into a string.
+	 */
+	private function renderImportPage(): string {
+		ob_start();
+		ImportPage::render();
+
+		return (string) ob_get_clean();
 	}
 
 	/**

@@ -143,17 +143,49 @@ if ( ! defined( 'ABSPATH' ) ) {
 			</thead>
 			<tbody>
 				<?php foreach ( $report['rows'] as $entry ) : ?>
+					<?php
+					$reportFormId = (int) ( $entry['form_id'] ?? 0 );
+
+					// Link imported rows to their form editor; rows whose draft
+					// no longer exists (purged) stay unlinked.
+					$reportEdit = 'imported' === ( $entry['status'] ?? '' )
+						&& $reportFormId > 0
+						&& null !== ( new \RelevantForms\Forms\FormRepository() )->find( $reportFormId )
+						? admin_url( 'admin.php?page=relevant-form-edit&form_id=' . $reportFormId )
+						: '';
+					?>
 					<tr>
-						<td><?php echo esc_html( (string) ( $entry['title'] ?? '' ) ); ?></td>
+						<td>
+							<?php if ( '' !== $reportEdit ) : ?>
+								<a href="<?php echo esc_url( $reportEdit ); ?>"><strong><?php echo esc_html( (string) ( $entry['title'] ?? '' ) ); ?></strong></a>
+							<?php else : ?>
+								<strong><?php echo esc_html( (string) ( $entry['title'] ?? '' ) ); ?></strong>
+							<?php endif; ?>
+						</td>
 						<td><code><?php echo esc_html( (string) ( $entry['status'] ?? '' ) ); ?></code></td>
 						<td>
 							<?php if ( 'imported' === ( $entry['status'] ?? '' ) ) : ?>
 								<?php
-								printf(
-									/* translators: 1: number of imported fields, 2: new form id */
-									esc_html__( '%1$d fields imported as draft #%2$d.', 'relevant-forms' ),
-									(int) ( $entry['imported_fields'] ?? 0 ),
-									(int) ( $entry['form_id'] ?? 0 )
+								$reportDraft = sprintf(
+									/* translators: %d: new draft form id. */
+									__( 'draft #%d', 'relevant-forms' ),
+									$reportFormId
+								);
+
+								$reportDraft = '' !== $reportEdit
+									? sprintf( '<a href="%s">%s</a>', esc_url( $reportEdit ), esc_html( $reportDraft ) )
+									: esc_html( $reportDraft );
+
+								echo wp_kses(
+									sprintf(
+										/* translators: 1: number of imported fields, 2: the draft name, e.g. "draft #34" */
+										__( '%1$d fields imported as %2$s.', 'relevant-forms' ),
+										(int) ( $entry['imported_fields'] ?? 0 ),
+										$reportDraft
+									),
+									[
+										'a' => [ 'href' => [] ],
+									]
 								);
 								?>
 							<?php else : ?>
