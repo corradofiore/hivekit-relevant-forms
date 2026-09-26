@@ -78,6 +78,20 @@ final class WpFormsFieldMapper {
 	public const UNSUPPORTED_PREFIXES = [ 'signature', 'address', 'likert', 'rating', 'captcha' ];
 
 	/**
+	 * Whether a type is a gateway card widget.
+	 *
+	 * Stripe widgets only collect card details: the amounts live in the
+	 * payment item fields and Relevant collects the card at the Stripe
+	 * Checkout step after submission, so these fields are recognized as
+	 * replaced instead of being reported as skipped.
+	 *
+	 * @param string $type Raw WPForms type.
+	 */
+	public static function isGatewayWidget( string $type ): bool {
+		return str_starts_with( strtolower( trim( $type ) ), 'stripe-' );
+	}
+
+	/**
 	 * Map one WPForms field, or null when unsupported.
 	 *
 	 * @param array<string, mixed> $field Raw WPForms field.
@@ -394,16 +408,18 @@ final class WpFormsFieldMapper {
 
 	/**
 	 * Human-readable reason shown in the migration report when a type is
-	 * skipped. Gateway widgets and layout elements get tailored reasons so
-	 * payment migrations are not misread as unsupported.
+	 * skipped. Gateway widgets never reach this point (isGatewayWidget()
+	 * recognizes them as replaced by the checkout step); addon payment types
+	 * and unsupported fields get tailored reasons so payment migrations are
+	 * not misread.
 	 *
 	 * @param string $type Raw WPForms type.
 	 */
 	public static function skipReason( string $type ): string {
 		$type = strtolower( trim( $type ) );
 
-		if ( str_starts_with( $type, 'stripe-' ) || 'payment-coupon' === $type ) {
-			return __( 'Payment gateway widget: card entry is provided by the Stripe checkout flow after connecting Stripe; the widget itself is not migrated.', 'relevant-forms' );
+		if ( 'payment-coupon' === $type ) {
+			return __( 'Coupon fields are not supported: discounts cannot be applied during the Stripe checkout step.', 'relevant-forms' );
 		}
 
 		return __( 'Unsupported field type (not part of the initial importer scope).', 'relevant-forms' );

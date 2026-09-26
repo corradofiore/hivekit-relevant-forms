@@ -357,6 +357,57 @@ final class WpFormsImportTest extends TestCase {
 	}
 
 	/**
+	 * Stripe card widgets are recognized as replaced by the checkout step:
+	 * they never appear in the skipped list, the report explains the
+	 * replacement, and the form still reviews for the gateway connection.
+	 */
+	public function testCardWidgetsAreRecognizedAsReplacedByCheckout(): void {
+		$payload = [
+			'fields'   => [
+				'0' => [
+					'id'    => '0',
+					'type'  => 'payment-single',
+					'label' => 'Enrolment fee',
+					'price' => '50.00',
+				],
+				'1' => [
+					'id'       => '1',
+					'type'     => 'stripe-credit-card',
+					'label'    => 'Stripe Credit Card',
+					'required' => '1',
+				],
+			],
+			'settings' => [
+				'form_title' => 'Pay',
+				'payments'   => [ 'stripe' => [ 'account_id' => 'acct_example' ] ],
+			],
+		];
+
+		wp_set_current_user( self::factory()->user->create( [ 'role' => 'administrator' ] ) );
+
+		$this->createWpFormsForm( $payload, 'Pay' );
+
+		$forms = ( new WpFormsScanner() )->forms();
+		$form  = $forms[0];
+
+		$this->assertSame( [], $form->skippedFields() );
+
+		$analysis = $form->analysis();
+		$issues   = implode( "\n", $analysis['issues'] );
+
+		$this->assertSame( 'review', $analysis['status'] );
+		$this->assertStringContainsString( 'Stripe Checkout step after submitting', $issues );
+		$this->assertStringNotContainsString( 'stripe-credit-card', $issues );
+
+		// The amount still imports; the card widget is not counted as skipped.
+		$row = ( new WpFormsImporter() )->import( $form );
+
+		$this->assertSame( 'imported', $row['status'] );
+		$this->assertSame( [], $row['skipped'] );
+		$this->assertSame( 1, $row['imported_fields'] );
+	}
+
+	/**
 	 * Canonical payload: two common fields, a file field and an unsupported one.
 	 *
 	 * @return array<string, mixed>
