@@ -36,7 +36,7 @@ Core functionality includes:
 * Shortcode and template function embedding: `[relevant_form id="123"]` and `relevant_forms_render( 123 )`
 * Local anti-abuse controls: honeypot, timing checks, rate limiting, duplicate detection and spam signals
 * Local secure-upload fallback: files are stored privately with strict validation and a scan-before-download policy
-* WPForms compatibility scanner and importer for supported field types — including page breaks, dividers, entry previews, content blocks and custom HTML — and conditional logic (drafts only; your WPForms data is never modified)
+* WPForms compatibility scanner and importer for supported field types — including page breaks, dividers, entry previews, content blocks and custom HTML — and conditional logic (drafts only; your WPForms data is never modified), with a Tier 1 hook compatibility layer that keeps submission integrations working after switching
 
 = Optional Relevant Cloud – forms that understand the message =
 
@@ -158,7 +158,7 @@ Relevant Forms is an independent product and is not affiliated with or endorsed 
 * Forms: builder with the common field set, multi-page forms (page breaks with step navigation and a progress indicator), entry preview review steps, content blocks, custom HTML, conditional field visibility (show/hide rules with AND/OR groups), schema versioning, entries inbox, email notifications.
 * Security: honeypot, timing checks, rate limiting, duplicate detection, spam signals, local spam triage.
 * Uploads: local private quarantine with strict validation and a scan-before-download policy.
-* Migration: WPForms compatibility scanner and draft importer (field types including page breaks, dividers, entry previews, content blocks and custom HTML code blocks, notifications, confirmations and conditional logic converted to visibility rules), plus a Tier 1 hook compatibility layer that runs only while WPForms itself is not active.
+* Migration: WPForms compatibility scanner and draft importer (field types including page breaks, dividers, entry previews, content blocks and custom HTML code blocks, notifications, confirmations and conditional logic converted to visibility rules), plus a Tier 1 hook compatibility layer that runs only while WPForms itself is not active. Imported forms keep the original WPForms form ID, so integrations with per-form mappings — e.g. Newsletter subscription sources — keep working after the switch.
 * Payments: Stripe Connect card payments (fixed items, priced choices, donation-style amounts, live total), hosted Stripe Checkout on the site owner's own Stripe account, 2% platform fee, admin refunds and WPForms payment-field import with amounts preserved.
 * Optional Relevant Cloud: explicit consent connection flow, semantic classification with redaction, priority SMS alerts, managed secure uploads, usage metering and per-site subscriptions with hosted checkout.
 * Privacy: no external calls before explicit configuration; the plugin is fully functional without Relevant Cloud.

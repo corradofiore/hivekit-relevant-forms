@@ -66,6 +66,8 @@ final class FormRenderer {
 	 * @param array<string, mixed>|null    $values Previously submitted values.
 	 */
 	public static function renderForm( Form $form, ?array $errors = null, ?array $values = null ): string {
+		do_action( 'relevant_forms_before_form_output', $form );
+
 		if ( null === $errors ) {
 			$errors = SubmissionFeedback::errors( (int) $form->id );
 		}
