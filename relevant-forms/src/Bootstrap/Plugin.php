@@ -22,7 +22,6 @@ use RelevantForms\Admin\Controllers\RedirectTargetSearchController;
 use RelevantForms\Admin\Controllers\SmsVerificationController;
 use RelevantForms\Admin\Pages\SettingsPage;
 use RelevantForms\Assets\FrontendAssets;
-use RelevantForms\Compat\WpForms\CompatLayer;
 use RelevantForms\Database\MigrationRunner;
 use RelevantForms\Forms\FormRenderer;
 use RelevantForms\Forms\FormUsage;
@@ -64,9 +63,6 @@ final class Plugin {
 		PaymentReturnHandler::register();
 		PaymentEntryController::register();
 		PaymentSettingsController::register();
-
-		// WPForms hook compatibility (Phase 7.5): active only when WPForms is absent.
-		CompatLayer::register();
 
 		add_action( 'relevant_forms_scan_upload', [ ScanService::class, 'handleScheduled' ], 10, 1 );
 		add_action( 'relevant_forms_poll_scan_results', [ ScanService::class, 'pollBackendScans' ] );

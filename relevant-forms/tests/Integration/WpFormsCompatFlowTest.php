@@ -11,9 +11,11 @@ namespace RelevantForms\Tests\Integration;
 
 use RelevantForms\Entries\EntryRepository;
 use RelevantForms\Forms\Form;
+use RelevantForms\Forms\FormRenderer;
 use RelevantForms\Forms\FormRepository;
 use RelevantForms\Forms\FormSchema;
 use RelevantForms\Http\SubmissionHandler;
+use RelevantForms\Import\WpFormsScanner;
 use RelevantForms\Tests\Integration\Support\RedirectedException;
 use RelevantForms\Tests\Integration\Support\StoppedException;
 
@@ -146,9 +148,127 @@ final class WpFormsCompatFlowTest extends TestCase {
 	}
 
 	/**
-	 * Build a published three-field form.
+	 * Imported forms emit the original WPForms form ID so addon mappings
+	 * stored against it (e.g. Newsletter sources) keep matching.
 	 */
-	private function makeForm(): Form {
+	public function testProcessCompleteUsesOriginalWpformsIdForImportedForms(): void {
+		$form = $this->makeForm( [ 'wpforms_form_id' => '987654' ] );
+		$this->assertNotSame( 987654, $form->id );
+
+		$complete  = [];
+		$bySource  = [];
+		$byNative  = [];
+		$listeners = static function ( array &$sink ): callable {
+			return static function ( $fields, $entry, $form_data, $entry_id ) use ( &$sink ): void {
+				unset( $entry, $entry_id );
+
+				$sink[] = [
+					'fields'    => $fields,
+					'form_data' => $form_data,
+				];
+			};
+		};
+
+		add_action( 'wpforms_process_complete', $listeners( $complete ), 10, 4 );
+		add_action( 'wpforms_process_complete_987654', $listeners( $bySource ), 10, 4 );
+		add_action( 'wpforms_process_complete_' . $form->id, $listeners( $byNative ), 10, 4 );
+
+		$this->submit( $form->id, $this->fields() );
+
+		$this->assertCount( 1, $complete );
+		$this->assertSame( 987654, $complete[0]['form_data']['id'] );
+		$this->assertSame( 'Ada', $complete[0]['fields']['f_name']['value'] );
+		$this->assertCount( 1, $bySource );
+		$this->assertCount( 0, $byNative );
+	}
+
+	/**
+	 * Provider shim: bootstrap checks pass and original WPForms records
+	 * parse into WPForms-shaped field lists for mapping UIs.
+	 */
+	public function testProviderShimParsesOriginalWpformsRecords(): void {
+		$this->assertTrue( class_exists( 'WPForms' ) );
+		$this->assertTrue( class_exists( 'WPForms_Provider' ) );
+
+		$postId = wp_insert_post(
+			[
+				'post_type'    => 'wpforms',
+				'post_status'  => 'publish',
+				'post_title'   => 'Newsletter source',
+				'post_content' => (string) wp_json_encode(
+					[
+						'fields' => [
+							'0' => [
+								'id'     => 0,
+								'type'   => 'name',
+								'label'  => 'Name',
+								'format' => 'first-last',
+							],
+							'1' => [
+								'id'    => 1,
+								'type'  => 'email',
+								'label' => 'Email',
+							],
+						],
+					]
+				),
+			]
+		);
+
+		$provider = new \WPForms_Provider();
+		$fields   = $provider->get_form_fields( get_post( $postId ) );
+
+		$this->assertCount( 2, $fields );
+		$this->assertSame( 'name', $fields[0]['type'] );
+		$this->assertSame( 'first-last', $fields[0]['format'] );
+		$this->assertSame( 'Email', $fields[1]['label'] );
+
+		// Post IDs are accepted too; unknown records yield an empty list.
+		$this->assertCount( 2, $provider->get_form_fields( $postId ) );
+		$this->assertSame( [], $provider->get_form_fields( 999999 ) );
+	}
+
+	/**
+	 * The shims must not confuse WPForms detection: the compat layer runs
+	 * precisely because the real plugin is absent (the E2E regression was
+	 * a shim-loaded `wpforms()` function flipping wpFormsActive() to true).
+	 */
+	public function testShimsDoNotPolluteWpformsDetection(): void {
+		$this->assertTrue( class_exists( 'WPForms' ) );
+		$this->assertTrue( function_exists( 'wpforms' ) );
+		$this->assertFalse( WpFormsScanner::wpFormsActive() );
+	}
+
+	/**
+	 * Rendering bridges to `wpforms_frontend_output` for display addons.
+	 */
+	public function testFrontendOutputFiresForDisplayConsumers(): void {
+		$form = $this->makeForm( [ 'wpforms_form_id' => 987654 ] );
+
+		$captured = [];
+
+		add_action(
+			'wpforms_frontend_output',
+			static function ( $form_data, $passed ) use ( &$captured ): void {
+				$captured[] = [ $form_data, $passed ];
+			},
+			10,
+			2
+		);
+
+		$this->assertNotSame( '', FormRenderer::renderForm( $form ) );
+
+		$this->assertCount( 1, $captured );
+		$this->assertSame( 987654, $captured[0][0]['id'] );
+		$this->assertSame( $form, $captured[0][1] );
+	}
+
+	/**
+	 * Build a published three-field form.
+	 *
+	 * @param array<string, mixed> $metadata Schema metadata.
+	 */
+	private function makeForm( array $metadata = [] ): Form {
 		$repository = new FormRepository();
 
 		$schema = FormSchema::empty( 'Contact' )->withFields(
@@ -173,6 +293,10 @@ final class WpFormsCompatFlowTest extends TestCase {
 				],
 			]
 		);
+
+		if ( [] !== $metadata ) {
+			$schema = $schema->withMetadata( $metadata );
+		}
 
 		$id = $repository->create( 'Contact', $schema, 'published' );
 

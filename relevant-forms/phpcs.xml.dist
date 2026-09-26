@@ -77,6 +77,18 @@
 	</rule>
 
 	<!--
+		The WPForms compatibility shim intentionally defines WPForms' own
+		global class names (WPForms, WPForms_Provider); it is loaded only
+		while WPForms itself is absent, so both classes live in one file.
+	-->
+	<rule ref="WordPress.NamingConventions.PrefixAllGlobals">
+		<exclude-pattern>*/src/Compat/WpForms/shims.php</exclude-pattern>
+	</rule>
+	<rule ref="Generic.Files.OneObjectStructurePerFile">
+		<exclude-pattern>*/src/Compat/WpForms/shims.php</exclude-pattern>
+	</rule>
+
+	<!--
 		The codebase targets PHP 8.4+ and intentionally uses short array
 		syntax and camelCase property names (readonly promotion). These two
 		style-only sniffs are disabled; all escaping, SQL, hook and docs

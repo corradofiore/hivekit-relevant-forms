@@ -36,4 +36,7 @@ spl_autoload_register(
 	}
 );
 
+// Mirrors relevant-forms.php: the compat layer registers early (priority 1) so
+// WPForms class feature-checks on plugins_loaded find the shims.
+add_action( 'plugins_loaded', [ \RelevantForms\Compat\WpForms\CompatLayer::class, 'register' ], 1 );
 add_action( 'plugins_loaded', [ \RelevantForms\Bootstrap\Plugin::class, 'boot' ] );

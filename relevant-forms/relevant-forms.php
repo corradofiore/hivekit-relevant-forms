@@ -15,6 +15,7 @@
 declare(strict_types=1);
 
 use RelevantForms\Bootstrap\Plugin;
+use RelevantForms\Compat\WpForms\CompatLayer;
 
 // Block direct access.
 if ( ! defined( 'ABSPATH' ) ) {
@@ -57,4 +58,9 @@ require_once __DIR__ . '/src/Support/functions.php';
 register_activation_hook( __FILE__, [ Plugin::class, 'activate' ] );
 register_deactivation_hook( __FILE__, [ Plugin::class, 'deactivate' ] );
 
+// WPForms hook compatibility (Phase 7.5). Registers at plugins_loaded priority
+// 1 — before consumers that feature-check WPForms classes on plugins_loaded —
+// so the compat shims are present regardless of plugin load order. Active only
+// while WPForms itself is absent, unless filtered.
+add_action( 'plugins_loaded', [ CompatLayer::class, 'register' ], 1 );
 add_action( 'plugins_loaded', [ Plugin::class, 'boot' ] );

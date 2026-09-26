@@ -33,17 +33,28 @@ final class CompatLayer {
 	private static ?Accessor $accessor = null;
 
 	/**
+	 * Idempotence guard (register() may be called from multiple entry points).
+	 *
+	 * @var bool
+	 */
+	private static bool $registered = false;
+
+	/**
 	 * Register the layer when WPForms is absent.
 	 */
 	public static function register(): void {
-		if ( ! self::shouldRegister() ) {
+		if ( self::$registered || ! self::shouldRegister() ) {
 			return;
 		}
 
+		self::$registered = true;
+
 		require_once __DIR__ . '/functions.php';
+		require_once __DIR__ . '/shims.php';
 
 		add_filter( 'relevant_forms_pre_insert_errors', [ self::class, 'process' ], 10, 3 );
 		add_action( 'relevant_forms_submission_received', [ self::class, 'complete' ], 10, 3 );
+		add_action( 'relevant_forms_before_form_output', [ self::class, 'frontend' ], 10, 1 );
 
 		do_action( 'relevant_forms_wpforms_compat_loaded', self::COMPAT_VERSION );
 	}
@@ -106,6 +117,17 @@ final class CompatLayer {
 	}
 
 	/**
+	 * Frontend render: bridges `relevant_forms_before_form_output` to
+	 * `wpforms_frontend_output( $form_data, $form )` so display-side
+	 * integrations (e.g. the Newsletter language input) keep working.
+	 *
+	 * @param Form $form Form being rendered.
+	 */
+	public static function frontend( Form $form ): void {
+		do_action( 'wpforms_frontend_output', ShapeTranslator::formData( $form ), $form );
+	}
+
+	/**
 	 * Post-save: fires `wpforms_process_complete` (+ form-id variant)
 	 * with WPForms-identical parameters.
 	 *
@@ -125,7 +147,7 @@ final class CompatLayer {
 		$formData = ShapeTranslator::formData( $form );
 
 		do_action( 'wpforms_process_complete', $fields, $entry, $formData, $entryId );
-		do_action( 'wpforms_process_complete_' . $formId, $fields, $entry, $formData, $entryId );
+		do_action( 'wpforms_process_complete_' . ShapeTranslator::compatFormId( $form ), $fields, $entry, $formData, $entryId );
 	}
 
 	/**

@@ -64,10 +64,14 @@ final class WpFormsScanner {
 	}
 
 	/**
-	 * Whether the WPForms plugin itself is loaded.
+	 * Whether the WPForms plugin itself is loaded. Shim-proof: the compat
+	 * layer defines `WPForms`, `WPForms_Provider` and `wpforms()`, so only
+	 * signals that never come from the shims count (the version constant
+	 * and the namespaced bootstrap class, both defined by WPForms' own
+	 * main file).
 	 */
 	public static function wpFormsActive(): bool {
-		return defined( 'WPFORMS_VERSION' ) || function_exists( 'wpforms' ) || class_exists( 'WPForms\\WPForms' );
+		return defined( 'WPFORMS_VERSION' ) || class_exists( 'WPForms\\WPForms' );
 	}
 
 	/**

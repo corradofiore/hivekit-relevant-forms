@@ -73,6 +73,22 @@ final class ShapeTranslator {
 	}
 
 	/**
+	 * The form ID consumers receive. Imported forms keep the original
+	 * WPForms form ID (`wpforms_form_id` schema metadata) so addons with
+	 * mappings stored against that ID (e.g. Newsletter sources) keep
+	 * matching after WPForms is deactivated; native forms use our ID.
+	 */
+	public static function compatFormId( Form $form ): int {
+		$source = $form->schema->metadata()['wpforms_form_id'] ?? null;
+
+		if ( is_numeric( $source ) && (int) $source > 0 ) {
+			return (int) $source;
+		}
+
+		return $form->id;
+	}
+
+	/**
 	 * Build the WPForms `$form_data` parameter.
 	 *
 	 * @return array<string, mixed>
@@ -96,7 +112,7 @@ final class ShapeTranslator {
 		}
 
 		return [
-			'id'       => $form->id,
+			'id'       => self::compatFormId( $form ),
 			'name'     => $form->name,
 			'fields'   => $fields,
 			'settings' => [
