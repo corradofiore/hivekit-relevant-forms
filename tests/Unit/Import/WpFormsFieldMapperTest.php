@@ -333,9 +333,21 @@ it(
 );
 
 it(
+	'recognizes stripe card widgets as replaced by the checkout step',
+	function () {
+		expect( WpFormsFieldMapper::isGatewayWidget( 'stripe-credit-card' ) )->toBeTrue();
+		expect( WpFormsFieldMapper::isGatewayWidget( 'Stripe-Payment' ) )->toBeTrue();
+
+		// Coupons are a real unsupported feature, not a replaced widget.
+		expect( WpFormsFieldMapper::isGatewayWidget( 'payment-coupon' ) )->toBeFalse();
+		expect( WpFormsFieldMapper::isGatewayWidget( 'text' ) )->toBeFalse();
+	}
+);
+
+it(
 	'explains skip reasons for known types',
 	function () {
-		expect( WpFormsFieldMapper::skipReason( 'stripe-credit-card' ) )->toContain( 'Stripe' );
+		expect( WpFormsFieldMapper::skipReason( 'payment-coupon' ) )->toContain( 'Coupon' );
 		expect( WpFormsFieldMapper::skipReason( 'signature' ) )->toContain( 'Unsupported' );
 	}
 );

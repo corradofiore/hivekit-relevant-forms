@@ -148,17 +148,25 @@ final class WpFormsForm {
 	/**
 	 * Fields that cannot be imported, with reasons.
 	 *
+	 * Stripe card widgets are excluded: they are recognized as replaced by
+	 * the checkout step (see WpFormsFieldMapper::isGatewayWidget()), not
+	 * reported as unsupported fields.
+	 *
 	 * @return array<int, array{label: string, type: string, reason: string}>
 	 */
 	public function skippedFields(): array {
 		$skipped = [];
 
 		foreach ( $this->fields as $field ) {
-			if ( null !== WpFormsFieldMapper::map( $field ) ) {
+			$type = (string) ( $field['type'] ?? '' );
+
+			if ( WpFormsFieldMapper::isGatewayWidget( $type ) ) {
 				continue;
 			}
 
-			$type = (string) ( $field['type'] ?? '' );
+			if ( null !== WpFormsFieldMapper::map( $field ) ) {
+				continue;
+			}
 
 			$skipped[] = [
 				'label'  => (string) ( $field['label'] ?? $field['id'] ?? '' ),
@@ -304,14 +312,19 @@ final class WpFormsForm {
 		}
 
 		$integrations = $this->usesIntegrations();
+		$gateway      = $this->hasGatewayWidgets();
 
 		if ( $integrations ) {
 			$issues[] = __( 'Payment gateway and marketing connections are not imported; reconnect Stripe from the Relevant Forms settings after import.', 'relevant-forms' );
 		}
 
+		if ( $gateway ) {
+			$issues[] = __( 'The credit card field is provided by the Stripe Checkout step after submitting — connect Stripe from the Relevant Forms settings; no card field is needed in the form.', 'relevant-forms' );
+		}
+
 		$status = self::STATUS_COMPATIBLE;
 
-		if ( $integrations || [] !== $skipped || $conditionalIssues['unmapped'] ) {
+		if ( $integrations || $gateway || [] !== $skipped || $conditionalIssues['unmapped'] ) {
 			$status = self::STATUS_REVIEW;
 		}
 
@@ -379,5 +392,22 @@ final class WpFormsForm {
 		$settings = $this->settings;
 
 		return ! empty( $settings['payments'] ) || ! empty( $settings['providers'] );
+	}
+
+	/**
+	 * Whether the form contains Stripe card widgets.
+	 *
+	 * These are replaced by the Stripe Checkout step (Relevant collects the
+	 * card after submission), so they are recognized rather than skipped —
+	 * but they still require connecting Stripe, hence the review note.
+	 */
+	private function hasGatewayWidgets(): bool {
+		foreach ( $this->fields as $field ) {
+			if ( WpFormsFieldMapper::isGatewayWidget( (string) ( $field['type'] ?? '' ) ) ) {
+				return true;
+			}
+		}
+
+		return false;
 	}
 }
