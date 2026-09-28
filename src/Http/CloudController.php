@@ -25,6 +25,7 @@ final class CloudController {
 	 */
 	public static function register(): void {
 		add_action( 'admin_post_relevant_forms_cloud_connect', [ self::class, 'connect' ] );
+		add_action( 'admin_post_relevant_forms_cloud_refresh', [ self::class, 'refresh' ] );
 		add_action( 'admin_post_relevant_forms_cloud_disconnect', [ self::class, 'disconnect' ] );
 	}
 
@@ -60,6 +61,43 @@ final class CloudController {
 		$connection->updateSubscription( is_array( $data['subscription'] ?? null ) ? $data['subscription'] : [] );
 
 		self::redirect( 'connected' );
+	}
+
+	/**
+	 * Refresh the cached subscription summary and server capabilities
+	 * from the capabilities endpoint (e.g. after subscribing, renewing or
+	 * cancelling in the dashboard). The server list is data, not consent: local
+	 * capability enable flags stay untouched.
+	 */
+	public static function refresh(): void {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_die( esc_html__( 'You do not have permission to perform this action.', 'relevant-forms' ), '', [ 'response' => 403 ] );
+		}
+
+		check_admin_referer( 'relevant_cloud_refresh' );
+
+		if ( ! CloudConfig::isConfigured() ) {
+			self::redirect( 'not_configured' );
+		}
+
+		$connection = new CloudConnection();
+		$siteId     = $connection->siteId();
+
+		if ( null === $siteId || CloudConnection::STATE_DISCONNECTED === $connection->state() ) {
+			self::redirect( 'not_connected' );
+		}
+
+		$data = ( new CloudClient( CloudConfig::url(), CloudConfig::key() ) )
+			->capabilities( (string) $siteId );
+
+		if ( null === $data ) {
+			self::redirect( 'refresh_failed' );
+		}
+
+		$connection->updateServerCapabilities( is_array( $data['capabilities'] ?? null ) ? $data['capabilities'] : [] );
+		$connection->updateSubscription( is_array( $data['subscription'] ?? null ) ? $data['subscription'] : [] );
+
+		self::redirect( 'refreshed' );
 	}
 
 	/**
