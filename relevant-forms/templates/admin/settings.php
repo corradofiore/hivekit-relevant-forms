@@ -264,6 +264,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 		<div class="notice notice-error is-dismissible"><p><?php esc_html_e( 'Could not connect to Relevant Cloud. Check the URL and API key.', 'relevant-forms' ); ?></p></div>
 	<?php elseif ( 'not_configured' === $cloudNotice ) : ?>
 		<div class="notice notice-error is-dismissible"><p><?php esc_html_e( 'Cloud URL and API key are required before connecting.', 'relevant-forms' ); ?></p></div>
+	<?php elseif ( 'refreshed' === $cloudNotice ) : ?>
+		<div class="notice notice-success is-dismissible"><p><?php esc_html_e( 'Subscription and capabilities refreshed.', 'relevant-forms' ); ?></p></div>
+	<?php elseif ( 'refresh_failed' === $cloudNotice ) : ?>
+		<div class="notice notice-error is-dismissible"><p><?php esc_html_e( 'Could not refresh from Relevant Cloud. Check the connection and try again.', 'relevant-forms' ); ?></p></div>
+	<?php elseif ( 'not_connected' === $cloudNotice ) : ?>
+		<div class="notice notice-error is-dismissible"><p><?php esc_html_e( 'This connection has no site record yet; reconnect with a dashboard-issued API key to manage subscriptions.', 'relevant-forms' ); ?></p></div>
 	<?php endif; ?>
 
 	<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
@@ -408,6 +414,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 						<input type="hidden" name="action" value="relevant_forms_cloud_billing">
 						<?php wp_nonce_field( 'relevant_cloud_billing' ); ?>
 						<button type="submit" class="button button-primary"><?php esc_html_e( 'Manage billing', 'relevant-forms' ); ?></button>
+					</form>
+					<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" style="display:inline-block;">
+						<input type="hidden" name="action" value="relevant_forms_cloud_refresh">
+						<?php wp_nonce_field( 'relevant_cloud_refresh' ); ?>
+						<button type="submit" class="button"><?php esc_html_e( 'Refresh subscription', 'relevant-forms' ); ?></button>
 					</form>
 					<p class="description"><?php esc_html_e( 'Plan changes, payment details and invoices live in the Relevant Cloud dashboard; the subscription state shown here is read-only.', 'relevant-forms' ); ?></p>
 				</td>

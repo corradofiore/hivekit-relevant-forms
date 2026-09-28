@@ -124,6 +124,117 @@ final class CloudConnectFlowTest extends TestCase {
 	}
 
 	/**
+	 * Refresh re-reads the subscription and capabilities from Cloud.
+	 */
+	public function testRefreshUpdatesCachedSubscriptionAndCapabilities(): void {
+		update_option(
+			'relevant_forms_settings',
+			[
+				'cloud_url'     => 'https://cloud.example.com',
+				'cloud_api_key' => 'site-key-1',
+			]
+		);
+
+		$connection = new CloudConnection();
+		$connection->connect( 'site-uuid-1', 'https://a.example', 'Acme', [ 'deep_scan' => true ] );
+
+		add_filter(
+			'pre_http_request',
+			static function ( mixed $pre, array $args, string $url ): array {
+				unset( $pre, $args );
+
+				// The refresh must hit the site capabilities endpoint.
+				if ( ! str_contains( $url, '/api/v1/sites/site-uuid-1/capabilities' ) ) {
+					return [
+						'response' => [ 'code' => 404 ],
+						'body'     => '',
+					];
+				}
+
+				return [
+					'response' => [ 'code' => 200 ],
+					'body'     => wp_json_encode(
+						[
+							'success' => true,
+							'data'    => [
+								'capabilities' => [
+									'deep_scan' => true,
+									'semantic_classification' => true,
+								],
+								'subscription' => [
+									'plan'     => 'cloud',
+									'status'   => 'active',
+									'active'   => true,
+									'entitled' => true,
+								],
+							],
+						]
+					),
+				];
+			},
+			10,
+			3
+		);
+
+		$url = $this->refresh();
+
+		$this->assertStringContainsString( 'cloud=refreshed', $url );
+
+		$connection = new CloudConnection();
+		$this->assertSame( 'active', $connection->subscription()['status'] ?? null );
+		$this->assertTrue( $connection->subscription()['entitled'] ?? false );
+		$this->assertSame(
+			[
+				'deep_scan'               => true,
+				'semantic_classification' => true,
+			],
+			$connection->serverCapabilities()
+		);
+	}
+
+	/**
+	 * A failed refresh keeps the cached state and reports the failure.
+	 */
+	public function testRefreshFailureKeepsCachedState(): void {
+		update_option(
+			'relevant_forms_settings',
+			[
+				'cloud_url'     => 'https://cloud.example.com',
+				'cloud_api_key' => 'site-key-1',
+			]
+		);
+
+		$connection = new CloudConnection();
+		$connection->connect( 'site-uuid-1', 'https://a.example', 'Acme', [ 'deep_scan' => true ] );
+		$connection->updateSubscription(
+			[
+				'plan'     => 'cloud',
+				'status'   => 'active',
+				'entitled' => true,
+			]
+		);
+
+		add_filter(
+			'pre_http_request',
+			static function ( mixed $pre, array $args, string $url ): array {
+				unset( $pre, $args, $url );
+
+				return [
+					'response' => [ 'code' => 500 ],
+					'body'     => '',
+				];
+			},
+			10,
+			3
+		);
+
+		$url = $this->refresh();
+
+		$this->assertStringContainsString( 'cloud=refresh_failed', $url );
+		$this->assertSame( 'active', ( new CloudConnection() )->subscription()['status'] ?? null );
+	}
+
+	/**
 	 * Disconnect restores local-only operation without external calls.
 	 */
 	public function testDisconnectRestoresLocalOnlyOperation(): void {
@@ -158,6 +269,16 @@ final class CloudConnectFlowTest extends TestCase {
 	}
 
 	/**
+	 * Simulate the refresh admin action with a nonce.
+	 */
+	private function refresh(): string {
+		$_POST                = [ 'action' => 'relevant_forms_cloud_refresh' ];
+		$_REQUEST['_wpnonce'] = wp_create_nonce( 'relevant_cloud_refresh' );
+
+		return $this->invokeController();
+	}
+
+	/**
 	 * Invoke the controller and capture the redirect target.
 	 */
 	private function invokeController(): string {
@@ -171,8 +292,12 @@ final class CloudConnectFlowTest extends TestCase {
 
 		try {
 			// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- action name set by the test itself.
-			if ( 'relevant_forms_cloud_disconnect' === (string) ( $_POST['action'] ?? '' ) ) {
+			$action = (string) ( $_POST['action'] ?? '' );
+
+			if ( 'relevant_forms_cloud_disconnect' === $action ) {
 				CloudController::disconnect();
+			} elseif ( 'relevant_forms_cloud_refresh' === $action ) {
+				CloudController::refresh();
 			} else {
 				CloudController::connect();
 			}
