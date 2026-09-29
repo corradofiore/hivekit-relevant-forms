@@ -150,6 +150,28 @@ final class VisibilityRules {
 	}
 
 	/**
+	 * Drop the first field's rules from a definition list.
+	 *
+	 * The first field can never be hidden: rules only depend on fields
+	 * above the one they hide, and nothing sits above the first field.
+	 * Callers that render or validate a form run their definitions through
+	 * this, so stored (legacy or imported) rules on the first field are
+	 * ignored.
+	 *
+	 * @param array<int, array<string, mixed>> $fields Field definitions in display order.
+	 * @return array<int, array<string, mixed>> Definitions with the first field's rules removed.
+	 */
+	public static function withoutFirstFieldRules( array $fields ): array {
+		$first = array_key_first( $fields );
+
+		if ( null !== $first && isset( $fields[ $first ]['visibility'] ) ) {
+			unset( $fields[ $first ]['visibility'] );
+		}
+
+		return $fields;
+	}
+
+	/**
 	 * Evaluate every field that carries visibility rules.
 	 *
 	 * @param array<int, array<string, mixed>> $fields  Form field definitions (order irrelevant).
