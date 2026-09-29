@@ -217,7 +217,7 @@ it(
 		$errors = $schema->validate();
 
 		expect( $errors )->toContain( 'Unknown field type "quantum".' );
-		expect( $errors )->toContain( 'Field "f_2" is missing a label.' );
+		expect( $errors )->toContain( 'Field "f_2" is missing a name.' );
 	}
 );
 

@@ -149,13 +149,17 @@ final class AdminMenu {
 	/**
 	 * Keep the "Forms" submenu item highlighted on the hidden editor page.
 	 *
+	 * Every other screen gets the incoming value back untouched: casting a
+	 * null to '' would report the global as "set" and suppress the core
+	 * fallback that marks ordinary submenu pages (Settings, Entries, …).
+	 *
 	 * @param string|null $submenu_file Current submenu file.
 	 * @param string|null $parent_file  Current parent file.
 	 */
-	public static function highlightEditorSubmenu( ?string $submenu_file, ?string $parent_file = '' ): string {
+	public static function highlightEditorSubmenu( ?string $submenu_file, ?string $parent_file = '' ): ?string {
 		unset( $parent_file );
 
-		return self::isEditorScreen() ? 'relevant-forms' : (string) $submenu_file;
+		return self::isEditorScreen() ? 'relevant-forms' : $submenu_file;
 	}
 
 	/**

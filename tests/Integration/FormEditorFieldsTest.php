@@ -131,7 +131,7 @@ final class FormEditorFieldsTest extends TestCase {
 
 		// Nested two-column table inside the editor panel, like the settings.
 		$this->assertStringContainsString( '<table class="form-table" role="presentation">', $html );
-		$this->assertStringContainsString( '<th scope="row"><label for="rf-field-f_name-label">Label</label></th>', $html );
+		$this->assertStringContainsString( '<th scope="row"><label for="rf-field-f_name-label">Field name</label></th>', $html );
 		$this->assertStringContainsString( 'id="rf-field-f_name-label" name="relevant_fields[f_name][label]"', $html );
 		$this->assertStringContainsString( '<th scope="row"><label for="rf-field-f_name-required">Required</label></th>', $html );
 		$this->assertStringContainsString( 'id="rf-field-f_name-required" name="relevant_fields[f_name][required]"', $html );
@@ -411,6 +411,32 @@ final class FormEditorFieldsTest extends TestCase {
 		$this->assertStringContainsString( 'Minimum amount (EUR)', $html );
 		$this->assertStringContainsString( 'Maximum amount (EUR)', $html );
 		$this->assertStringContainsString( 'Prices are in EUR.', $html );
+
+		// Samples render in monospace (code) for readability.
+		$this->assertStringContainsString( '(<code>|</code>), e.g. <code>T-shirt|25.00</code>.', $html );
+	}
+
+	/**
+	 * Regular choice captions show the pipe and the sample rows in
+	 * monospace too.
+	 */
+	public function testChoiceCaptionsRenderSamplesInMonospace(): void {
+		wp_set_current_user( self::factory()->user->create( [ 'role' => 'administrator' ] ) );
+
+		$repository = new FormRepository();
+		$schema     = FormSchema::empty( 'Choices' )->withFields(
+			[
+				[
+					'id'    => 'f_plan',
+					'type'  => 'select',
+					'label' => 'Plan',
+				],
+			]
+		);
+
+		$html = $this->renderEditor( $repository->create( 'Choices', $schema, 'published' ) );
+
+		$this->assertStringContainsString( '"<code>value|label</code>" format, e.g. <code>not_sure|Not sure</code>', $html );
 	}
 
 	/**
