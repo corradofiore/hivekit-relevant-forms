@@ -10,6 +10,8 @@ declare(strict_types=1);
 namespace RelevantForms\Admin\Controllers;
 
 use RelevantForms\Alerts\PhoneNumber;
+use RelevantForms\Cloud\CloudConfig;
+use RelevantForms\Cloud\CloudConnection;
 use RelevantForms\Forms\Fields\FieldTypeRegistry;
 use RelevantForms\Forms\FormRepository;
 use RelevantForms\Forms\FormSchema;
@@ -158,6 +160,19 @@ final class FormSaveController {
 			]
 		);
 
+		// The per-form opt-ins are the explicit consent actions (there is no
+		// site-wide switch): saving with classification on — or with a
+		// verified alert number — enables the matching Cloud capability.
+		// Unchecking never revokes: other forms may rely on the consent;
+		// Disconnect remains the revocation path.
+		if ( self::enableCapability( CloudConnection::CAP_AI, ! empty( $aiPolicy['enabled'] ) ) ) {
+			Logger::info( 'Classification consent enabled from the form editor', [ 'form_id' => $formId ] );
+		}
+
+		if ( self::enableCapability( CloudConnection::CAP_SMS, $smsAlert && '' !== $smsPhone ) ) {
+			Logger::info( 'Priority SMS consent enabled from the form editor', [ 'form_id' => $formId ] );
+		}
+
 		wp_safe_redirect(
 			admin_url(
 				'admin.php?page=relevant-form-edit&form_id=' . $formId . '&saved=1'
@@ -165,6 +180,28 @@ final class FormSaveController {
 			)
 		);
 		exit;
+	}
+
+	/**
+	 * Enable a Cloud capability when the form opts in and the site is
+	 * connected. Consent is never revoked here.
+	 *
+	 * @param string $capability Cloud capability key.
+	 * @param bool   $requested  Whether the form uses the capability.
+	 * @return bool Whether the capability was newly enabled.
+	 */
+	private static function enableCapability( string $capability, bool $requested ): bool {
+		if ( ! $requested || ! CloudConfig::isConfigured() ) {
+			return false;
+		}
+
+		$connection = new CloudConnection();
+
+		if ( CloudConnection::STATE_DISCONNECTED === $connection->state() ) {
+			return false;
+		}
+
+		return ! $connection->capabilityEnabled( $capability ) && $connection->enableCapability( $capability );
 	}
 
 	/**

@@ -351,6 +351,66 @@ final class AiClassificationFlowTest extends TestCase {
 	}
 
 	/**
+	 * Saving with classification on enables the site consent — there is no
+	 * settings switch — and unchecking later never revokes it.
+	 */
+	public function testSavingWithClassificationEnablesTheConsent(): void {
+		wp_set_current_user( self::factory()->user->create( [ 'role' => 'administrator' ] ) );
+
+		$form = $this->makeForm( true );
+
+		$connection = new CloudConnection();
+		$connection->connect( 'site-uuid-1', 'https://a.example', 'Acme' );
+
+		$this->assertFalse( $connection->capabilityEnabled( CloudConnection::CAP_AI ) );
+
+		$this->saveForm( $form->id, [ 'ai_enabled' => '1' ] );
+
+		$this->assertTrue( ( new CloudConnection() )->capabilityEnabled( CloudConnection::CAP_AI ) );
+
+		// Unchecking keeps the site consent: other forms may rely on it.
+		$this->saveForm( $form->id, [] );
+
+		$this->assertTrue( ( new CloudConnection() )->capabilityEnabled( CloudConnection::CAP_AI ) );
+	}
+
+	/**
+	 * Save the form through the controller (redirect captured).
+	 *
+	 * @param int                  $formId    Form ID.
+	 * @param array<string, mixed> $overrides Extra POST fields.
+	 */
+	private function saveForm( int $formId, array $overrides ): void {
+		$_POST = array_merge(
+			[
+				'form_id'     => $formId,
+				'form_name'   => 'Enquiry',
+				'form_status' => 'published',
+			],
+			$overrides
+		);
+
+		$_REQUEST['_wpnonce'] = wp_create_nonce( 'relevant_form_save' );
+
+		add_filter(
+			'wp_redirect',
+			static function ( string $location ): string {
+				// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- handler-generated URL, assertions only.
+				throw new RedirectedException( $location );
+			}
+		);
+
+		try {
+			FormSaveController::handle();
+		} catch ( RedirectedException $redirected ) {
+			unset( $redirected );
+		} finally {
+			remove_all_filters( 'wp_redirect' );
+			unset( $_REQUEST['_wpnonce'] );
+		}
+	}
+
+	/**
 	 * Enable the semantic classification capability without HTTP.
 	 */
 	private function enableConsent(): void {

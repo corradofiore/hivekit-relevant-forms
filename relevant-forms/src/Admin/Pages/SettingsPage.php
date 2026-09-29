@@ -74,8 +74,6 @@ final class SettingsPage {
 				: (string) ( $current['cloud_api_key'] ?? '' ),
 		];
 
-		self::syncCapabilityConsent( CloudConnection::CAP_AI, ! empty( $input['ai_enabled'] ) );
-		self::syncCapabilityConsent( CloudConnection::CAP_SMS, ! empty( $input['sms_enabled'] ) );
 		self::syncCapabilityConsent( CloudConnection::CAP_UPLOADS, 'cloud' === $storageProvider );
 
 		return $settings;

@@ -407,6 +407,26 @@ final class CloudConnectFlowTest extends TestCase {
 	}
 
 	/**
+	 * No capability on/off switches in the general settings: AI and SMS are
+	 * enabled per form (the consent follows the first opt-in).
+	 */
+	public function testSettingsScreenHasNoCapabilitySwitches(): void {
+		update_option( 'relevant_forms_settings', [] );
+
+		set_current_screen( 'toplevel_page_relevant-settings' );
+
+		ob_start();
+		SettingsPage::render();
+		$html = (string) ob_get_clean();
+
+		$this->assertStringNotContainsString( 'ai_enabled', $html );
+		$this->assertStringNotContainsString( 'sms_enabled', $html );
+		$this->assertStringNotContainsString( 'Enable classification', $html );
+		$this->assertStringNotContainsString( 'AI classification', $html );
+		$this->assertStringNotContainsString( 'Priority SMS alerts', $html );
+	}
+
+	/**
 	 * Disconnect restores local-only operation without external calls.
 	 */
 	public function testDisconnectRestoresLocalOnlyOperation(): void {

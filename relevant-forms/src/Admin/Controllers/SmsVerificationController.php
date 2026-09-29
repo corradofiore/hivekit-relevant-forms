@@ -20,8 +20,9 @@ use RelevantForms\Cloud\CloudConnection;
  *
  * A number is only stored in the form schema after the Cloud confirms
  * the code: this controller records the local proof (a transient keyed
- * to user + number) that FormSaveController requires. No Cloud request
- * is made without the priority-SMS capability consent (v2 §7–8).
+ * to user + number) that FormSaveController requires. Requesting a code
+ * is the explicit opt-in that enables the priority-SMS capability
+ * consent (v2 §7–8) — there is no site-wide settings switch.
  */
 final class SmsVerificationController {
 
@@ -81,15 +82,21 @@ final class SmsVerificationController {
 			);
 		}
 
-		if ( ! CloudConfig::isConfigured() || ! ( new CloudConnection() )->capabilityEnabled( CloudConnection::CAP_SMS ) ) {
+		$connection = new CloudConnection();
+
+		if ( ! CloudConfig::isConfigured() || CloudConnection::STATE_DISCONNECTED === $connection->state() ) {
 			wp_send_json_error(
 				[
-					'code'    => 'capability_disabled',
-					'message' => __( 'Enable priority SMS in Relevant Forms → Settings first.', 'relevant-forms' ),
+					'code'    => 'not_connected',
+					'message' => __( 'Connect this site to Relevant Cloud in Relevant Forms → Settings before verifying a number.', 'relevant-forms' ),
 				],
 				400
 			);
 		}
+
+		// Requesting a code for this form's alert number is the explicit
+		// opt-in: it enables the priority-SMS consent for the site.
+		$connection->enableCapability( CloudConnection::CAP_SMS );
 
 		$client = new CloudClient( CloudConfig::apiBase(), CloudConfig::key() );
 		$result = $client->requestSmsVerification( $phone );

@@ -235,7 +235,7 @@ if ( $isEditing ) {
 		<div class="relevant-forms-ai-panel">
 			<h2><?php esc_html_e( 'AI classification', 'relevant-forms' ); ?></h2>
 			<p class="relevant-forms-ai-panel__intro"><?php esc_html_e( 'AI evaluates meaning, relevance, intent and urgency. Important submissions receive a transparent attention score, so they do not look identical to every other email.', 'relevant-forms' ); ?></p>
-			<p class="description"><?php esc_html_e( 'Requires Relevant Cloud with classification enabled in Relevant Forms → Settings. Submissions are redacted before they are sent unless privacy mode is turned off below.', 'relevant-forms' ); ?></p>
+			<p class="description"><?php esc_html_e( 'Requires a connected Relevant Cloud account (Relevant Forms → Settings) — turning this on and saving enables the classification consent for the site. Submissions are redacted before they are sent unless privacy mode is turned off below.', 'relevant-forms' ); ?></p>
 		<table class="form-table" role="presentation">
 			<tr>
 				<th scope="row"><?php esc_html_e( 'Classify submissions', 'relevant-forms' ); ?></th>

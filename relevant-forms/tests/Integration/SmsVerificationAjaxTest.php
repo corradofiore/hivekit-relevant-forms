@@ -11,6 +11,7 @@ declare(strict_types=1);
 namespace RelevantForms\Tests\Integration;
 
 use RelevantForms\Admin\Controllers\SmsVerificationController;
+use RelevantForms\Cloud\CloudConnection;
 
 /**
  * {@inheritdoc}
@@ -32,9 +33,43 @@ final class SmsVerificationAjaxTest extends TestCase {
 	}
 
 	/**
-	 * Without the capability consent no Cloud request happens.
+	 * Requesting a code is the explicit opt-in: on a connected site it
+	 * enables the priority-SMS consent (no settings switch) and proceeds.
 	 */
-	public function testTheCapabilityConsentIsRequired(): void {
+	public function testCodeRequestsEnableTheConsentOnConnectedSites(): void {
+		wp_set_current_user( self::factory()->user->create( [ 'role' => 'administrator' ] ) );
+
+		$this->configureCloud();
+
+		// Connected but without any capability consent yet (site_id keeps
+		// the state stable — disableCapability() needs it too).
+		update_option(
+			'relevant_cloud_connection',
+			[
+				'state'   => 'account_connected',
+				'site_id' => 'site-uuid-1',
+				'enabled' => [],
+			]
+		);
+
+		add_filter( 'pre_http_request', [ $this, 'fakeVerificationHttp' ], 10, 3 );
+
+		try {
+			$this->assertFalse( ( new CloudConnection() )->capabilityEnabled( CloudConnection::CAP_SMS ) );
+
+			$body = $this->dispatchSend( '+393331234567' );
+
+			$this->assertTrue( $body['success'] );
+			$this->assertTrue( ( new CloudConnection() )->capabilityEnabled( CloudConnection::CAP_SMS ) );
+		} finally {
+			remove_all_filters( 'pre_http_request' );
+		}
+	}
+
+	/**
+	 * A disconnected site cannot request codes; no HTTP happens.
+	 */
+	public function testDisconnectedSitesCannotRequestCodes(): void {
 		wp_set_current_user( self::factory()->user->create( [ 'role' => 'administrator' ] ) );
 
 		update_option(
@@ -44,13 +79,7 @@ final class SmsVerificationAjaxTest extends TestCase {
 				'cloud_api_key' => 'sfk_test',
 			]
 		);
-		update_option(
-			'relevant_cloud_connection',
-			[
-				'state'   => 'account_connected',
-				'enabled' => [],
-			]
-		);
+		update_option( 'relevant_cloud_connection', [ 'state' => 'disconnected' ] );
 
 		$requested = false;
 		add_filter(
@@ -62,13 +91,15 @@ final class SmsVerificationAjaxTest extends TestCase {
 			}
 		);
 
-		$body = $this->dispatchSend( '+393331234567' );
+		try {
+			$body = $this->dispatchSend( '+393331234567' );
 
-		remove_all_filters( 'pre_http_request' );
-
-		$this->assertFalse( $body['success'] );
-		$this->assertSame( 'capability_disabled', $body['data']['code'] );
-		$this->assertFalse( $requested, 'No Cloud request may happen without consent.' );
+			$this->assertFalse( $body['success'] );
+			$this->assertSame( 'not_connected', $body['data']['code'] );
+			$this->assertFalse( $requested, 'No Cloud request may happen without a connected site.' );
+		} finally {
+			remove_all_filters( 'pre_http_request' );
+		}
 	}
 
 	/**
