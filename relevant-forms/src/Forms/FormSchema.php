@@ -59,6 +59,10 @@ final class FormSchema implements JsonSerializable {
 				'currency'       => Money::DEFAULT_CURRENCY,
 				'fields'         => [],
 				'notifications'  => [],
+				'sender'         => [
+					'name'  => '',
+					'email' => '',
+				],
 				'confirmation'   => [
 					'mode'          => 'message',
 					'message'       => '',
@@ -91,6 +95,8 @@ final class FormSchema implements JsonSerializable {
 		$fields = isset( $data['fields'] ) && is_array( $data['fields'] ) ? array_values( $data['fields'] ) : [];
 		$fields = self::normalizeVisibility( $fields );
 
+		$sender = is_array( $data['sender'] ?? null ) ? $data['sender'] : [];
+
 		return new self(
 			[
 				'schema_version' => self::SCHEMA_VERSION,
@@ -98,6 +104,10 @@ final class FormSchema implements JsonSerializable {
 				'currency'       => Money::normalizeCurrency( $data['currency'] ?? '' ),
 				'fields'         => $fields,
 				'notifications'  => isset( $data['notifications'] ) && is_array( $data['notifications'] ) ? array_values( $data['notifications'] ) : [],
+				'sender'         => [
+					'name'  => isset( $sender['name'] ) ? (string) $sender['name'] : '',
+					'email' => isset( $sender['email'] ) ? (string) $sender['email'] : '',
+				],
 				'confirmation'   => [
 					'mode'          => $mode,
 					'message'       => $message,
@@ -279,8 +289,30 @@ final class FormSchema implements JsonSerializable {
 		return new self( $copy );
 	}
 
+	/**  * Top-level upload policy placeholder; the operative policy lives on
+	 * each file field. Preserved across editor saves.
+	 *
+	 * @return array<string, mixed>
+	 */
+	public function uploadPolicy(): array {
+		$policy = $this->data['upload_policy'];
+
+		return is_array( $policy ) ? $policy : [];
+	}
+
 	/**
-	 * Notification recipient emails.
+	 * Copy with a new top-level upload policy.
+	 *
+	 * @param array<string, mixed> $policy Upload policy.
+	 */
+	public function withUploadPolicy( array $policy ): self {
+		$copy                  = $this->data;
+		$copy['upload_policy'] = $policy;
+
+		return new self( $copy );
+	}
+
+	/**  * Notification recipient emails.
 	 *
 	 * @return array<int, string>
 	 */
@@ -310,6 +342,38 @@ final class FormSchema implements JsonSerializable {
 	public function withNotifications( array $emails ): self {
 		$copy                  = $this->data;
 		$copy['notifications'] = array_values( $emails );
+
+		return new self( $copy );
+	}
+
+	/**
+	 * Notification sender ("From" identity) for this form. The name and
+	 * address are used together or not at all.
+	 *
+	 * @return array{name: string, email: string}
+	 */
+	public function sender(): array {
+		$sender = $this->data['sender'];
+		$sender = is_array( $sender ) ? $sender : [];
+
+		return [
+			'name'  => (string) ( $sender['name'] ?? '' ),
+			'email' => (string) ( $sender['email'] ?? '' ),
+		];
+	}
+
+	/**
+	 * Copy with a new notification sender.
+	 *
+	 * @param string $name  Sender display name.
+	 * @param string $email Sender email address.
+	 */
+	public function withSender( string $name, string $email ): self {
+		$copy           = $this->data;
+		$copy['sender'] = [
+			'name'  => $name,
+			'email' => $email,
+		];
 
 		return new self( $copy );
 	}

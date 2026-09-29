@@ -57,6 +57,9 @@ final class FormSaveController {
 		$emails  = self::parseLines( (string) ( $raw['notification_emails'] ?? '' ) );
 		$message = sanitize_textarea_field( (string) ( $raw['confirmation_message'] ?? '' ) );
 
+		$senderName  = sanitize_text_field( (string) ( $raw['sender_name'] ?? '' ) );
+		$senderEmail = sanitize_email( (string) ( $raw['sender_email'] ?? '' ) );
+
 		// Hidden rows still submit, so every key normally arrives; a missing
 		// key (hand-crafted request) keeps the stored value instead of
 		// clearing it.
@@ -89,7 +92,8 @@ final class FormSaveController {
 			$normalized = PhoneNumber::normalize( $submitted );
 
 			if ( '' === $submitted ) {
-				// Option on without a recipient: the site default applies.
+				// Option on without a recipient: nothing is sent (alert
+				// recipients are per form only).
 				$smsPhone = '';
 			} elseif ( null !== $normalized && ( $normalized === $smsPhone || SmsVerificationController::isVerified( $normalized ) ) ) {
 				$smsPhone = $normalized;
@@ -102,20 +106,27 @@ final class FormSaveController {
 		}
 
 		$aiPolicy = [
-			'enabled'   => ! empty( $raw['ai_enabled'] ),
-			'purpose'   => mb_substr( sanitize_textarea_field( (string) ( $raw['ai_purpose'] ?? '' ) ), 0, 500 ),
-			'spam'      => mb_substr( sanitize_textarea_field( (string) ( $raw['ai_spam'] ?? '' ) ), 0, 500 ),
-			'sms_alert' => $smsAlert,
-			'sms_phone' => $smsPhone,
+			'enabled'      => ! empty( $raw['ai_enabled'] ),
+			'purpose'      => mb_substr( sanitize_textarea_field( (string) ( $raw['ai_purpose'] ?? '' ) ), 0, 500 ),
+			'priorities'   => mb_substr( sanitize_textarea_field( (string) ( $raw['ai_priorities'] ?? '' ) ), 0, 2000 ),
+			'spam'         => mb_substr( sanitize_textarea_field( (string) ( $raw['ai_spam'] ?? '' ) ), 0, 500 ),
+			'privacy_mode' => empty( $raw['ai_privacy_mode'] ) ? 0 : 1,
+			'sms_alert'    => $smsAlert,
+			'sms_phone'    => $smsPhone,
 		];
 
 		$schema = FormSchema::empty()
 			->withName( $name )
 			->withFields( $fields )
 			->withNotifications( $emails )
+			->withSender( $senderName, $senderEmail )
 			->withConfirmation( $message, $redirect, $redirectPage, $mode )
 			->withAiPolicy( $aiPolicy )
-			->withCurrency( $currency );
+			->withCurrency( $currency )
+			// Preserve non-editor keys (import provenance, future top-level
+			// upload policy) instead of resetting them on every save.
+			->withMetadata( null !== $existing ? $existing->schema->metadata() : [] )
+			->withUploadPolicy( null !== $existing ? $existing->schema->uploadPolicy() : [] );
 
 		$errors = [];
 		if ( '' === trim( $name ) ) {

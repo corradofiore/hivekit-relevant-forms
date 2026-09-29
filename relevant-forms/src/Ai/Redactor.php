@@ -1,6 +1,6 @@
 <?php
 /**
- * AI privacy redaction (doc §18). Default: ON.
+ * AI privacy redaction (doc §18). Controlled per form; default ON.
  *
  * @package RelevantForms
  */
@@ -15,12 +15,26 @@ namespace RelevantForms\Ai;
 final class Redactor {
 
 	/**
-	 * Whether privacy mode is enabled (default ON).
+	 * Whether redaction is enabled for this use.
+	 *
+	 * @var bool
+	 */
+	private bool $enabled;
+
+	/**
+	 * Constructor.
+	 *
+	 * @param bool $enabled Whether to redact values (per-form privacy mode).
+	 */
+	public function __construct( bool $enabled = true ) {
+		$this->enabled = $enabled;
+	}
+
+	/**
+	 * Whether privacy mode is enabled.
 	 */
 	public function isEnabled(): bool {
-		$settings = (array) get_option( 'relevant_forms_settings', [] );
-
-		return ! isset( $settings['ai_privacy_mode'] ) || ! empty( $settings['ai_privacy_mode'] );
+		return $this->enabled;
 	}
 
 	/**

@@ -16,14 +16,6 @@ beforeEach(
 	function () {
 		Monkey\Functions\when( 'get_option' )->alias(
 			static function ( string $key, mixed $fallback = [] ): mixed {
-				if ( 'relevant_forms_settings' === $key ) {
-					return [
-						'ai_site_purpose' => 'Plumbing company in Leeds',
-						'ai_priorities'   => "emergency repairs\nquote requests\n\n",
-						'ai_unwanted'     => 'SEO services',
-					];
-				}
-
 				if ( 'relevant_forms_preference_profile' === $key ) {
 					return [
 						'corrections' => [
@@ -55,8 +47,10 @@ it(
 			[
 				'name'      => 'Emergency',
 				'ai_policy' => [
-					'purpose' => 'Urgent repair requests',
-					'spam'    => "Automated sales pitches\nLink drops",
+					'purpose'      => 'Urgent repair requests',
+					'priorities'   => "emergency repairs\nquote requests\n\n",
+					'spam'         => "Automated sales pitches\nLink drops",
+					'privacy_mode' => 1,
 				],
 				'fields'    => [
 					[
@@ -87,11 +81,11 @@ it(
 			$protection
 		);
 
-		expect( $context['site_purpose'] )->toBe( 'Plumbing company in Leeds' );
+		expect( $context )->not->toHaveKey( 'site_purpose' );
+		expect( $context )->not->toHaveKey( 'unwanted' );
 		expect( $context['form_purpose'] )->toBe( 'Urgent repair requests' );
 		expect( $context['form_spam'] )->toBe( [ 'Automated sales pitches', 'Link drops' ] );
 		expect( $context['priorities'] )->toBe( [ 'emergency repairs', 'quote requests' ] );
-		expect( $context['unwanted'] )->toBe( [ 'SEO services' ] );
 		expect( $context['field_labels'] )->toBe( [ 'message' => 'Message' ] );
 		expect( $context['submission']['message'] )->toContain( '[EMAIL]' );
 		expect( $context['submission']['message'] )->toContain( '[PHONE]' );
@@ -104,5 +98,36 @@ it(
 
 		// Correction summaries are redacted before transmission too.
 		expect( $context['recent_corrections'][0]['summary'] )->toContain( '[EMAIL]' );
+	}
+);
+
+it(
+	'honours the per-form privacy flag with a default of on',
+	function () {
+		$raw  = FormSchema::fromArray(
+			[
+				'name'      => 'Raw',
+				'ai_policy' => [ 'privacy_mode' => 0 ],
+				'fields'    => [],
+			]
+		);
+		$form = new Form( 4, 'Raw', 'published', $raw, '2026-01-01 00:00:00', '2026-01-01 00:00:00' );
+
+		$context = ( new ContextBuilder() )->build( $form, [ 'email' => 'jane@example.com' ], [] );
+
+		expect( $context['submission']['email'] )->toBe( 'jane@example.com' );
+
+		// Without the key the recommended default applies: redaction on.
+		$default = FormSchema::fromArray(
+			[
+				'name'   => 'Safe',
+				'fields' => [],
+			]
+		);
+		$form    = new Form( 5, 'Safe', 'published', $default, '2026-01-01 00:00:00', '2026-01-01 00:00:00' );
+
+		$context = ( new ContextBuilder() )->build( $form, [ 'email' => 'jane@example.com' ], [] );
+
+		expect( $context['submission']['email'] )->toBe( '[EMAIL]' );
 	}
 );

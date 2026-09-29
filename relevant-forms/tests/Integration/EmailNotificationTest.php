@@ -86,6 +86,65 @@ final class EmailNotificationTest extends TestCase {
 	}
 
 	/**
+	 * A per-form sender is used as the From header.
+	 */
+	public function testFormSenderBecomesTheFromHeader(): void {
+		$repository = new FormRepository();
+
+		$schema = FormSchema::empty( 'With Sender' )->withSender( 'Acme Forms', 'no-reply@acme.example' );
+		$id     = $repository->create( 'With Sender', $schema, 'published' );
+		$form   = $repository->find( $id );
+
+		update_option( 'admin_email', 'admin@example.com' );
+
+		$sent = [];
+
+		add_filter(
+			'pre_wp_mail',
+			static function ( ?bool $shortCircuit, array $args ) use ( &$sent ): bool {
+				$sent[] = $args;
+				return true;
+			},
+			10,
+			2
+		);
+
+		$this->assertTrue( ( new EmailNotification() )->send( $form, [], null ) );
+		$this->assertContains( 'From: Acme Forms <no-reply@acme.example>', (array) $sent[0]['headers'] );
+	}
+
+	/**
+	 * An incomplete sender adds no From header (WordPress default applies).
+	 */
+	public function testIncompleteSenderAddsNoFromHeader(): void {
+		$repository = new FormRepository();
+
+		$schema = FormSchema::empty( 'Name Only' )->withSender( 'Acme Forms', 'not-an-email' );
+		$id     = $repository->create( 'Name Only', $schema, 'published' );
+		$form   = $repository->find( $id );
+
+		update_option( 'admin_email', 'admin@example.com' );
+
+		$sent = [];
+
+		add_filter(
+			'pre_wp_mail',
+			static function ( ?bool $shortCircuit, array $args ) use ( &$sent ): bool {
+				$sent[] = $args;
+				return true;
+			},
+			10,
+			2
+		);
+
+		$this->assertTrue( ( new EmailNotification() )->send( $form, [], null ) );
+
+		foreach ( (array) $sent[0]['headers'] as $header ) {
+			$this->assertStringNotContainsString( 'From:', (string) $header );
+		}
+	}
+
+	/**
 	 * Tear down.
 	 */
 	public function tearDown(): void {

@@ -363,6 +363,50 @@ final class CloudConnectFlowTest extends TestCase {
 	}
 
 	/**
+	 * Per-form settings moved to the form editor: the settings screen no
+	 * longer asks for them, and the legacy keys are dropped on save.
+	 */
+	public function testSettingsScreenDropsTheLegacyPerFormKeys(): void {
+		update_option(
+			'relevant_forms_settings',
+			[
+				'cloud_api_key'             => 'site-key-1',
+				'notification_sender_name'  => 'Old Sender',
+				'notification_sender_email' => 'old@example.com',
+				'ai_site_purpose'           => 'Old purpose',
+				'ai_priorities'             => 'Old priorities',
+				'ai_unwanted'               => 'Old unwanted',
+				'ai_privacy_mode'           => 0,
+				'sms_recipient'             => '+3912345',
+			]
+		);
+
+		set_current_screen( 'toplevel_page_relevant-settings' );
+
+		ob_start();
+		SettingsPage::render();
+		$html = (string) ob_get_clean();
+
+		$this->assertStringNotContainsString( 'notification_sender_name', $html );
+		$this->assertStringNotContainsString( 'notification_sender_email', $html );
+		$this->assertStringNotContainsString( 'ai_site_purpose', $html );
+		$this->assertStringNotContainsString( 'ai_priorities', $html );
+		$this->assertStringNotContainsString( 'ai_unwanted', $html );
+		$this->assertStringNotContainsString( 'ai_privacy_mode', $html );
+		$this->assertStringNotContainsString( 'sms_recipient', $html );
+
+		$sanitized = SettingsPage::sanitize( [] );
+
+		$this->assertArrayNotHasKey( 'notification_sender_name', $sanitized );
+		$this->assertArrayNotHasKey( 'ai_site_purpose', $sanitized );
+		$this->assertArrayNotHasKey( 'ai_priorities', $sanitized );
+		$this->assertArrayNotHasKey( 'ai_unwanted', $sanitized );
+		$this->assertArrayNotHasKey( 'ai_privacy_mode', $sanitized );
+		$this->assertArrayNotHasKey( 'sms_recipient', $sanitized );
+		$this->assertSame( 'site-key-1', $sanitized['cloud_api_key'] );
+	}
+
+	/**
 	 * Disconnect restores local-only operation without external calls.
 	 */
 	public function testDisconnectRestoresLocalOnlyOperation(): void {

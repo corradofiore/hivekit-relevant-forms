@@ -20,18 +20,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 		<?php settings_fields( 'relevant_forms_settings' ); ?>
 		<table class="form-table" role="presentation">
 			<tr>
-				<th scope="row"><label for="relevant-sender-name"><?php esc_html_e( 'Notification sender name', 'relevant-forms' ); ?></label></th>
-				<td>
-					<input type="text" class="regular-text" id="relevant-sender-name" name="relevant_forms_settings[notification_sender_name]" value="<?php echo esc_attr( (string) ( $settings['notification_sender_name'] ?? '' ) ); ?>">
-				</td>
-			</tr>
-			<tr>
-				<th scope="row"><label for="relevant-sender-email"><?php esc_html_e( 'Notification sender email', 'relevant-forms' ); ?></label></th>
-				<td>
-					<input type="email" class="regular-text" id="relevant-sender-email" name="relevant_forms_settings[notification_sender_email]" value="<?php echo esc_attr( (string) ( $settings['notification_sender_email'] ?? '' ) ); ?>">
-				</td>
-			</tr>
-			<tr>
 				<th scope="row"><?php esc_html_e( 'Debug logging', 'relevant-forms' ); ?></th>
 				<td>
 					<label>
@@ -177,7 +165,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 		<h2><?php esc_html_e( 'AI classification', 'relevant-forms' ); ?></h2>
 		<p class="description">
-			<?php esc_html_e( 'Semantic classification runs on Relevant Cloud. Nothing is sent until you connect the site above, enable the capability here and opt forms in individually.', 'relevant-forms' ); ?>
+			<?php esc_html_e( 'Semantic classification runs on Relevant Cloud. Nothing is sent until you connect the site above, enable the capability here and opt forms in individually. Purpose, priorities, unwanted enquiries and privacy mode are configured per form in the form editor.', 'relevant-forms' ); ?>
 		</p>
 		<table class="form-table" role="presentation">
 			<tr>
@@ -193,51 +181,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 				</td>
 			</tr>
 			<tr>
-				<th scope="row"><label for="relevant-ai-site-purpose"><?php esc_html_e( 'Site purpose', 'relevant-forms' ); ?></label></th>
-				<td>
-					<textarea class="large-text" id="relevant-ai-site-purpose" name="relevant_forms_settings[ai_site_purpose]" rows="2"><?php echo esc_textarea( (string) ( $settings['ai_site_purpose'] ?? '' ) ); ?></textarea>
-					<p class="description"><?php esc_html_e( 'Short description of the site, e.g. "Plumbing company in Leeds".', 'relevant-forms' ); ?></p>
-				</td>
-			</tr>
-			<tr>
-				<th scope="row"><label for="relevant-ai-priorities"><?php esc_html_e( 'Priorities', 'relevant-forms' ); ?></label></th>
-				<td>
-					<textarea class="large-text" id="relevant-ai-priorities" name="relevant_forms_settings[ai_priorities]" rows="3" placeholder="<?php esc_attr_e( 'one per line', 'relevant-forms' ); ?>"><?php echo esc_textarea( (string) ( $settings['ai_priorities'] ?? '' ) ); ?></textarea>
-					<p class="description"><?php esc_html_e( 'What counts as high priority, e.g. "emergency repairs", "quote requests".', 'relevant-forms' ); ?></p>
-				</td>
-			</tr>
-			<tr>
-				<th scope="row"><label for="relevant-ai-unwanted"><?php esc_html_e( 'Unwanted enquiries', 'relevant-forms' ); ?></label></th>
-				<td>
-					<textarea class="large-text" id="relevant-ai-unwanted" name="relevant_forms_settings[ai_unwanted]" rows="3" placeholder="<?php esc_attr_e( 'one per line', 'relevant-forms' ); ?>"><?php echo esc_textarea( (string) ( $settings['ai_unwanted'] ?? '' ) ); ?></textarea>
-					<p class="description"><?php esc_html_e( 'What to treat as spam or irrelevant, e.g. "SEO services", "guest posts".', 'relevant-forms' ); ?></p>
-				</td>
-			</tr>
-			<tr>
-				<th scope="row"><?php esc_html_e( 'Privacy mode', 'relevant-forms' ); ?></th>
-				<td>
-					<label>
-						<input type="checkbox" name="relevant_forms_settings[ai_privacy_mode]" value="1" <?php checked( ! empty( $settings['ai_privacy_mode'] ?? 1 ) ); ?>>
-						<?php esc_html_e( 'Redact emails, phone numbers, IP addresses and URL paths before sending', 'relevant-forms' ); ?>
-					</label>
-					<p class="description"><?php esc_html_e( 'Recommended. Disable only if classification quality suffers and you accept sending raw submissions.', 'relevant-forms' ); ?></p>
-				</td>
-			</tr>
-			<tr>
-				<th scope="row"><label for="relevant-sms-recipient"><?php esc_html_e( 'Priority SMS recipient', 'relevant-forms' ); ?></label></th>
-				<td>
-					<input type="tel" class="regular-text" id="relevant-sms-recipient" name="relevant_forms_settings[sms_recipient]" value="<?php echo esc_attr( (string) ( $settings['sms_recipient'] ?? '' ) ); ?>" placeholder="+39 333 1234567">
-					<p class="description"><?php esc_html_e( 'Mobile number that receives managed priority alerts.', 'relevant-forms' ); ?></p>
-				</td>
-			</tr>
-			<tr>
 				<th scope="row"><?php esc_html_e( 'Priority SMS alerts', 'relevant-forms' ); ?></th>
 				<td>
 					<label>
 						<input type="checkbox" name="relevant_forms_settings[sms_enabled]" value="1" <?php checked( $connection->capabilityEnabled( \RelevantForms\Cloud\CloudConnection::CAP_SMS ) ); ?> <?php disabled( \RelevantForms\Cloud\CloudConnection::STATE_DISCONNECTED === $cloudState ); ?>>
-						<?php esc_html_e( 'SMS me when a submission is genuinely urgent (attention >= 85)', 'relevant-forms' ); ?>
+						<?php esc_html_e( 'Allow Relevant Cloud to send priority SMS alerts (attention >= 85)', 'relevant-forms' ); ?>
 					</label>
-					<p class="description"><?php esc_html_e( 'Never sends the full submission: only the AI summary and a link to the entry (WordPress login required).', 'relevant-forms' ); ?></p>
+					<p class="description"><?php esc_html_e( 'The recipient number is configured per form in the form editor and verified with a 6-digit code. Never sends the full submission: only the AI summary and a link to the entry (WordPress login required).', 'relevant-forms' ); ?></p>
 				</td>
 			</tr>
 		</table>
