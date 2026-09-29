@@ -169,7 +169,11 @@ $inputIdBase = 'rf-field-' . $fieldId;
 					<th scope="row"><label for="<?php echo esc_attr( $inputIdBase . '-min-amount' ); ?>"><?php esc_html_e( 'Minimum amount', 'relevant-forms' ); ?></label></th>
 					<td>
 						<input type="text" inputmode="decimal" id="<?php echo esc_attr( $inputIdBase . '-min-amount' ); ?>" name="relevant_fields[<?php echo esc_attr( $fieldId ); ?>][min_amount]" value="<?php echo esc_attr( (string) ( $definition['min_amount'] ?? '' ) ); ?>">
-						<label for="<?php echo esc_attr( $inputIdBase . '-max-amount' ); ?>"><?php esc_html_e( 'Maximum amount', 'relevant-forms' ); ?></label>
+					</td>
+				</tr>
+				<tr>
+					<th scope="row"><label for="<?php echo esc_attr( $inputIdBase . '-max-amount' ); ?>"><?php esc_html_e( 'Maximum amount', 'relevant-forms' ); ?></label></th>
+					<td>
 						<input type="text" inputmode="decimal" id="<?php echo esc_attr( $inputIdBase . '-max-amount' ); ?>" name="relevant_fields[<?php echo esc_attr( $fieldId ); ?>][max_amount]" value="<?php echo esc_attr( (string) ( $definition['max_amount'] ?? '' ) ); ?>">
 						<p class="description"><?php esc_html_e( 'Used when the visitor enters the amount. Leave empty for no custom limits.', 'relevant-forms' ); ?></p>
 					</td>
