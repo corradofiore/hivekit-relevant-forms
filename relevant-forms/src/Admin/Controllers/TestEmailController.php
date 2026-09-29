@@ -12,6 +12,7 @@ namespace RelevantForms\Admin\Controllers;
 use RelevantForms\Forms\Form;
 use RelevantForms\Forms\FormRepository;
 use RelevantForms\Notifications\SenderIdentity;
+use RelevantForms\Support\Ajax;
 use RelevantForms\Support\Logger;
 use RelevantForms\Support\SiteAdmins;
 use RelevantForms\Support\TextList;
@@ -39,9 +40,7 @@ final class TestEmailController {
 	 * AJAX: send the test email.
 	 */
 	public static function send(): void {
-		if ( ! current_user_can( 'manage_options' ) ) {
-			wp_send_json_error( [ 'message' => __( 'You do not have permission to send test emails.', 'relevant-forms' ) ], 403 );
-		}
+		Ajax::ensureManager( __( 'You do not have permission to send test emails.', 'relevant-forms' ) );
 
 		check_ajax_referer( self::ACTION );
 
@@ -49,26 +48,14 @@ final class TestEmailController {
 		$form   = $formId > 0 ? ( new FormRepository() )->find( $formId ) : null;
 
 		if ( ! $form instanceof Form ) {
-			wp_send_json_error(
-				[
-					'code'    => 'not_found',
-					'message' => __( 'The form could not be found.', 'relevant-forms' ),
-				],
-				404
-			);
+			Ajax::fail( 'not_found', __( 'The form could not be found.', 'relevant-forms' ), 404 );
 		}
 
 		$submitted  = trim( sanitize_textarea_field( wp_unslash( (string) ( $_POST['recipients'] ?? '' ) ) ) );
 		$recipients = self::parseRecipients( $submitted );
 
 		if ( '' !== $submitted && [] === $recipients ) {
-			wp_send_json_error(
-				[
-					'code'    => 'invalid_recipients',
-					'message' => __( 'Use valid email addresses, one per line.', 'relevant-forms' ),
-				],
-				400
-			);
+			Ajax::fail( 'invalid_recipients', __( 'Use valid email addresses, one per line.', 'relevant-forms' ), 400 );
 		}
 
 		if ( [] === $recipients ) {
@@ -77,13 +64,7 @@ final class TestEmailController {
 		}
 
 		if ( [] === $recipients ) {
-			wp_send_json_error(
-				[
-					'code'    => 'no_recipients',
-					'message' => __( 'Add at least one email address, or give an administrator account a valid email.', 'relevant-forms' ),
-				],
-				400
-			);
+			Ajax::fail( 'no_recipients', __( 'Add at least one email address, or give an administrator account a valid email.', 'relevant-forms' ), 400 );
 		}
 
 		$siteName = wp_specialchars_decode( (string) get_bloginfo( 'name' ), ENT_QUOTES );
@@ -127,13 +108,7 @@ final class TestEmailController {
 		}
 
 		if ( ! $sent ) {
-			wp_send_json_error(
-				[
-					'code'    => 'send_failed',
-					'message' => __( 'WordPress could not send the test email. Check the site\'s mail configuration.', 'relevant-forms' ),
-				],
-				502
-			);
+			Ajax::fail( 'send_failed', __( 'WordPress could not send the test email. Check the site\'s mail configuration.', 'relevant-forms' ), 502 );
 		}
 
 		wp_send_json_success( [ 'recipients' => $recipients ] );
