@@ -1351,8 +1351,27 @@
 
 	document.addEventListener( 'click', function ( event ) {
 		var duplicate = event.target.closest( 'button.rf-duplicate' );
+		var edit = event.target.closest( 'button.rf-edit' );
 		var remove = event.target.closest( 'button.rf-remove' );
-		var item;
+		var item, panel;
+
+		if ( edit ) {
+			item = edit.closest( '.rf-field-item' );
+
+			if ( item ) {
+				selectField( item.getAttribute( 'data-for' ) );
+
+				// The editor panel sits below the list when the columns stack,
+				// so opening a field brings it into view.
+				panel = fieldEditors.querySelector( '[data-for="' + item.getAttribute( 'data-for' ) + '"]' );
+
+				if ( panel ) {
+					panel.scrollIntoView( { behavior: 'smooth', block: 'nearest' } );
+				}
+			}
+
+			return;
+		}
 
 		if ( duplicate ) {
 			item = duplicate.closest( '.rf-field-item' );

@@ -29,6 +29,7 @@ $isRequired = ! empty( $definition['required'] );
 			<span class="rf-field-item__type"><?php echo esc_html( $field_type->label() ); ?></span>
 		</div>
 		<div class="rf-field-item__actions">
+			<button type="button" class="button-link rf-edit"><?php esc_html_e( 'Edit', 'relevant-forms' ); ?></button>
 			<button type="button" class="button-link rf-duplicate"><?php esc_html_e( 'Duplicate', 'relevant-forms' ); ?></button>
 			<button type="button" class="button-link rf-remove"><?php esc_html_e( 'Delete', 'relevant-forms' ); ?></button>
 		</div>
