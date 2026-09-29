@@ -69,7 +69,8 @@ final class SettingsPage {
 			'scan_backend_key'                  => '' !== (string) ( $input['scan_backend_key'] ?? '' )
 				? sanitize_text_field( (string) $input['scan_backend_key'] )
 				: (string) ( $current['scan_backend_key'] ?? '' ),
-			'cloud_url'                         => esc_url_raw( (string) ( $input['cloud_url'] ?? '' ) ),
+			// Legacy stored service URL: preserved for pre-1.0 installs; the settings screen no longer asks for it.
+			'cloud_url'                         => esc_url_raw( (string) ( $current['cloud_url'] ?? '' ) ),
 			// Keep the previous key when the field is left blank (never echoed back).
 			'cloud_api_key'                     => '' !== (string) ( $input['cloud_api_key'] ?? '' )
 				? sanitize_text_field( (string) $input['cloud_api_key'] )

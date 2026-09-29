@@ -160,7 +160,7 @@ final class PaymentSettingsController {
 	 * Cloud API client for the configured account.
 	 */
 	private static function client(): CloudClient {
-		return new CloudClient( CloudConfig::url(), CloudConfig::key() );
+		return new CloudClient( CloudConfig::apiBase(), CloudConfig::key() );
 	}
 
 	/**

@@ -10,8 +10,10 @@ declare(strict_types=1);
 namespace RelevantForms\Cloud;
 
 /**
- * Resolves the Cloud API credentials: constants first, then plugin
- * settings. The API key is never displayed back (v2 §8 consent rules).
+ * Resolves the Cloud service URL and site key. The service URL is
+ * code-owned (`DEFAULT_URL`) with staging overrides; the settings screen
+ * only asks for the API key, which is never displayed back (v2 §8
+ * consent rules).
  */
 final class CloudConfig {
 
@@ -21,7 +23,22 @@ final class CloudConfig {
 	private const OPTION = 'relevant_forms_settings';
 
 	/**
-	 * Cloud API base URL (e.g. https://cloud.example.com).
+	 * Production Cloud service origin.
+	 */
+	public const DEFAULT_URL = 'https://api.relevantcloud.com';
+
+	/**
+	 * API version path. The single source of the service URL structure:
+	 * every client call is built from origin + this path, so a future API
+	 * version only changes this constant.
+	 */
+	public const API_PATH = '/api/v1';
+
+	/**
+	 * Cloud service origin. Precedence: the RELEVANT_CLOUD_URL constant
+	 * (staging/dev override in wp-config.php), the
+	 * `relevant_forms_cloud_url` filter, a stored legacy URL from
+	 * pre-1.0 installs, then the production default.
 	 */
 	public static function url(): string {
 		$constant = defined( 'RELEVANT_CLOUD_URL' ) ? (string) RELEVANT_CLOUD_URL : '';
@@ -30,9 +47,28 @@ final class CloudConfig {
 			return untrailingslashit( $constant );
 		}
 
-		$settings = (array) get_option( self::OPTION, [] );
+		/**
+		 * Filters the Relevant Cloud service origin.
+		 *
+		 * @param string $url Override URL; empty string when not overridden.
+		 */
+		$filtered = (string) apply_filters( 'relevant_forms_cloud_url', '' );
 
-		return untrailingslashit( (string) ( $settings['cloud_url'] ?? '' ) );
+		if ( '' !== $filtered ) {
+			return untrailingslashit( $filtered );
+		}
+
+		$settings = (array) get_option( self::OPTION, [] );
+		$legacy   = untrailingslashit( (string) ( $settings['cloud_url'] ?? '' ) );
+
+		return '' !== $legacy ? $legacy : self::DEFAULT_URL;
+	}
+
+	/**
+	 * Versioned API base: origin + API_PATH.
+	 */
+	public static function apiBase(): string {
+		return self::url() . self::API_PATH;
 	}
 
 	/**
@@ -51,10 +87,11 @@ final class CloudConfig {
 	}
 
 	/**
-	 * Whether the Cloud API is configured. No external call may happen
-	 * before this returns true (v2 §7, §8).
+	 * Whether the Cloud API is configured. The service URL is built in;
+	 * only the site key is required. No external call may happen before
+	 * this returns true (v2 §7, §8).
 	 */
 	public static function isConfigured(): bool {
-		return '' !== self::url() && '' !== self::key();
+		return '' !== self::key();
 	}
 }
