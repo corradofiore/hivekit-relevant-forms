@@ -65,15 +65,6 @@ final class LegalLinks {
 	}
 
 	/**
-	 * URL for one disclosure key, or '' when not configured.
-	 */
-	public static function get( string $key ): string {
-		$links = self::all();
-
-		return $links[ $key ] ?? '';
-	}
-
-	/**
 	 * Value of a string constant, or '' when undefined/empty.
 	 */
 	private static function definedUrl( string $constant ): string {

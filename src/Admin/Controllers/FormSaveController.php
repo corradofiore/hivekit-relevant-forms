@@ -10,7 +10,6 @@ declare(strict_types=1);
 namespace RelevantForms\Admin\Controllers;
 
 use RelevantForms\Alerts\PhoneNumber;
-use RelevantForms\Cloud\CloudConfig;
 use RelevantForms\Cloud\CloudConnection;
 use RelevantForms\Forms\Fields\FieldTypeRegistry;
 use RelevantForms\Forms\FormRepository;
@@ -18,6 +17,7 @@ use RelevantForms\Forms\FormSchema;
 use RelevantForms\Forms\Visibility\VisibilityRules;
 use RelevantForms\Payments\Money;
 use RelevantForms\Support\Logger;
+use RelevantForms\Support\TextList;
 
 /**
  * Persists the form builder payload.
@@ -162,14 +162,16 @@ final class FormSaveController {
 
 		// The per-form opt-ins are the explicit consent actions (there is no
 		// site-wide switch): saving with classification on — or with a
-		// verified alert number — enables the matching Cloud capability.
+		// verified alert number — grants the matching Cloud capability.
 		// Unchecking never revokes: other forms may rely on the consent;
 		// Disconnect remains the revocation path.
-		if ( self::enableCapability( CloudConnection::CAP_AI, ! empty( $aiPolicy['enabled'] ) ) ) {
+		$connection = new CloudConnection();
+
+		if ( ! empty( $aiPolicy['enabled'] ) && $connection->grantCapability( CloudConnection::CAP_AI ) ) {
 			Logger::info( 'Classification consent enabled from the form editor', [ 'form_id' => $formId ] );
 		}
 
-		if ( self::enableCapability( CloudConnection::CAP_SMS, $smsAlert && '' !== $smsPhone ) ) {
+		if ( $smsAlert && '' !== $smsPhone && $connection->grantCapability( CloudConnection::CAP_SMS ) ) {
 			Logger::info( 'Priority SMS consent enabled from the form editor', [ 'form_id' => $formId ] );
 		}
 
@@ -180,28 +182,6 @@ final class FormSaveController {
 			)
 		);
 		exit;
-	}
-
-	/**
-	 * Enable a Cloud capability when the form opts in and the site is
-	 * connected. Consent is never revoked here.
-	 *
-	 * @param string $capability Cloud capability key.
-	 * @param bool   $requested  Whether the form uses the capability.
-	 * @return bool Whether the capability was newly enabled.
-	 */
-	private static function enableCapability( string $capability, bool $requested ): bool {
-		if ( ! $requested || ! CloudConfig::isConfigured() ) {
-			return false;
-		}
-
-		$connection = new CloudConnection();
-
-		if ( CloudConnection::STATE_DISCONNECTED === $connection->state() ) {
-			return false;
-		}
-
-		return ! $connection->capabilityEnabled( $capability ) && $connection->enableCapability( $capability );
 	}
 
 	/**
@@ -347,21 +327,7 @@ final class FormSaveController {
 	 * @return array<int, string>
 	 */
 	private static function parseLines( string $text ): array {
-		$lines = preg_split( '/\r\n|\r|\n/', $text );
-
-		if ( false === $lines ) {
-			return [];
-		}
-
-		$result = [];
-		foreach ( $lines as $line ) {
-			$line = trim( $line );
-			if ( '' !== $line ) {
-				$result[] = $line;
-			}
-		}
-
-		return array_values( array_unique( $result ) );
+		return array_values( array_unique( TextList::lines( $text ) ) );
 	}
 
 	/**

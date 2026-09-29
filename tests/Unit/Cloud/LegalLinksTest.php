@@ -24,8 +24,10 @@ beforeEach(
 it(
 	'returns no links until the service operator configures them',
 	function () {
-		expect( LegalLinks::all() )->toBe( [] );
-		expect( LegalLinks::get( 'terms' ) )->toBe( '' );
+		$links = LegalLinks::all();
+
+		expect( $links )->toBe( [] );
+		expect( $links['terms'] ?? '' )->toBe( '' );
 	}
 );
 
@@ -35,9 +37,11 @@ it(
 		define( 'RELEVANT_CLOUD_TERMS_URL', 'https://example.com/terms' );
 		define( 'RELEVANT_CLOUD_PRIVACY_URL', 'https://example.com/privacy' );
 
-		expect( LegalLinks::get( 'terms' ) )->toBe( 'https://example.com/terms' );
-		expect( LegalLinks::get( 'subprocessors' ) )->toBe( '' );
-		expect( LegalLinks::all() )->toBe(
+		$links = LegalLinks::all();
+
+		expect( $links['terms'] ?? '' )->toBe( 'https://example.com/terms' );
+		expect( $links['subprocessors'] ?? '' )->toBe( '' );
+		expect( $links )->toBe(
 			[
 				'terms'   => 'https://example.com/terms',
 				'privacy' => 'https://example.com/privacy',

@@ -14,6 +14,7 @@ use RelevantForms\Forms\FormRepository;
 use RelevantForms\Notifications\SenderIdentity;
 use RelevantForms\Support\Logger;
 use RelevantForms\Support\SiteAdmins;
+use RelevantForms\Support\TextList;
 
 /**
  * Sends one test notification so sender identity and deliverability can
@@ -145,14 +146,10 @@ final class TestEmailController {
 	 * @return array<int, string>
 	 */
 	private static function parseRecipients( string $raw ): array {
-		$parts = preg_split( '/\r\n|\r|\n|,/', $raw );
-
 		$recipients = [];
 
-		foreach ( is_array( $parts ) ? $parts : [] as $part ) {
-			$email = trim( $part );
-
-			if ( '' !== $email && is_email( $email ) ) {
+		foreach ( TextList::lines( str_replace( ',', "\n", $raw ) ) as $email ) {
+			if ( is_email( $email ) ) {
 				$recipients[] = $email;
 			}
 		}

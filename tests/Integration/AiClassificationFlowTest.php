@@ -18,6 +18,7 @@ use RelevantForms\Forms\Form;
 use RelevantForms\Forms\FormRepository;
 use RelevantForms\Forms\FormSchema;
 use RelevantForms\Http\SubmissionHandler;
+use RelevantForms\Tests\Integration\Support\CapturesRedirects;
 use RelevantForms\Tests\Integration\Support\RedirectedException;
 use RelevantForms\Tests\Integration\Support\StoppedException;
 
@@ -27,6 +28,8 @@ use RelevantForms\Tests\Integration\Support\StoppedException;
  * @group integration
  */
 final class AiClassificationFlowTest extends TestCase {
+
+	use CapturesRedirects;
 
 	/**
 	 * Canned classification payload returned by the fake Cloud.
@@ -293,40 +296,22 @@ final class AiClassificationFlowTest extends TestCase {
 		);
 		$form = $repository->find( $form->id );
 
-		$_POST = [
-			'form_id'         => $form->id,
-			'form_name'       => 'Enquiry',
-			'form_status'     => 'published',
-			'sender_name'     => 'Acme Forms',
-			'sender_email'    => 'no-reply@acme.example',
-			'ai_enabled'      => '1',
-			'ai_purpose'      => 'Quote requests from homeowners',
-			'ai_priorities'   => 'emergency repairs',
-			'ai_spam'         => 'Automated sales pitches and link drops',
-			'ai_privacy_mode' => '1',
-		];
-
-		$_REQUEST['_wpnonce'] = wp_create_nonce( 'relevant_form_save' );
-
-		add_filter(
-			'wp_redirect',
-			static function ( string $location ): string {
-				// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- handler-generated URL, assertions only.
-				throw new RedirectedException( $location );
-			}
+		$url = $this->captureRedirect(
+			[ FormSaveController::class, 'handle' ],
+			'relevant_form_save',
+			[
+				'form_id'         => $form->id,
+				'form_name'       => 'Enquiry',
+				'form_status'     => 'published',
+				'sender_name'     => 'Acme Forms',
+				'sender_email'    => 'no-reply@acme.example',
+				'ai_enabled'      => '1',
+				'ai_purpose'      => 'Quote requests from homeowners',
+				'ai_priorities'   => 'emergency repairs',
+				'ai_spam'         => 'Automated sales pitches and link drops',
+				'ai_privacy_mode' => '1',
+			]
 		);
-
-		$url = '';
-
-		try {
-			FormSaveController::handle();
-			$this->fail( 'The controller should redirect.' );
-		} catch ( RedirectedException $redirected ) {
-			$url = $redirected->url;
-		} finally {
-			remove_all_filters( 'wp_redirect' );
-			unset( $_REQUEST['_wpnonce'] );
-		}
 
 		$this->assertStringContainsString( 'saved=1', $url );
 
@@ -381,33 +366,18 @@ final class AiClassificationFlowTest extends TestCase {
 	 * @param array<string, mixed> $overrides Extra POST fields.
 	 */
 	private function saveForm( int $formId, array $overrides ): void {
-		$_POST = array_merge(
-			[
-				'form_id'     => $formId,
-				'form_name'   => 'Enquiry',
-				'form_status' => 'published',
-			],
-			$overrides
+		$this->captureRedirect(
+			[ FormSaveController::class, 'handle' ],
+			'relevant_form_save',
+			array_merge(
+				[
+					'form_id'     => $formId,
+					'form_name'   => 'Enquiry',
+					'form_status' => 'published',
+				],
+				$overrides
+			)
 		);
-
-		$_REQUEST['_wpnonce'] = wp_create_nonce( 'relevant_form_save' );
-
-		add_filter(
-			'wp_redirect',
-			static function ( string $location ): string {
-				// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- handler-generated URL, assertions only.
-				throw new RedirectedException( $location );
-			}
-		);
-
-		try {
-			FormSaveController::handle();
-		} catch ( RedirectedException $redirected ) {
-			unset( $redirected );
-		} finally {
-			remove_all_filters( 'wp_redirect' );
-			unset( $_REQUEST['_wpnonce'] );
-		}
 	}
 
 	/**

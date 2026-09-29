@@ -9,7 +9,6 @@ declare(strict_types=1);
 
 namespace RelevantForms\Admin\Pages;
 
-use RelevantForms\Cloud\CloudConfig;
 use RelevantForms\Cloud\CloudConnection;
 use RelevantForms\Support\Logger;
 
@@ -93,13 +92,13 @@ final class SettingsPage {
 			return;
 		}
 
-		if ( ! CloudConfig::isConfigured() || CloudConnection::STATE_DISCONNECTED === $connection->state() ) {
-			Logger::info( 'Cloud capability enable requested while disconnected — ignored', [ 'capability' => $capability ] );
-
+		if ( $connection->capabilityEnabled( $capability ) ) {
 			return;
 		}
 
-		$connection->enableCapability( $capability );
+		if ( ! $connection->grantCapability( $capability ) ) {
+			Logger::info( 'Cloud capability enable requested while disconnected — ignored', [ 'capability' => $capability ] );
+		}
 	}
 
 	/**

@@ -13,6 +13,8 @@ use RelevantForms\Admin\Controllers\TestEmailController;
 use RelevantForms\Forms\Form;
 use RelevantForms\Forms\FormRepository;
 use RelevantForms\Forms\FormSchema;
+use RelevantForms\Tests\Integration\Support\AjaxRequests;
+use RelevantForms\Tests\Integration\Support\CapturesMail;
 
 /**
  * {@inheritdoc}
@@ -21,12 +23,7 @@ use RelevantForms\Forms\FormSchema;
  */
 final class TestEmailFlowTest extends TestCase {
 
-	/**
-	 * Outgoing mail captured by the fake transport.
-	 *
-	 * @var array<int, array<string, mixed>>
-	 */
-	private array $sent = [];
+	use CapturesMail;
 
 	/**
 	 * Empty recipients: the site administrators get the test email.
@@ -54,11 +51,11 @@ final class TestEmailFlowTest extends TestCase {
 		// The configured administration address comes first, then the
 		// administrator accounts.
 		$this->assertSame( 'admin@example.com', $body['data']['recipients'][0] );
-		$this->assertCount( 1, $this->sent );
-		$this->assertContains( 'admin@example.com', $this->sent[0]['to'] );
+		$this->assertCount( 1, $this->sent_mail );
+		$this->assertContains( 'admin@example.com', $this->sent_mail[0]['to'] );
 
 		// The form's sender identity rides along.
-		$this->assertContains( 'From: Acme Forms <no-reply@acme.example>', (array) $this->sent[0]['headers'] );
+		$this->assertContains( 'From: Acme Forms <no-reply@acme.example>', (array) $this->sent_mail[0]['headers'] );
 	}
 
 	/**
@@ -75,10 +72,10 @@ final class TestEmailFlowTest extends TestCase {
 
 		$this->assertTrue( $body['success'] );
 		$this->assertSame( [ 'deliverability@test.example', 'second@test.example' ], $body['data']['recipients'] );
-		$this->assertSame( [ 'deliverability@test.example', 'second@test.example' ], $this->sent[0]['to'] );
+		$this->assertSame( [ 'deliverability@test.example', 'second@test.example' ], $this->sent_mail[0]['to'] );
 
 		// No sender configured: only the content type header.
-		$this->assertSame( [ 'Content-Type: text/plain; charset=UTF-8' ], $this->sent[0]['headers'] );
+		$this->assertSame( [ 'Content-Type: text/plain; charset=UTF-8' ], $this->sent_mail[0]['headers'] );
 	}
 
 	/**
@@ -95,7 +92,7 @@ final class TestEmailFlowTest extends TestCase {
 
 		$this->assertFalse( $body['success'] );
 		$this->assertSame( 'invalid_recipients', $body['data']['code'] );
-		$this->assertCount( 0, $this->sent );
+		$this->assertCount( 0, $this->sent_mail );
 	}
 
 	/**
@@ -133,22 +130,6 @@ final class TestEmailFlowTest extends TestCase {
 	}
 
 	/**
-	 * Capture outgoing mail through the fake transport.
-	 */
-	private function captureMail(): void {
-		add_filter(
-			'pre_wp_mail',
-			function ( ?bool $shortCircuit, array $args ): bool {
-				$this->sent[] = $args;
-
-				return true;
-			},
-			10,
-			2
-		);
-	}
-
-	/**
 	 * POST to the endpoint as an AJAX request.
 	 *
 	 * @param int    $formId     Form ID.
@@ -162,43 +143,7 @@ final class TestEmailFlowTest extends TestCase {
 		];
 		$_REQUEST['_wpnonce'] = wp_create_nonce( TestEmailController::ACTION );
 
-		/*
-		 * wp_send_json() only routes through wp_die() in a real admin-ajax
-		 * request (wp_doing_ajax()); otherwise it exits directly. Simulate the
-		 * AJAX context and intercept its die handler — the test framework
-		 * overrides only the default wp_die() handler, not the AJAX one.
-		 */
-		$doing_ajax = static function (): bool {
-			return true;
-		};
-
-		$ajax_die = static function (): callable {
-			return static function (): void {
-				throw new \WPDieException();
-			};
-		};
-
-		add_filter( 'wp_doing_ajax', $doing_ajax );
-		add_filter( 'wp_die_ajax_handler', $ajax_die );
-
-		$terminated = false;
-
-		ob_start();
-
-		try {
-			TestEmailController::send();
-		} catch ( \WPDieException ) {
-			$terminated = true;
-		} finally {
-			$body = json_decode( (string) ob_get_clean(), true );
-
-			remove_filter( 'wp_doing_ajax', $doing_ajax );
-			remove_filter( 'wp_die_ajax_handler', $ajax_die );
-		}
-
-		$this->assertTrue( $terminated, 'wp_send_json should terminate the request.' );
-
-		return is_array( $body ) ? $body : [];
+		return AjaxRequests::dispatch( [ TestEmailController::class, 'send' ] );
 	}
 
 	/**
@@ -206,7 +151,7 @@ final class TestEmailFlowTest extends TestCase {
 	 */
 	public function tearDown(): void {
 		unset( $_POST, $_REQUEST['_wpnonce'] );
-		remove_all_filters( 'pre_wp_mail' );
+		$this->stopCapturingMail();
 
 		parent::tearDown();
 	}

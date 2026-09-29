@@ -12,6 +12,7 @@ namespace RelevantForms\Tests\Integration;
 
 use RelevantForms\Admin\Controllers\SmsVerificationController;
 use RelevantForms\Cloud\CloudConnection;
+use RelevantForms\Tests\Integration\Support\AjaxRequests;
 
 /**
  * {@inheritdoc}
@@ -130,7 +131,7 @@ final class SmsVerificationAjaxTest extends TestCase {
 			];
 			$_REQUEST['_wpnonce'] = wp_create_nonce( SmsVerificationController::ACTION_VERIFY );
 
-			$body = $this->dispatch( [ SmsVerificationController::class, 'verify' ] );
+			$body = AjaxRequests::dispatch( [ SmsVerificationController::class, 'verify' ] );
 
 			$this->assertTrue( $body['success'] );
 			$this->assertTrue( $body['data']['verified'] );
@@ -167,7 +168,7 @@ final class SmsVerificationAjaxTest extends TestCase {
 			];
 			$_REQUEST['_wpnonce'] = wp_create_nonce( SmsVerificationController::ACTION_VERIFY );
 
-			$body = $this->dispatch( [ SmsVerificationController::class, 'verify' ] );
+			$body = AjaxRequests::dispatch( [ SmsVerificationController::class, 'verify' ] );
 
 			$this->assertFalse( $body['success'] );
 			$this->assertSame( 'invalid_code', $body['data']['code'] );
@@ -258,53 +259,7 @@ final class SmsVerificationAjaxTest extends TestCase {
 		$_POST                = [ 'phone' => $phone ];
 		$_REQUEST['_wpnonce'] = wp_create_nonce( SmsVerificationController::ACTION_SEND );
 
-		return $this->dispatch( [ SmsVerificationController::class, 'send' ] );
-	}
-
-	/**
-	 * Invoke an AJAX handler with the wp_send_json() lifecycle simulated.
-	 *
-	 * @param callable $handler Handler to invoke.
-	 * @return array<string, mixed> Decoded response body.
-	 */
-	private function dispatch( callable $handler ): array {
-		/*
-		 * wp_send_json() only routes through wp_die() in a real admin-ajax
-		 * request (wp_doing_ajax()); otherwise it exits directly. Simulate the
-		 * AJAX context and intercept its die handler — the test framework
-		 * overrides only the default wp_die() handler, not the AJAX one.
-		 */
-		$doing_ajax = static function (): bool {
-			return true;
-		};
-
-		$ajax_die = static function (): callable {
-			return static function (): void {
-				throw new \WPDieException();
-			};
-		};
-
-		add_filter( 'wp_doing_ajax', $doing_ajax );
-		add_filter( 'wp_die_ajax_handler', $ajax_die );
-
-		$terminated = false;
-
-		ob_start();
-
-		try {
-			$handler();
-		} catch ( \WPDieException ) {
-			$terminated = true;
-		} finally {
-			$body = json_decode( (string) ob_get_clean(), true );
-
-			remove_filter( 'wp_doing_ajax', $doing_ajax );
-			remove_filter( 'wp_die_ajax_handler', $ajax_die );
-		}
-
-		$this->assertTrue( $terminated, 'wp_send_json should terminate the request.' );
-
-		return is_array( $body ) ? $body : [];
+		return AjaxRequests::dispatch( [ SmsVerificationController::class, 'send' ] );
 	}
 
 	/**

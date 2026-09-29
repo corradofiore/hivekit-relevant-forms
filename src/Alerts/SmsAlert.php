@@ -9,6 +9,7 @@ declare(strict_types=1);
 
 namespace RelevantForms\Alerts;
 
+use RelevantForms\Ai\AttentionScore;
 use RelevantForms\Ai\Classification;
 use RelevantForms\Cloud\CloudClient;
 use RelevantForms\Cloud\CloudConfig;
@@ -27,9 +28,10 @@ use RelevantForms\Support\Logger;
 final class SmsAlert {
 
 	/**
-	 * Default attention threshold (doc §20: >= 85 → priority + SMS).
+	 * Default attention threshold (doc §20: >= 85 → priority + SMS),
+	 * shared with the local priority rule.
 	 */
-	public const DEFAULT_THRESHOLD = 85;
+	public const DEFAULT_THRESHOLD = AttentionScore::PRIORITY_THRESHOLD;
 
 	/**
 	 * Constructor.
