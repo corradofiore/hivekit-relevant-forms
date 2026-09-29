@@ -13,6 +13,7 @@ use RelevantForms\Events\EventRecorder;
 use RelevantForms\Forms\FormRepository;
 use RelevantForms\Forms\FormSchema;
 use RelevantForms\Notifications\EmailNotification;
+use RelevantForms\Tests\Integration\Support\CapturesMail;
 
 /**
  * Email notification integration tests.
@@ -20,6 +21,8 @@ use RelevantForms\Notifications\EmailNotification;
  * @group integration
  */
 final class EmailNotificationTest extends TestCase {
+
+	use CapturesMail;
 
 	/**
 	 * Test recipients fall back to the site admin email.
@@ -42,26 +45,16 @@ final class EmailNotificationTest extends TestCase {
 
 		update_option( 'admin_email', 'admin@example.com' );
 
-		$sent = [];
-
-		add_filter(
-			'pre_wp_mail',
-			static function ( ?bool $shortCircuit, array $args ) use ( &$sent ): bool {
-				$sent[] = $args;
-				return true;
-			},
-			10,
-			2
-		);
+		$this->captureMail();
 
 		$result = ( new EmailNotification() )->send( $form, [ 'f_message' => 'Hello' ], null );
 
 		$this->assertTrue( $result );
-		$this->assertCount( 1, $sent );
+		$this->assertCount( 1, $this->sent_mail );
 
 		// The configured administration address is the first recipient.
-		$this->assertSame( 'admin@example.com', $sent[0]['to'][0] );
-		$this->assertStringContainsString( 'Hello', $sent[0]['message'] );
+		$this->assertSame( 'admin@example.com', $this->sent_mail[0]['to'][0] );
+		$this->assertStringContainsString( 'Hello', $this->sent_mail[0]['message'] );
 	}
 
 	/**
@@ -92,21 +85,11 @@ final class EmailNotificationTest extends TestCase {
 			]
 		);
 
-		$sent = [];
-
-		add_filter(
-			'pre_wp_mail',
-			static function ( ?bool $shortCircuit, array $args ) use ( &$sent ): bool {
-				$sent[] = $args;
-				return true;
-			},
-			10,
-			2
-		);
+		$this->captureMail();
 
 		$this->assertTrue( ( new EmailNotification() )->send( $form, [], null ) );
 
-		$to = $sent[0]['to'];
+		$to = $this->sent_mail[0]['to'];
 
 		$this->assertContains( 'first@example.com', $to );
 		$this->assertContains( 'second@example.com', $to );
@@ -121,7 +104,7 @@ final class EmailNotificationTest extends TestCase {
 		$id         = $repository->create( 'Failing', FormSchema::empty( 'Failing' ), 'published' );
 		$form       = $repository->find( $id );
 
-		add_filter( 'pre_wp_mail', static fn (): bool => false );
+		$this->failMail();
 
 		$result = ( new EmailNotification() )->send( $form, [], null );
 
@@ -148,20 +131,10 @@ final class EmailNotificationTest extends TestCase {
 
 		update_option( 'admin_email', 'admin@example.com' );
 
-		$sent = [];
-
-		add_filter(
-			'pre_wp_mail',
-			static function ( ?bool $shortCircuit, array $args ) use ( &$sent ): bool {
-				$sent[] = $args;
-				return true;
-			},
-			10,
-			2
-		);
+		$this->captureMail();
 
 		$this->assertTrue( ( new EmailNotification() )->send( $form, [], null ) );
-		$this->assertContains( 'From: Acme Forms <no-reply@acme.example>', (array) $sent[0]['headers'] );
+		$this->assertContains( 'From: Acme Forms <no-reply@acme.example>', (array) $this->sent_mail[0]['headers'] );
 	}
 
 	/**
@@ -176,21 +149,11 @@ final class EmailNotificationTest extends TestCase {
 
 		update_option( 'admin_email', 'admin@example.com' );
 
-		$sent = [];
-
-		add_filter(
-			'pre_wp_mail',
-			static function ( ?bool $shortCircuit, array $args ) use ( &$sent ): bool {
-				$sent[] = $args;
-				return true;
-			},
-			10,
-			2
-		);
+		$this->captureMail();
 
 		$this->assertTrue( ( new EmailNotification() )->send( $form, [], null ) );
 
-		foreach ( (array) $sent[0]['headers'] as $header ) {
+		foreach ( (array) $this->sent_mail[0]['headers'] as $header ) {
 			$this->assertStringNotContainsString( 'From:', (string) $header );
 		}
 	}

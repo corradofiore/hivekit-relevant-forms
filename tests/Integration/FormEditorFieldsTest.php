@@ -15,7 +15,7 @@ use RelevantForms\Admin\Controllers\FormSaveController;
 use RelevantForms\Admin\Pages\FormEditPage;
 use RelevantForms\Forms\FormRepository;
 use RelevantForms\Forms\FormSchema;
-use RelevantForms\Tests\Integration\Support\RedirectedException;
+use RelevantForms\Tests\Integration\Support\CapturesRedirects;
 
 /**
  * {@inheritdoc}
@@ -23,6 +23,8 @@ use RelevantForms\Tests\Integration\Support\RedirectedException;
  * @group integration
  */
 final class FormEditorFieldsTest extends TestCase {
+
+	use CapturesRedirects;
 
 	/**
 	 * The builder renders two columns with the add control above the list.
@@ -807,22 +809,7 @@ final class FormEditorFieldsTest extends TestCase {
 	 * Run the save controller and capture its redirect target.
 	 */
 	private function saveAndCaptureRedirect(): string {
-		add_filter(
-			'wp_redirect',
-			static function ( string $location ): string {
-				// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- handler-generated URL, assertions only.
-				throw new RedirectedException( $location );
-			}
-		);
-
-		try {
-			FormSaveController::handle();
-			$this->fail( 'The controller should redirect.' );
-		} catch ( RedirectedException $redirected ) {
-			return $redirected->url;
-		} finally {
-			remove_all_filters( 'wp_redirect' );
-		}
+		return $this->captureRedirect( [ FormSaveController::class, 'handle' ] );
 	}
 
 	/**

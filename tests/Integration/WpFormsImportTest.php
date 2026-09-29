@@ -15,7 +15,7 @@ use RelevantForms\Forms\FormRepository;
 use RelevantForms\Import\WpFormsForm;
 use RelevantForms\Import\WpFormsImporter;
 use RelevantForms\Import\WpFormsScanner;
-use RelevantForms\Tests\Integration\Support\RedirectedException;
+use RelevantForms\Tests\Integration\Support\CapturesRedirects;
 
 /**
  * Read-only scan, draft import, report — on real WordPress records.
@@ -23,6 +23,8 @@ use RelevantForms\Tests\Integration\Support\RedirectedException;
  * @group integration
  */
 final class WpFormsImportTest extends TestCase {
+
+	use CapturesRedirects;
 
 	/**
 	 * The scanner detects leftover WPForms records and estimates compatibility.
@@ -206,29 +208,10 @@ final class WpFormsImportTest extends TestCase {
 
 		$postId = $this->createWpFormsForm( $this->payload(), 'Contact Us' );
 
-		$_POST                = [
-			'wpforms_form_id' => $postId,
-		];
-		$_REQUEST['_wpnonce'] = wp_create_nonce( 'relevant_import_wpforms' );
+		$url = $this->captureRedirect( [ ImportController::class, 'handle' ], 'relevant_import_wpforms', [ 'wpforms_form_id' => $postId ] );
 
-		add_filter(
-			'relevant_forms_redirect',
-			static function ( string $url ): string {
-				// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- handler-generated URL, assertions only.
-				throw new RedirectedException( $url );
-			}
-		);
-
-		try {
-			ImportController::handle();
-			$this->fail( 'The controller should redirect.' );
-		} catch ( RedirectedException $redirected ) {
-			$this->assertStringContainsString( 'page=relevant-import', $redirected->url );
-			$this->assertStringContainsString( 'imported=1', $redirected->url );
-		} finally {
-			remove_all_filters( 'relevant_forms_redirect' );
-			unset( $_REQUEST['_wpnonce'] );
-		}
+		$this->assertStringContainsString( 'page=relevant-import', $url );
+		$this->assertStringContainsString( 'imported=1', $url );
 
 		$report = WpFormsImporter::lastReport();
 

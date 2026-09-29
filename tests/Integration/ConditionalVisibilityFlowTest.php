@@ -17,7 +17,7 @@ use RelevantForms\Forms\FormRepository;
 use RelevantForms\Forms\FormSchema;
 use RelevantForms\Forms\SubmissionFeedback;
 use RelevantForms\Http\SubmissionHandler;
-use RelevantForms\Tests\Integration\Support\RedirectedException;
+use RelevantForms\Tests\Integration\Support\CapturesRedirects;
 
 /**
  * {@inheritdoc}
@@ -25,6 +25,8 @@ use RelevantForms\Tests\Integration\Support\RedirectedException;
  * @group integration
  */
 final class ConditionalVisibilityFlowTest extends TestCase {
+
+	use CapturesRedirects;
 
 	/**
 	 * Simulated POST data is part of the handler contract; reset it between tests.
@@ -105,25 +107,9 @@ final class ConditionalVisibilityFlowTest extends TestCase {
 	 * @param string $extra Extra value.
 	 */
 	private function submit( Form $form, string $plan, string $extra ): string {
-		$_POST                        = $this->payload( $form, $plan, $extra );
 		$_REQUEST['_wp_http_referer'] = '/relevant-demo/';
 
-		add_filter(
-			'relevant_forms_redirect',
-			static function ( string $url ): string {
-				// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- handler-generated URL, assertions only.
-				throw new RedirectedException( $url );
-			}
-		);
-
-		try {
-			SubmissionHandler::maybeHandleFrontendSubmission();
-			$this->fail( 'The handler should redirect after a successful submission.' );
-		} catch ( RedirectedException $redirected ) {
-			return $redirected->url;
-		} finally {
-			remove_all_filters( 'relevant_forms_redirect' );
-		}
+		return $this->captureRedirect( [ SubmissionHandler::class, 'maybeHandleFrontendSubmission' ], '', $this->payload( $form, $plan, $extra ) );
 	}
 
 	/**

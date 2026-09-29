@@ -19,6 +19,7 @@ use RelevantForms\Forms\Form;
 use RelevantForms\Forms\FormRepository;
 use RelevantForms\Forms\FormSchema;
 use RelevantForms\Http\SubmissionHandler;
+use RelevantForms\Tests\Integration\Support\CapturesRedirects;
 use RelevantForms\Tests\Integration\Support\RedirectedException;
 use RelevantForms\Tests\Integration\Support\StoppedException;
 
@@ -29,6 +30,8 @@ use RelevantForms\Tests\Integration\Support\StoppedException;
  * @group integration
  */
 final class EntryCorrectionFlowTest extends TestCase {
+
+	use CapturesRedirects;
 
 	/**
 	 * Classification reason used by the fake Cloud.
@@ -230,30 +233,14 @@ final class EntryCorrectionFlowTest extends TestCase {
 	 * @param string $verdict Verdict.
 	 */
 	private function correct( int $entryId, string $verdict ): string {
-		$_POST                = [
-			'entry_id' => $entryId,
-			'verdict'  => $verdict,
-		];
-		$_REQUEST['_wpnonce'] = wp_create_nonce( 'relevant_entry_correction_' . $entryId );
-
-		add_filter(
-			'relevant_forms_redirect',
-			static function ( string $url ): string {
-				// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- handler-generated URL, assertions only.
-				throw new RedirectedException( $url );
-			}
+		return $this->captureRedirect(
+			[ EntryCorrectionController::class, 'handle' ],
+			'relevant_entry_correction_' . $entryId,
+			[
+				'entry_id' => $entryId,
+				'verdict'  => $verdict,
+			]
 		);
-
-		try {
-			EntryCorrectionController::handle();
-		} catch ( RedirectedException $redirected ) {
-			return $redirected->url;
-		} finally {
-			remove_all_filters( 'relevant_forms_redirect' );
-			unset( $_REQUEST['_wpnonce'] );
-		}
-
-		return '';
 	}
 
 	/**

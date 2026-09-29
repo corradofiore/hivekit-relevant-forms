@@ -19,7 +19,8 @@ use RelevantForms\Entries\EntryRepository;
 use RelevantForms\Forms\Form;
 use RelevantForms\Forms\FormRepository;
 use RelevantForms\Forms\FormSchema;
-use RelevantForms\Tests\Integration\Support\RedirectedException;
+use RelevantForms\Tests\Integration\Support\CapturesMail;
+use RelevantForms\Tests\Integration\Support\CapturesRedirects;
 
 /**
  * {@inheritdoc}
@@ -27,6 +28,9 @@ use RelevantForms\Tests\Integration\Support\RedirectedException;
  * @group integration
  */
 final class PaymentWiringFlowTest extends TestCase {
+
+	use CapturesMail;
+	use CapturesRedirects;
 
 	/**
 	 * Captured outbound HTTP requests.
@@ -56,7 +60,7 @@ final class PaymentWiringFlowTest extends TestCase {
 		wp_set_current_user( self::factory()->user->create( [ 'role' => 'administrator' ] ) );
 
 		// Notifications must never leave the test site.
-		add_filter( 'pre_wp_mail', static fn (): bool => true );
+		$this->captureMail();
 	}
 
 	/**
@@ -504,35 +508,10 @@ final class PaymentWiringFlowTest extends TestCase {
 	 */
 	private function capture( callable $action, string $nonceAction = '', array $post = [] ): string {
 		if ( '' !== $nonceAction ) {
-			$_POST                = $post;
-			$_REQUEST['_wpnonce'] = wp_create_nonce( $nonceAction );
+			$_POST = $post;
 		}
 
-		add_filter(
-			'wp_redirect',
-			static function ( string $location ): string {
-				// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- handler-generated URL, assertions only.
-				throw new RedirectedException( $location );
-			}
-		);
-		add_filter(
-			'relevant_forms_redirect',
-			static function ( string $url ): string {
-				// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- handler-generated URL, assertions only.
-				throw new RedirectedException( $url );
-			}
-		);
-
-		try {
-			$action();
-			$this->fail( 'The handler should redirect.' );
-		} catch ( RedirectedException $redirected ) {
-			return $redirected->url;
-		} finally {
-			remove_all_filters( 'wp_redirect' );
-			remove_all_filters( 'relevant_forms_redirect' );
-			unset( $_REQUEST['_wpnonce'] );
-		}
+		return $this->captureRedirect( $action, $nonceAction );
 	}
 
 	/**

@@ -13,7 +13,7 @@ namespace RelevantForms\Tests\Integration;
 use RelevantForms\Admin\Controllers\FormActionController;
 use RelevantForms\Forms\FormRepository;
 use RelevantForms\Forms\FormSchema;
-use RelevantForms\Tests\Integration\Support\RedirectedException;
+use RelevantForms\Tests\Integration\Support\CapturesRedirects;
 
 /**
  * {@inheritdoc}
@@ -21,6 +21,8 @@ use RelevantForms\Tests\Integration\Support\RedirectedException;
  * @group integration
  */
 final class FormActionFlowTest extends TestCase {
+
+	use CapturesRedirects;
 
 	/**
 	 * The Duplicate row action creates a copy and redirects back to the list.
@@ -85,22 +87,7 @@ final class FormActionFlowTest extends TestCase {
 	 * Run the controller and capture the redirect target.
 	 */
 	private function handleAndCaptureRedirect(): string {
-		add_filter(
-			'wp_redirect',
-			static function ( string $location ): string {
-				// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- handler-generated URL, assertions only.
-				throw new RedirectedException( $location );
-			}
-		);
-
-		try {
-			FormActionController::handle();
-			$this->fail( 'The controller should redirect.' );
-		} catch ( RedirectedException $redirected ) {
-			return $redirected->url;
-		} finally {
-			remove_all_filters( 'wp_redirect' );
-		}
+		return $this->captureRedirect( [ FormActionController::class, 'handle' ] );
 	}
 
 	/**
