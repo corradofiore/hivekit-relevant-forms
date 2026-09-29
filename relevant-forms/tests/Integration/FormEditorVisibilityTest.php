@@ -100,6 +100,67 @@ final class FormEditorVisibilityTest extends TestCase {
 	}
 
 	/**
+	 * Rules posted for the first field are never stored — the save-side
+	 * half of the always-shown rule; later fields keep theirs.
+	 */
+	public function testSavingDropsRulesPostedForTheFirstField(): void {
+		wp_set_current_user( self::factory()->user->create( [ 'role' => 'administrator' ] ) );
+
+		$formId = $this->makeForm();
+
+		$_POST = [
+			'form_id'         => $formId,
+			'form_name'       => 'Contact',
+			'form_status'     => 'published',
+			'relevant_fields' => [
+				'f_name'  => [
+					'id'         => 'f_name',
+					'type'       => 'text',
+					'label'      => 'Name',
+					'visibility' => [
+						'default' => 'hidden',
+						'groups'  => [
+							[
+								[
+									'field'    => 'f_email',
+									'operator' => 'is',
+									'value'    => 'x',
+								],
+							],
+						],
+					],
+				],
+				'f_email' => [
+					'id'         => 'f_email',
+					'type'       => 'email',
+					'label'      => 'Email',
+					'visibility' => [
+						'default' => 'hidden',
+						'groups'  => [
+							[
+								[
+									'field'    => 'f_name',
+									'operator' => 'is',
+									'value'    => 'y',
+								],
+							],
+						],
+					],
+				],
+			],
+		];
+
+		$_REQUEST['_wpnonce'] = wp_create_nonce( 'relevant_form_save' );
+
+		$this->assertStringContainsString( 'saved=1', $this->handleAndCaptureRedirect() );
+
+		$fields = ( new FormRepository() )->find( $formId )->schema->fields();
+
+		$this->assertArrayNotHasKey( 'visibility', $fields[0] );
+		$this->assertSame( 'f_name', $fields[1]['visibility']['groups'][0][0]['field'] );
+	}
+
+	/**
 	 * The editor renders the rules section below the preview, one block per
 	 * builder field.
 	 */
@@ -119,11 +180,15 @@ final class FormEditorVisibilityTest extends TestCase {
 		$this->assertGreaterThan( $title, $section );
 
 		// One block per field, keyed like the editors. The first (only)
-		// field here is always shown, so its block explains that instead
-		// of offering controls.
+		// field here is always shown: its note is visible and its controls
+		// are present but hidden (a reorder flips the states live).
 		$this->assertStringContainsString( '<div class="rf-field-visibility" data-for="f_name">', $html );
 		$this->assertStringContainsString( 'always shown', $html );
-		$this->assertStringNotContainsString( 'name="relevant_fields[f_name][visibility][default]"', $html );
+
+		$blocks = $this->withoutTemplates( $html );
+
+		$this->assertSame( 0, substr_count( $blocks, 'data-first-note hidden' ) );
+		$this->assertSame( 1, substr_count( $blocks, 'rf-field-visibility__controls" hidden' ) );
 
 		// The form has fields: the section is not hidden.
 		$this->assertDoesNotMatchRegularExpression( '/id="rf-fields-visibility"[^>]*hidden/', $html );
@@ -223,13 +288,16 @@ final class FormEditorVisibilityTest extends TestCase {
 
 		$html = $this->renderEditor( $formId );
 
-		// The first field's block explains the exemption...
+		// The first field's block explains the exemption (note visible,
+		// controls hidden); the second field's block is the mirror image.
 		$this->assertStringContainsString( 'always shown', $html );
-
-		// ...and offers no controls, while the second field keeps them.
-		$this->assertStringNotContainsString( 'name="relevant_fields[f_plan][visibility][default]"', $html );
-		$this->assertStringNotContainsString( 'relevant_fields[f_plan][visibility][groups]', $html );
+		$this->assertStringContainsString( 'name="relevant_fields[f_plan][visibility][default]"', $html );
 		$this->assertStringContainsString( 'name="relevant_fields[f_extra][visibility][default]"', $html );
+
+		$blocks = $this->withoutTemplates( $html );
+
+		$this->assertSame( 1, substr_count( $blocks, 'rf-field-visibility__controls" hidden' ) );
+		$this->assertSame( 1, substr_count( $blocks, 'data-first-note hidden' ) );
 	}
 
 	/**
@@ -272,8 +340,20 @@ final class FormEditorVisibilityTest extends TestCase {
 
 		$html = $this->renderEditor( $formId );
 
-		$this->assertStringNotContainsString( 'name="relevant_fields[f_first][visibility][default]"', $html );
+		// The stored rule does not render (the definition was emptied) and
+		// no preview summary appears for it.
+		$this->assertStringNotContainsString( 'relevant_fields[f_first][visibility][groups][0]', $html );
 		$this->assertStringNotContainsString( 'Hidden when:', $html );
+	}
+
+	/**
+	 * The editor markup without the inert per-type field templates, which
+	 * each embed a placeholder visibility block (note hidden, controls on).
+	 *
+	 * @param string $html Rendered editor.
+	 */
+	private function withoutTemplates( string $html ): string {
+		return (string) preg_replace( '/<template\b.*?<\/template>/s', '', $html );
 	}
 
 	/**

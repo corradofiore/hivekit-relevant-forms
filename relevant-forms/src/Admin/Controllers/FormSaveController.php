@@ -275,7 +275,9 @@ final class FormSaveController {
 			$fields[] = $definition;
 		}
 
-		return $fields;
+		// The first field is always shown: its rules could only depend on
+		// fields above it, and there are none — never store any posted for it.
+		return VisibilityRules::withoutFirstFieldRules( $fields );
 	}
 
 	/**
