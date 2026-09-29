@@ -64,11 +64,6 @@ final class SettingsPage {
 			'debug_logging'                     => empty( $input['debug_logging'] ) ? 0 : 1,
 			'storage_provider'                  => $storageProvider,
 			'storage_block_unscanned_downloads' => empty( $input['storage_block_unscanned_downloads'] ) ? 0 : 1,
-			'scan_backend_url'                  => esc_url_raw( (string) ( $input['scan_backend_url'] ?? '' ) ),
-			// Keep the previous key when the field is left blank (never echoed back).
-			'scan_backend_key'                  => '' !== (string) ( $input['scan_backend_key'] ?? '' )
-				? sanitize_text_field( (string) $input['scan_backend_key'] )
-				: (string) ( $current['scan_backend_key'] ?? '' ),
 			// Legacy stored service URL: preserved for pre-1.0 installs; the settings screen no longer asks for it.
 			'cloud_url'                         => esc_url_raw( (string) ( $current['cloud_url'] ?? '' ) ),
 			// Keep the previous key when the field is left blank (never echoed back).

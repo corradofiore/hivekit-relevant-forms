@@ -99,7 +99,7 @@ When managed SMS is enabled, Relevant Cloud transmits the destination telephone 
 
 = Object storage and malware scanning =
 
-When managed secure uploads are enabled, uploaded files are stored in private object storage and processed by the configured malware-scanning infrastructure before being released for authorized download.
+When managed secure uploads are enabled, uploaded files are stored in private object storage and processed by the Relevant Cloud malware-scanning service before being released for authorized download.
 
 = Stripe (payments) =
 
