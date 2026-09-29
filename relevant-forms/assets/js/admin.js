@@ -1816,19 +1816,32 @@
 	/*
 	 * AI classification: the dependent fields only matter while the form
 	 * opts in — hide them while the checkbox is off. Hiding (not disabling)
-	 * keeps the stored values in the save request.
+	 * keeps the stored values in the save request. The SMS recipient row
+	 * is additionally hidden while Priority SMS is unchecked.
 	 */
 	var aiToggle = document.querySelector( 'input[name="ai_enabled"]' );
 	var aiDependentRows = document.querySelectorAll( '.rf-ai-dependent' );
 
 	if ( aiToggle && aiDependentRows.length ) {
+		var smsAlertToggle = document.getElementById( 'relevant-ai-sms-alert' );
+		var smsRecipientRow = document.getElementById( 'relevant-ai-sms-recipient-row' );
+
 		var syncAiRows = function () {
 			Array.prototype.forEach.call( aiDependentRows, function ( row ) {
 				row.hidden = ! aiToggle.checked;
 			} );
+
+			if ( smsAlertToggle && smsRecipientRow ) {
+				smsRecipientRow.hidden = ! aiToggle.checked || ! smsAlertToggle.checked;
+			}
 		};
 
 		aiToggle.addEventListener( 'change', syncAiRows );
+
+		if ( smsAlertToggle ) {
+			smsAlertToggle.addEventListener( 'change', syncAiRows );
+		}
+
 		syncAiRows();
 	}
 

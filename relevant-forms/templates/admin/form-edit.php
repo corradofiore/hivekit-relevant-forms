@@ -247,6 +247,16 @@ if ( $isEditing ) {
 				</td>
 			</tr>
 			<tr class="rf-ai-dependent">
+				<th scope="row"><?php esc_html_e( 'Privacy mode', 'relevant-forms' ); ?></th>
+				<td>
+					<label>
+						<input type="checkbox" name="ai_privacy_mode" value="1" <?php checked( $privacy_on ); ?>>
+						<?php esc_html_e( 'Redact emails, phone numbers, IP addresses and URL paths before sending', 'relevant-forms' ); ?>
+					</label>
+					<p class="description"><?php esc_html_e( 'Recommended. Disable only if classification quality suffers and you accept sending raw submissions.', 'relevant-forms' ); ?></p>
+				</td>
+			</tr>
+			<tr class="rf-ai-dependent">
 				<th scope="row"><label for="relevant-ai-purpose"><?php esc_html_e( 'Form purpose', 'relevant-forms' ); ?></label></th>
 				<td>
 					<textarea class="relevant-forms-textarea" id="relevant-ai-purpose" name="ai_purpose" rows="4"><?php echo esc_textarea( (string) ( $ai_policy['purpose'] ?? '' ) ); ?></textarea>
@@ -261,23 +271,6 @@ if ( $isEditing ) {
 				</td>
 			</tr>
 			<tr class="rf-ai-dependent">
-				<th scope="row"><label for="relevant-ai-spam"><?php esc_html_e( 'Unwanted enquiries', 'relevant-forms' ); ?></label></th>
-				<td>
-					<textarea class="relevant-forms-textarea" id="relevant-ai-spam" name="ai_spam" rows="4"><?php echo esc_textarea( (string) ( $ai_policy['spam'] ?? '' ) ); ?></textarea>
-					<p class="description relevant-forms-textarea-caption"><?php esc_html_e( 'What to treat as spam or irrelevant for this form, e.g. "SEO services", "guest posts", "Automated sales pitches and link drops". One category per line.', 'relevant-forms' ); ?></p>
-				</td>
-			</tr>
-			<tr class="rf-ai-dependent">
-				<th scope="row"><?php esc_html_e( 'Privacy mode', 'relevant-forms' ); ?></th>
-				<td>
-					<label>
-						<input type="checkbox" name="ai_privacy_mode" value="1" <?php checked( $privacy_on ); ?>>
-						<?php esc_html_e( 'Redact emails, phone numbers, IP addresses and URL paths before sending', 'relevant-forms' ); ?>
-					</label>
-					<p class="description"><?php esc_html_e( 'Recommended. Disable only if classification quality suffers and you accept sending raw submissions.', 'relevant-forms' ); ?></p>
-				</td>
-			</tr>
-			<tr class="rf-ai-dependent">
 				<th scope="row"><?php esc_html_e( 'Priority SMS', 'relevant-forms' ); ?></th>
 				<td>
 					<label>
@@ -286,7 +279,7 @@ if ( $isEditing ) {
 					</label>
 				</td>
 			</tr>
-			<tr class="rf-ai-dependent">
+			<tr class="rf-ai-dependent" id="relevant-ai-sms-recipient-row"<?php echo $sms_alert_on ? '' : ' hidden'; ?>>
 				<th scope="row"><label for="relevant-ai-sms-phone"><?php esc_html_e( 'Priority SMS recipient', 'relevant-forms' ); ?></label></th>
 				<td>
 					<input type="tel" class="regular-text" id="relevant-ai-sms-phone" name="ai_sms_phone" value="<?php echo esc_attr( $sms_phone ); ?>" data-stored="<?php echo esc_attr( $sms_phone ); ?>" placeholder="+39 333 1234567" autocomplete="tel" <?php disabled( ! $sms_alert_on ); ?>>
@@ -298,6 +291,13 @@ if ( $isEditing ) {
 						<p class="rf-sms-message" id="rf-sms-code-message" role="status" aria-live="polite" hidden></p>
 					</div>
 					<p class="description"><?php esc_html_e( 'We text a 6-digit code to this number. A new or changed number is only saved after the code is verified.', 'relevant-forms' ); ?></p>
+				</td>
+			</tr>
+			<tr class="rf-ai-dependent">
+				<th scope="row"><label for="relevant-ai-spam"><?php esc_html_e( 'Unwanted enquiries', 'relevant-forms' ); ?></label></th>
+				<td>
+					<textarea class="relevant-forms-textarea" id="relevant-ai-spam" name="ai_spam" rows="4"><?php echo esc_textarea( (string) ( $ai_policy['spam'] ?? '' ) ); ?></textarea>
+					<p class="description relevant-forms-textarea-caption"><?php esc_html_e( 'What to treat as spam or irrelevant for this form, e.g. "SEO services", "guest posts", "Automated sales pitches and link drops". One category per line.', 'relevant-forms' ); ?></p>
 				</td>
 			</tr>
 		</table>

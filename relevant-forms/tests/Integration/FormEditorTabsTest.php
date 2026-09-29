@@ -70,6 +70,13 @@ final class FormEditorTabsTest extends TestCase {
 		$this->assertStringContainsString( 'id="rf-send-test-email"', $settings );
 		$this->assertStringContainsString( 'id="relevant-test-email-to"', $settings );
 		$this->assertSame( 6, substr_count( $settings, 'rf-ai-dependent' ) );
+
+		// Row order: privacy directly below the classify toggle; the SMS pair
+		// below "What needs immediate attention"; unwanted enquiries last.
+		$this->assertLessThan( (int) strpos( $settings, 'name="ai_privacy_mode"' ), (int) strpos( $settings, 'name="ai_enabled"' ) );
+		$this->assertLessThan( (int) strpos( $settings, 'name="ai_purpose"' ), (int) strpos( $settings, 'name="ai_privacy_mode"' ) );
+		$this->assertLessThan( (int) strpos( $settings, 'id="relevant-ai-sms-alert"' ), (int) strpos( $settings, 'name="ai_priorities"' ) );
+		$this->assertLessThan( (int) strpos( $settings, 'name="ai_spam"' ), (int) strpos( $settings, 'id="relevant-ai-sms-phone"' ) );
 		$this->assertStringContainsString( 'relevant-forms-ai-panel', $settings );
 		$this->assertStringContainsString( 'AI evaluates meaning, relevance, intent and urgency.', $settings );
 		$this->assertStringNotContainsString( 'id="rf-fields-list"', $settings );
