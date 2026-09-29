@@ -77,6 +77,9 @@ final class FormEditorTabsTest extends TestCase {
 		$this->assertLessThan( (int) strpos( $settings, 'name="ai_purpose"' ), (int) strpos( $settings, 'name="ai_privacy_mode"' ) );
 		$this->assertLessThan( (int) strpos( $settings, 'id="relevant-ai-sms-alert"' ), (int) strpos( $settings, 'name="ai_priorities"' ) );
 		$this->assertLessThan( (int) strpos( $settings, 'name="ai_spam"' ), (int) strpos( $settings, 'id="relevant-ai-sms-phone"' ) );
+
+		// The Priority SMS row is checkbox-only: no heading label.
+		$this->assertStringNotContainsString( '>Priority SMS</th>', $settings );
 		$this->assertStringContainsString( 'relevant-forms-ai-panel', $settings );
 		$this->assertStringContainsString( 'AI evaluates meaning, relevance, intent and urgency.', $settings );
 		$this->assertStringNotContainsString( 'id="rf-fields-list"', $settings );
