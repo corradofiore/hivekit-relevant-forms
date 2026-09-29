@@ -271,7 +271,7 @@ if ( $isEditing ) {
 				</td>
 			</tr>
 			<tr class="rf-ai-dependent">
-				<th scope="row"><?php esc_html_e( 'Priority SMS', 'relevant-forms' ); ?></th>
+				<th scope="row"></th>
 				<td>
 					<label>
 						<input type="checkbox" id="relevant-ai-sms-alert" name="ai_sms_alert" value="1" <?php checked( $sms_alert_on ); ?>>
