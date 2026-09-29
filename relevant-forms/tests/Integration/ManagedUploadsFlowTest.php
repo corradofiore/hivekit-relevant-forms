@@ -49,8 +49,6 @@ final class ManagedUploadsFlowTest extends TestCase {
 				'storage_provider' => 'cloud',
 				'cloud_url'        => 'https://cloud.example.com',
 				'cloud_api_key'    => 'site-key',
-				'scan_backend_url' => 'https://cloud.example.com',
-				'scan_backend_key' => 'backend-key',
 			]
 		);
 

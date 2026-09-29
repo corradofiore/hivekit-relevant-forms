@@ -9,7 +9,6 @@ declare(strict_types=1);
 
 namespace RelevantForms\Admin\Pages;
 
-use RelevantForms\Uploads\Scanning\BackendScanConfig;
 use RelevantForms\Uploads\Scanning\ScannerFactory;
 use RelevantForms\Uploads\Storage\StorageConfig;
 use RelevantForms\Alerts\SmsAlert;
@@ -98,13 +97,15 @@ final class DiagnosticsPage {
 	 * Human-readable deep-scan backend status.
 	 */
 	private static function backendScanStatus(): string {
-		return BackendScanConfig::isConfigured()
-			? sprintf(
-				/* translators: %s: backend URL */
-				__( 'Configured (%s)', 'relevant-forms' ),
-				BackendScanConfig::url(),
-			)
-			: __( 'Not configured — deep scans fail closed', 'relevant-forms' );
+		if ( ! CloudConfig::isConfigured() ) {
+			return __( 'Not configured — deep scans fail closed', 'relevant-forms' );
+		}
+
+		return sprintf(
+			/* translators: %s: service URL */
+			__( 'Provided by Relevant Cloud (%s)', 'relevant-forms' ),
+			CloudConfig::url(),
+		);
 	}
 
 	/**

@@ -73,30 +73,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 		<h2><?php esc_html_e( 'Malware scanning', 'relevant-forms' ); ?></h2>
 		<p class="description">
-			<?php esc_html_e( 'Basic scanning runs on this site in pure PHP (no services required). Deep scanning is queued on the Relevant backend for complex analysis; this site only acts as an API client. Deep local scanners are part of Relevant Pro.', 'relevant-forms' ); ?>
+			<?php esc_html_e( 'Basic scanning runs on this site in pure PHP (no services required). Deep scanning runs on the Relevant Cloud service for complex analysis — the Cloud connection is used automatically, with no separate endpoint or key. Deep local scanners are part of Relevant Pro.', 'relevant-forms' ); ?>
 		</p>
-		<table class="form-table" role="presentation">
-			<tr>
-				<th scope="row"><label for="relevant-backend-url"><?php esc_html_e( 'Scan backend URL', 'relevant-forms' ); ?></label></th>
-				<td>
-					<input type="url" class="regular-text" id="relevant-backend-url" name="relevant_forms_settings[scan_backend_url]" value="<?php echo esc_attr( (string) ( $settings['scan_backend_url'] ?? '' ) ); ?>" <?php disabled( defined( 'RELEVANT_SCAN_BACKEND_URL' ) ); ?> placeholder="https://api.example.com">
-					<?php if ( defined( 'RELEVANT_SCAN_BACKEND_URL' ) ) : ?>
-						<p class="description"><?php esc_html_e( 'Defined in wp-config.php.', 'relevant-forms' ); ?></p>
-					<?php endif; ?>
-				</td>
-			</tr>
-			<tr>
-				<th scope="row"><label for="relevant-backend-key"><?php esc_html_e( 'Scan backend API key', 'relevant-forms' ); ?></label></th>
-				<td>
-					<input type="password" class="regular-text" id="relevant-backend-key" name="relevant_forms_settings[scan_backend_key]" value="" <?php disabled( defined( 'RELEVANT_SCAN_BACKEND_KEY' ) ); ?> autocomplete="new-password">
-					<?php if ( defined( 'RELEVANT_SCAN_BACKEND_KEY' ) ) : ?>
-						<p class="description"><?php esc_html_e( 'Defined in wp-config.php.', 'relevant-forms' ); ?></p>
-					<?php elseif ( '' !== (string) ( $settings['scan_backend_key'] ?? '' ) ) : ?>
-						<p class="description"><?php esc_html_e( 'A key is stored. Leave blank to keep it.', 'relevant-forms' ); ?></p>
-					<?php endif; ?>
-				</td>
-			</tr>
-		</table>
 
 		<h2><?php esc_html_e( 'Relevant Cloud', 'relevant-forms' ); ?></h2>
 		<p class="description">

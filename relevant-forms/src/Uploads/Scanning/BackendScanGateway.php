@@ -24,8 +24,9 @@ final class BackendScanGateway implements DeepScanGatewayInterface {
 	/**
 	 * Constructor.
 	 *
-	 * @param string $baseUrl Backend base URL.
-	 * @param string $apiKey  Bearer API key.
+	 * @param string $baseUrl Versioned API base — origin + /api/v1
+	 *                        (see CloudConfig::apiBase()).
+	 * @param string $apiKey  Cloud site key.
 	 */
 	public function __construct(
 		private readonly string $baseUrl = '',
@@ -46,7 +47,7 @@ final class BackendScanGateway implements DeepScanGatewayInterface {
 		}
 
 		$response = $this->postRaw(
-			$this->baseUrl . '/api/v1/uploads/scan',
+			$this->baseUrl . '/uploads/scan',
 			$localPath,
 			$upload->originalFilename,
 			$upload->objectKey,
@@ -60,7 +61,7 @@ final class BackendScanGateway implements DeepScanGatewayInterface {
 	 */
 	public function submitManaged( Upload $upload ): ?string {
 		$response = wp_remote_post(
-			$this->baseUrl . '/api/v1/uploads/scan',
+			$this->baseUrl . '/uploads/scan',
 			[
 				'timeout' => 30,
 				'headers' => array_merge(
@@ -110,7 +111,7 @@ final class BackendScanGateway implements DeepScanGatewayInterface {
 	 */
 	public function fetch( string $externalId ): ?MalwareScanResult {
 		$response = wp_remote_get(
-			$this->baseUrl . '/api/v1/uploads/scan/' . rawurlencode( $externalId ),
+			$this->baseUrl . '/uploads/scan/' . rawurlencode( $externalId ),
 			[
 				'timeout' => 30,
 				'headers' => $this->headers(),

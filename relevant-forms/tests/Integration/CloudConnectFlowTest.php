@@ -293,6 +293,23 @@ final class CloudConnectFlowTest extends TestCase {
 	}
 
 	/**
+	 * Deep scanning is provided by the Cloud: no separate credentials asked.
+	 */
+	public function testSettingsScreenDoesNotAskForScanBackendCredentials(): void {
+		update_option( 'relevant_forms_settings', [] );
+
+		set_current_screen( 'toplevel_page_relevant-settings' );
+
+		ob_start();
+		SettingsPage::render();
+		$html = (string) ob_get_clean();
+
+		$this->assertStringNotContainsString( 'scan_backend_url', $html );
+		$this->assertStringNotContainsString( 'scan_backend_key', $html );
+		$this->assertStringNotContainsString( 'Scan backend', $html );
+	}
+
+	/**
 	 * Disconnect restores local-only operation without external calls.
 	 */
 	public function testDisconnectRestoresLocalOnlyOperation(): void {
