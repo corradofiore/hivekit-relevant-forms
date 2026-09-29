@@ -199,7 +199,12 @@ $inputIdBase = 'rf-field-' . $fieldId;
 				<tr>
 					<th scope="row"><label for="<?php echo esc_attr( $inputIdBase . '-choices' ); ?>"><?php esc_html_e( 'Choices', 'relevant-forms' ); ?></label></th>
 					<td>
-						<textarea class="widefat" id="<?php echo esc_attr( $inputIdBase . '-choices' ); ?>" rows="4" name="relevant_fields[<?php echo esc_attr( $fieldId ); ?>][choices]" placeholder="<?php echo esc_attr( $isPricedPayment ? __( 'One per line: Item|Price\ne.g. T-shirt|25.00', 'relevant-forms' ) : __( 'One per line. Optional value separated by |\ne.g. Red|red', 'relevant-forms' ) ); ?>"><?php echo esc_textarea( implode( "\n", array_map( static fn ( array $choice ): string => $choice['label'] === $choice['value'] ? $choice['label'] : $choice['label'] . '|' . $choice['value'], $field_type->normalizeChoices( $definition ) ) ) ); ?></textarea>
+						<textarea class="widefat" id="<?php echo esc_attr( $inputIdBase . '-choices' ); ?>" rows="4" name="relevant_fields[<?php echo esc_attr( $fieldId ); ?>][choices]"><?php echo esc_textarea( implode( "\n", array_map( static fn ( array $choice ): string => $choice['label'] === $choice['value'] ? $choice['label'] : $choice['label'] . '|' . $choice['value'], $field_type->normalizeChoices( $definition ) ) ) ); ?></textarea>
+						<?php if ( $isPricedPayment ) : ?>
+							<p class="description"><?php esc_html_e( 'One per line. The price follows the item after a pipe (|), e.g. T-shirt|25.00.', 'relevant-forms' ); ?></p>
+						<?php else : ?>
+							<p class="description"><?php esc_html_e( 'One per line. Optionally set the submitted value after a pipe (|), e.g. Red|red.', 'relevant-forms' ); ?></p>
+						<?php endif; ?>
 					</td>
 				</tr>
 			<?php endif; ?>
