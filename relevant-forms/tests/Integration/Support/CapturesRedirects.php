@@ -48,7 +48,10 @@ trait CapturesRedirects {
 		} finally {
 			remove_filter( 'wp_redirect', $capture );
 			remove_filter( 'relevant_forms_redirect', $capture );
-			unset( $_REQUEST['_wpnonce'] );
+
+			if ( '' !== $nonceAction ) {
+				unset( $_REQUEST['_wpnonce'] );
+			}
 		}
 	}
 }

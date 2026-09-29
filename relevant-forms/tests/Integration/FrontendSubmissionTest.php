@@ -18,7 +18,7 @@ use RelevantForms\Forms\FormRepository;
 use RelevantForms\Forms\FormSchema;
 use RelevantForms\Forms\SubmissionFeedback;
 use RelevantForms\Http\SubmissionHandler;
-use RelevantForms\Tests\Integration\Support\RedirectedException;
+use RelevantForms\Tests\Integration\Support\CapturesRedirects;
 
 /**
  * {@inheritdoc}
@@ -26,6 +26,8 @@ use RelevantForms\Tests\Integration\Support\RedirectedException;
  * @group integration
  */
 final class FrontendSubmissionTest extends TestCase {
+
+	use CapturesRedirects;
 
 	/**
 	 * Simulated POST data is part of the handler contract; reset it between tests.
@@ -265,22 +267,7 @@ final class FrontendSubmissionTest extends TestCase {
 	 * Run the front-end handler and capture the redirect target.
 	 */
 	private function frontendSubmitAndCaptureRedirect(): string {
-		add_filter(
-			'relevant_forms_redirect',
-			static function ( string $url ): string {
-				// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- handler-generated URL, assertions only.
-				throw new RedirectedException( $url );
-			}
-		);
-
-		try {
-			SubmissionHandler::maybeHandleFrontendSubmission();
-			$this->fail( 'The handler should redirect after a successful submission.' );
-		} catch ( RedirectedException $redirected ) {
-			return $redirected->url;
-		} finally {
-			remove_all_filters( 'relevant_forms_redirect' );
-		}
+		return $this->captureRedirect( [ SubmissionHandler::class, 'maybeHandleFrontendSubmission' ] );
 	}
 
 	/**

@@ -14,7 +14,7 @@ use RelevantForms\Admin\Controllers\FormSaveController;
 use RelevantForms\Admin\Pages\FormEditPage;
 use RelevantForms\Forms\FormRepository;
 use RelevantForms\Forms\FormSchema;
-use RelevantForms\Tests\Integration\Support\RedirectedException;
+use RelevantForms\Tests\Integration\Support\CapturesRedirects;
 
 /**
  * {@inheritdoc}
@@ -22,6 +22,8 @@ use RelevantForms\Tests\Integration\Support\RedirectedException;
  * @group integration
  */
 final class FormEditorSmsTest extends TestCase {
+
+	use CapturesRedirects;
 
 	/**
 	 * The editor shows the option active with the stored verified number.
@@ -249,33 +251,18 @@ final class FormEditorSmsTest extends TestCase {
 	 * @param array<string, mixed> $extra  Extra POST fields (ai_sms_*).
 	 */
 	private function save( int $formId, array $extra ): string {
-		$_POST = array_merge(
-			[
-				'form_id'     => $formId,
-				'form_name'   => 'SMS form',
-				'form_status' => 'published',
-			],
-			$extra
+		return $this->captureRedirect(
+			[ FormSaveController::class, 'handle' ],
+			'relevant_form_save',
+			array_merge(
+				[
+					'form_id'     => $formId,
+					'form_name'   => 'SMS form',
+					'form_status' => 'published',
+				],
+				$extra
+			)
 		);
-
-		$_REQUEST['_wpnonce'] = wp_create_nonce( 'relevant_form_save' );
-
-		add_filter(
-			'wp_redirect',
-			static function ( string $location ): string {
-				// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- handler-generated URL, assertions only.
-				throw new RedirectedException( $location );
-			}
-		);
-
-		try {
-			FormSaveController::handle();
-			$this->fail( 'The controller should redirect.' );
-		} catch ( RedirectedException $redirected ) {
-			return $redirected->url;
-		} finally {
-			remove_all_filters( 'wp_redirect' );
-		}
 	}
 
 	/**

@@ -18,6 +18,7 @@ use RelevantForms\Forms\Form;
 use RelevantForms\Forms\FormRepository;
 use RelevantForms\Forms\FormSchema;
 use RelevantForms\Http\SubmissionHandler;
+use RelevantForms\Tests\Integration\Support\CapturesMail;
 use RelevantForms\Tests\Integration\Support\CapturesRedirects;
 use RelevantForms\Tests\Integration\Support\RedirectedException;
 use RelevantForms\Tests\Integration\Support\StoppedException;
@@ -29,6 +30,7 @@ use RelevantForms\Tests\Integration\Support\StoppedException;
  */
 final class AiClassificationFlowTest extends TestCase {
 
+	use CapturesMail;
 	use CapturesRedirects;
 
 	/**
@@ -181,17 +183,7 @@ final class AiClassificationFlowTest extends TestCase {
 
 		$form = $this->makeForm( true );
 
-		$emails = [];
-		add_filter(
-			'pre_wp_mail',
-			static function ( ?bool $short_circuit, array $args ) use ( &$emails ): bool {
-				$emails[] = $args;
-
-				return true;
-			},
-			10,
-			2
-		);
+		$this->captureMail();
 
 		$this->submit( $form->id, $this->fields() );
 
@@ -199,7 +191,7 @@ final class AiClassificationFlowTest extends TestCase {
 		$entry   = $entries[0];
 
 		$this->assertSame( Entry::STATUS_SPAM, $entry->status );
-		$this->assertCount( 0, $emails );
+		$this->assertCount( 0, $this->sent_mail );
 
 		$events = array_column( EventRecorder::forEntry( (int) $entry->id ), 'event' );
 		$this->assertContains( 'classification_completed', $events );
@@ -216,27 +208,17 @@ final class AiClassificationFlowTest extends TestCase {
 
 		$form = $this->makeForm( true );
 
-		$emails = [];
-		add_filter(
-			'pre_wp_mail',
-			static function ( ?bool $short_circuit, array $args ) use ( &$emails ): bool {
-				$emails[] = $args;
-
-				return true;
-			},
-			10,
-			2
-		);
+		$this->captureMail();
 
 		try {
 			$this->submit( $form->id, $this->fields() );
 		} finally {
-			remove_all_filters( 'pre_wp_mail' );
+			$this->stopCapturingMail();
 		}
 
-		$this->assertNotEmpty( $emails );
-		$this->assertStringContainsString( 'Enquiry', $emails[0]['subject'] );
-		$this->assertStringContainsString( 'Quote request from homeowner in Milan', $emails[0]['subject'] );
+		$this->assertNotEmpty( $this->sent_mail );
+		$this->assertStringContainsString( 'Enquiry', $this->sent_mail[0]['subject'] );
+		$this->assertStringContainsString( 'Quote request from homeowner in Milan', $this->sent_mail[0]['subject'] );
 	}
 
 	/**

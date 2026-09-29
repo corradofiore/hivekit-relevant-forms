@@ -12,7 +12,7 @@ namespace RelevantForms\Tests\Integration;
 use RelevantForms\Admin\Controllers\FormSaveController;
 use RelevantForms\Forms\FormRepository;
 use RelevantForms\Forms\FormSchema;
-use RelevantForms\Tests\Integration\Support\RedirectedException;
+use RelevantForms\Tests\Integration\Support\CapturesRedirects;
 
 /**
  * {@inheritdoc}
@@ -20,6 +20,8 @@ use RelevantForms\Tests\Integration\Support\RedirectedException;
  * @group integration
  */
 final class PaymentFieldsFlowTest extends TestCase {
+
+	use CapturesRedirects;
 
 	/**
 	 * Payment configuration posts through the editor controller and sticks.
@@ -107,22 +109,7 @@ final class PaymentFieldsFlowTest extends TestCase {
 	 * Run the save controller and capture the redirect target.
 	 */
 	private function handleAndCaptureRedirect(): string {
-		add_filter(
-			'wp_redirect',
-			static function ( string $location ): string {
-				// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- handler-generated URL, assertions only.
-				throw new RedirectedException( $location );
-			}
-		);
-
-		try {
-			FormSaveController::handle();
-			$this->fail( 'The controller should redirect.' );
-		} catch ( RedirectedException $redirected ) {
-			return $redirected->url;
-		} finally {
-			remove_all_filters( 'wp_redirect' );
-		}
+		return $this->captureRedirect( [ FormSaveController::class, 'handle' ] );
 	}
 
 	/**

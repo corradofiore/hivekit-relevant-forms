@@ -15,6 +15,7 @@ use RelevantForms\Events\EventRecorder;
 use RelevantForms\Forms\FormRepository;
 use RelevantForms\Forms\FormSchema;
 use RelevantForms\Http\SubmissionHandler;
+use RelevantForms\Tests\Integration\Support\CapturesMail;
 use RelevantForms\Tests\Integration\Support\RedirectedException;
 use RelevantForms\Tests\Integration\Support\StoppedException;
 
@@ -25,23 +26,15 @@ use RelevantForms\Tests\Integration\Support\StoppedException;
  */
 final class SpamFlowTest extends TestCase {
 
+	use CapturesMail;
+
 	/**
 	 * A normal human-speed submission stays legitimate and emails.
 	 */
 	public function testLegitimateSubmissionIsScoredAndEmailed(): void {
 		$form = $this->makeForm();
 
-		$emails = [];
-		add_filter(
-			'pre_wp_mail',
-			static function ( ?bool $shortCircuit, array $args ) use ( &$emails ): bool {
-				$emails[] = $args;
-
-				return true;
-			},
-			10,
-			2
-		);
+		$this->captureMail();
 
 		$url = $this->submit(
 			$form->id,
@@ -65,7 +58,7 @@ final class SpamFlowTest extends TestCase {
 		$this->assertSame( 0.0, (float) ( $signals['spam_score'] ?? 1.0 ) );
 		$this->assertSame( 0, (int) ( $signals['links_detected'] ?? -1 ) );
 
-		$this->assertCount( 1, $emails );
+		$this->assertCount( 1, $this->sent_mail );
 
 		$events = EventRecorder::forEntry( (int) $entry->id );
 		$this->assertContains( 'spam_scored', array_column( $events, 'event' ) );
@@ -126,17 +119,7 @@ final class SpamFlowTest extends TestCase {
 
 		$form = $this->makeForm();
 
-		$emails = [];
-		add_filter(
-			'pre_wp_mail',
-			static function ( ?bool $shortCircuit, array $args ) use ( &$emails ): bool {
-				$emails[] = $args;
-
-				return true;
-			},
-			10,
-			2
-		);
+		$this->captureMail();
 
 		$this->submit( $form->id, $this->fields(), microtime( true ) - 30.0 );
 		$this->submit( $form->id, $this->fields(), microtime( true ) - 30.0 );
@@ -153,7 +136,7 @@ final class SpamFlowTest extends TestCase {
 		$this->assertGreaterThanOrEqual( 0.95, (float) ( $signals['spam_score'] ?? 0.0 ) );
 
 		// Spam never emails (doc §20).
-		$this->assertCount( 1, $emails );
+		$this->assertCount( 1, $this->sent_mail );
 
 		$events = EventRecorder::forEntry( (int) $spam->id );
 		$names  = array_column( $events, 'event' );

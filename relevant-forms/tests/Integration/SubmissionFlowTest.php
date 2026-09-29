@@ -15,6 +15,7 @@ use RelevantForms\Events\EventRecorder;
 use RelevantForms\Forms\FormRepository;
 use RelevantForms\Forms\FormSchema;
 use RelevantForms\Http\SubmissionHandler;
+use RelevantForms\Tests\Integration\Support\CapturesMail;
 use RelevantForms\Tests\Integration\Support\RedirectedException;
 use RelevantForms\Tests\Integration\Support\StoppedException;
 
@@ -25,23 +26,15 @@ use RelevantForms\Tests\Integration\Support\StoppedException;
  */
 final class SubmissionFlowTest extends TestCase {
 
+	use CapturesMail;
+
 	/**
 	 * Test a legitimate submission is persisted and redirects with success.
 	 */
 	public function testLegitimateSubmission(): void {
 		$form = $this->makePublishedForm();
 
-		$emails = [];
-		add_filter(
-			'pre_wp_mail',
-			static function ( ?bool $shortCircuit, array $args ) use ( &$emails ): bool {
-				$emails[] = $args;
-
-				return true; // Short-circuit: skip real delivery.
-			},
-			10,
-			2
-		);
+		$this->captureMail();
 
 		$url = $this->submit(
 			$form->id,
@@ -69,9 +62,9 @@ final class SubmissionFlowTest extends TestCase {
 		$this->assertContains( 'submission_received', $names );
 		$this->assertContains( 'notification_sent', $names );
 
-		$this->assertNotEmpty( $emails );
-		$this->assertStringContainsString( 'Emergency Request', $emails[0]['subject'] );
-		$this->assertStringContainsString( 'New submission', $emails[0]['message'] );
+		$this->assertNotEmpty( $this->sent_mail );
+		$this->assertStringContainsString( 'Emergency Request', $this->sent_mail[0]['subject'] );
+		$this->assertStringContainsString( 'New submission', $this->sent_mail[0]['message'] );
 	}
 
 	/**

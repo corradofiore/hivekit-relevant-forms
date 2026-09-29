@@ -14,7 +14,7 @@ use RelevantForms\Admin\AdminMenu;
 use RelevantForms\Admin\Pages\FormListPage;
 use RelevantForms\Forms\FormRepository;
 use RelevantForms\Forms\FormSchema;
-use RelevantForms\Tests\Integration\Support\RedirectedException;
+use RelevantForms\Tests\Integration\Support\CapturesRedirects;
 
 /**
  * {@inheritdoc}
@@ -22,6 +22,8 @@ use RelevantForms\Tests\Integration\Support\RedirectedException;
  * @group integration
  */
 final class AdminMenuTest extends TestCase {
+
+	use CapturesRedirects;
 
 	/**
 	 * Menu globals backup.
@@ -166,23 +168,10 @@ final class AdminMenuTest extends TestCase {
 		$_GET['page']    = 'relevant-form-new';
 		$_GET['form_id'] = '7';
 
-		add_filter(
-			'wp_redirect',
-			static function ( string $location ): string {
-				// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- handler-generated URL, assertions only.
-				throw new RedirectedException( $location );
-			}
-		);
+		$url = $this->captureRedirect( [ AdminMenu::class, 'redirectLegacyEditorSlug' ] );
 
-		try {
-			AdminMenu::redirectLegacyEditorSlug();
-			$this->fail( 'The legacy slug should redirect.' );
-		} catch ( RedirectedException $redirected ) {
-			$this->assertStringContainsString( 'page=relevant-form-edit', $redirected->url );
-			$this->assertStringContainsString( 'form_id=7', $redirected->url );
-		} finally {
-			remove_all_filters( 'wp_redirect' );
-		}
+		$this->assertStringContainsString( 'page=relevant-form-edit', $url );
+		$this->assertStringContainsString( 'form_id=7', $url );
 	}
 
 	/**

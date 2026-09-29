@@ -11,7 +11,7 @@ namespace RelevantForms\Tests\Integration;
 
 use RelevantForms\Cloud\CloudConnection;
 use RelevantForms\Http\CloudBillingController;
-use RelevantForms\Tests\Integration\Support\RedirectedException;
+use RelevantForms\Tests\Integration\Support\CapturesRedirects;
 
 /**
  * Manage billing deep-links into the Relevant Cloud dashboard with the
@@ -20,6 +20,8 @@ use RelevantForms\Tests\Integration\Support\RedirectedException;
  * @group integration
  */
 final class CloudBillingFlowTest extends TestCase {
+
+	use CapturesRedirects;
 
 	/**
 	 * Outbound HTTP requests seen during the test (must stay empty).
@@ -125,26 +127,11 @@ final class CloudBillingFlowTest extends TestCase {
 	 * Simulate the billing admin action with a nonce.
 	 */
 	private function billing(): string {
-		$_POST                = [ 'action' => 'relevant_forms_cloud_billing' ];
-		$_REQUEST['_wpnonce'] = wp_create_nonce( 'relevant_cloud_billing' );
-
-		add_filter(
-			'relevant_forms_redirect',
-			static function ( string $url ): string {
-				// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- handler-generated URL, assertions only.
-				throw new RedirectedException( $url );
-			}
+		return $this->captureRedirect(
+			[ CloudBillingController::class, 'handle' ],
+			'relevant_cloud_billing',
+			[ 'action' => 'relevant_forms_cloud_billing' ]
 		);
-
-		try {
-			CloudBillingController::handle();
-			$this->fail( 'The controller should redirect.' );
-		} catch ( RedirectedException $redirected ) {
-			return $redirected->url;
-		} finally {
-			remove_all_filters( 'relevant_forms_redirect' );
-			unset( $_REQUEST['_wpnonce'] );
-		}
 	}
 
 	/**

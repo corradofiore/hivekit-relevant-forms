@@ -103,7 +103,7 @@ final class TestEmailFlowTest extends TestCase {
 
 		$form = $this->makeForm();
 
-		add_filter( 'pre_wp_mail', static fn (): bool => false );
+		$this->failMail();
 
 		$body = $this->dispatch( $form->id, 'deliverability@test.example' );
 

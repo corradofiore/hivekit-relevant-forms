@@ -22,7 +22,8 @@ use RelevantForms\Forms\SubmissionFeedback;
 use RelevantForms\Http\PaymentReturnHandler;
 use RelevantForms\Http\SubmissionHandler;
 use RelevantForms\Payments\PaymentService;
-use RelevantForms\Tests\Integration\Support\RedirectedException;
+use RelevantForms\Tests\Integration\Support\CapturesMail;
+use RelevantForms\Tests\Integration\Support\CapturesRedirects;
 
 /**
  * {@inheritdoc}
@@ -31,19 +32,15 @@ use RelevantForms\Tests\Integration\Support\RedirectedException;
  */
 final class PaymentStateFlowTest extends TestCase {
 
+	use CapturesMail;
+	use CapturesRedirects;
+
 	/**
 	 * Captured outbound HTTP requests: url + args.
 	 *
 	 * @var array<int, array{url: string, args: array<string, mixed>}>
 	 */
 	private array $requests = [];
-
-	/**
-	 * Captured wp_mail() calls.
-	 *
-	 * @var array<int, array<string, mixed>>
-	 */
-	private array $emails = [];
 
 	/**
 	 * Session status the simulated cloud reports back.
@@ -73,18 +70,8 @@ final class PaymentStateFlowTest extends TestCase {
 		);
 
 		$this->requests = [];
-		$this->emails   = [];
 
-		add_filter(
-			'pre_wp_mail',
-			function ( ?bool $shortCircuit, array $args ): bool {
-				$this->emails[] = $args;
-
-				return true; // Short-circuit: skip real delivery.
-			},
-			10,
-			2
-		);
+		$this->captureMail();
 	}
 
 	/**
@@ -122,7 +109,7 @@ final class PaymentStateFlowTest extends TestCase {
 		$this->assertContains( 'payment_session_created', $names );
 		$this->assertContains( 'notification_deferred', $names );
 
-		$this->assertSame( [], $this->emails );
+		$this->assertSame( [], $this->sent_mail );
 
 		// The session request carried the server-computed total and the
 		// return URLs with the entry reference and session placeholder.
@@ -147,7 +134,7 @@ final class PaymentStateFlowTest extends TestCase {
 		$form  = $this->makePaymentForm();
 		$entry = $this->submitPending( $form );
 
-		$this->assertSame( [], $this->emails );
+		$this->assertSame( [], $this->sent_mail );
 
 		$url = $this->handleReturn(
 			[
@@ -170,12 +157,12 @@ final class PaymentStateFlowTest extends TestCase {
 		$names = array_column( EventRecorder::forEntry( (int) $entry->id ), 'event' );
 		$this->assertContains( 'payment_paid', $names );
 
-		$this->assertNotEmpty( $this->emails );
-		$this->assertStringContainsString( 'Payments', (string) $this->emails[0]['subject'] );
+		$this->assertNotEmpty( $this->sent_mail );
+		$this->assertStringContainsString( 'Payments', (string) $this->sent_mail[0]['subject'] );
 
 		// Idempotent: a repeated return or the webhook changes nothing.
 		$this->assertFalse( ( new PaymentService() )->markPaid( (int) $entry->id ) );
-		$this->assertCount( 1, $this->emails );
+		$this->assertCount( 1, $this->sent_mail );
 	}
 
 	/**
@@ -205,7 +192,7 @@ final class PaymentStateFlowTest extends TestCase {
 		$this->assertSame( Entry::STATUS_PAYMENT_FAILED, $entry->status );
 		$this->assertSame( 'failed', $entry->meta['_payment']['status'] ?? '' );
 
-		$this->assertSame( [], $this->emails );
+		$this->assertSame( [], $this->sent_mail );
 	}
 
 	/**
@@ -257,7 +244,7 @@ final class PaymentStateFlowTest extends TestCase {
 			$this->assertStringNotContainsString( '/payments/sessions', (string) $request['url'] );
 		}
 
-		$this->assertSame( [], $this->emails );
+		$this->assertSame( [], $this->sent_mail );
 	}
 
 	/**
@@ -298,7 +285,7 @@ final class PaymentStateFlowTest extends TestCase {
 		$this->assertSame( Entry::STATUS_NEW, $entry->status );
 		$this->assertArrayNotHasKey( '_payment', $entry->meta );
 
-		$this->assertNotEmpty( $this->emails );
+		$this->assertNotEmpty( $this->sent_mail );
 	}
 
 	/**
@@ -419,40 +406,20 @@ final class PaymentStateFlowTest extends TestCase {
 	 * @param string $choice Posted choice position.
 	 */
 	private function submitPaymentForm( Form $form, string $choice ): string {
-		$_POST = [
-			'action'                 => 'relevant_forms_submit',
-			'_relevant_form_id'      => $form->id,
-			'_relevant_form_nonce'   => wp_create_nonce( 'relevant_form_' . $form->id ),
-			'_wp_http_referer'       => '/payments/',
-			'relevant_field_f_merch' => $choice,
-		];
 		// Real requests populate $_REQUEST from the GET/POST order.
 		$_REQUEST['_wp_http_referer'] = '/payments/';
 
-		add_filter(
-			'wp_redirect',
-			static function ( string $location ): string {
-				// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- handler-generated URL, assertions only.
-				throw new RedirectedException( $location );
-			}
+		return $this->captureRedirect(
+			[ SubmissionHandler::class, 'maybeHandleFrontendSubmission' ],
+			'',
+			[
+				'action'                 => 'relevant_forms_submit',
+				'_relevant_form_id'      => $form->id,
+				'_relevant_form_nonce'   => wp_create_nonce( 'relevant_form_' . $form->id ),
+				'_wp_http_referer'       => '/payments/',
+				'relevant_field_f_merch' => $choice,
+			]
 		);
-		add_filter(
-			'relevant_forms_redirect',
-			static function ( string $url ): string {
-				// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- handler-generated URL, assertions only.
-				throw new RedirectedException( $url );
-			}
-		);
-
-		try {
-			SubmissionHandler::maybeHandleFrontendSubmission();
-			$this->fail( 'The submission should redirect.' );
-		} catch ( RedirectedException $redirected ) {
-			return $redirected->url;
-		} finally {
-			remove_all_filters( 'wp_redirect' );
-			remove_all_filters( 'relevant_forms_redirect' );
-		}
 	}
 
 	/**
@@ -480,21 +447,9 @@ final class PaymentStateFlowTest extends TestCase {
 		$_GET                      = $query;
 		$_SERVER['REQUEST_METHOD'] = 'GET';
 
-		add_filter(
-			'wp_redirect',
-			static function ( string $location ): string {
-				// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- handler-generated URL, assertions only.
-				throw new RedirectedException( $location );
-			}
-		);
-
 		try {
-			PaymentReturnHandler::maybeHandle();
-			$this->fail( 'The return handler should redirect.' );
-		} catch ( RedirectedException $redirected ) {
-			return $redirected->url;
+			return $this->captureRedirect( [ PaymentReturnHandler::class, 'maybeHandle' ] );
 		} finally {
-			remove_all_filters( 'wp_redirect' );
 			$_GET = [];
 		}
 	}

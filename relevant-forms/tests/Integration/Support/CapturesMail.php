@@ -44,4 +44,11 @@ trait CapturesMail {
 	protected function stopCapturingMail(): void {
 		remove_all_filters( 'pre_wp_mail' );
 	}
+
+	/**
+	 * Make every send fail, as a broken mailer would.
+	 */
+	protected function failMail(): void {
+		add_filter( 'pre_wp_mail', static fn (): bool => false );
+	}
 }
