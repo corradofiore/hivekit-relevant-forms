@@ -13,6 +13,62 @@
 		return 'f_' + Math.random().toString( 36 ).slice( 2, 9 );
 	}
 
+	/**
+	 * POST one admin-ajax action and parse the JSON envelope.
+	 *
+	 * @param {string} action Admin-ajax action.
+	 * @param {string} nonce  Nonce for the action.
+	 * @param {Object} extra  Additional fields.
+	 * @return {Promise} Parsed response body.
+	 */
+	function postAdminAjax( action, nonce, extra ) {
+		var settings = window.relevantFormsAdmin || {};
+		var body = new window.FormData();
+
+		body.append( 'action', action );
+		body.append( '_wpnonce', nonce );
+
+		Object.keys( extra ).forEach( function ( key ) {
+			body.append( key, extra[ key ] );
+		} );
+
+		return window.fetch( settings.ajaxUrl, {
+			method: 'POST',
+			credentials: 'same-origin',
+			body: body
+		} ).then( function ( response ) {
+			return response.json();
+		} );
+	}
+
+	/**
+	 * Show a feedback line below an element ('' hides it).
+	 *
+	 * @param {Element} element Message paragraph.
+	 * @param {string}  text    Message text.
+	 * @param {string}  tone    'error' | 'info' | 'ok' | ''.
+	 */
+	function setMessage( element, text, tone ) {
+		element.textContent = text || '';
+		element.className = 'rf-sms-message' + ( text && tone ? ' rf-sms-message--' + tone : '' );
+		element.hidden = ! text;
+	}
+
+	/**
+	 * Error message from a failed JSON envelope.
+	 *
+	 * @param {Object} body     Parsed response body.
+	 * @param {string} fallback Fallback message.
+	 * @return {string} Message to show.
+	 */
+	function errorText( body, fallback ) {
+		if ( body && body.data && body.data.message ) {
+			return body.data.message;
+		}
+
+		return fallback || '';
+	}
+
 	/*
 	 * Fields editor: a draggable list on the left, the selected field's
 	 * editor on the right. Reordering moves the list item AND its editor
@@ -1638,19 +1694,6 @@
 			var codeMessage = document.getElementById( 'rf-sms-code-message' );
 
 			/**
-			 * Show one feedback message directly below its field.
-			 *
-			 * @param {Element} element Message paragraph.
-			 * @param {string}  text    Message text ('' hides the line).
-			 * @param {string}  tone    'error' | 'info' | 'ok' | ''.
-			 */
-			function setMessage( element, text, tone ) {
-				element.textContent = text || '';
-				element.className = 'rf-sms-message' + ( text && tone ? ' rf-sms-message--' + tone : '' );
-				element.hidden = ! text;
-			}
-
-			/**
 			 * Mark the field verified only when it matches the stored number.
 			 */
 			function syncVerifiedState() {
@@ -1690,47 +1733,6 @@
 				syncVerifiedState();
 			}
 
-			/**
-			 * POST one admin-ajax action and parse the JSON envelope.
-			 *
-			 * @param {string} action Admin-ajax action.
-			 * @param {string} nonce  Nonce for the action.
-			 * @param {Object} extra  Additional fields.
-			 * @return {Promise} Parsed response body.
-			 */
-			function post( action, nonce, extra ) {
-				var body = new window.FormData();
-
-				body.append( 'action', action );
-				body.append( '_wpnonce', nonce );
-
-				Object.keys( extra ).forEach( function ( key ) {
-					body.append( key, extra[ key ] );
-				} );
-
-				return window.fetch( settings.ajaxUrl, {
-					method: 'POST',
-					credentials: 'same-origin',
-					body: body
-				} ).then( function ( response ) {
-					return response.json();
-				} );
-			}
-
-			/**
-			 * Error message from a failed envelope.
-			 *
-			 * @param {Object} body Parsed response body.
-			 * @return {string} Message to show.
-			 */
-			function errorText( body ) {
-				if ( body && body.data && body.data.message ) {
-					return body.data.message;
-				}
-
-				return strings.requestFailed;
-			}
-
 			smsToggle.addEventListener( 'change', syncEnabled );
 
 			smsPhone.addEventListener( 'input', function () {
@@ -1750,10 +1752,10 @@
 
 				setMessage( phoneMessage, strings.sending, 'info' );
 
-				post( 'relevant_forms_sms_send', settings.smsSendNonce, { phone: phone } )
+				postAdminAjax( 'relevant_forms_sms_send', settings.smsSendNonce, { phone: phone } )
 					.then( function ( body ) {
 						if ( ! body || ! body.success ) {
-							setMessage( phoneMessage, errorText( body ), 'error' );
+							setMessage( phoneMessage, errorText( body, strings.requestFailed ), 'error' );
 							return;
 						}
 
@@ -1781,14 +1783,14 @@
 			} );
 
 			verifyButton.addEventListener( 'click', function () {
-				post(
+				postAdminAjax(
 					'relevant_forms_sms_verify',
 					settings.smsVerifyNonce,
 					{ phone: smsPhone.value.trim(), code: codeInput.value.trim() }
 				)
 					.then( function ( body ) {
 						if ( ! body || ! body.success ) {
-							setMessage( codeMessage, errorText( body ), 'error' );
+							setMessage( codeMessage, errorText( body, strings.requestFailed ), 'error' );
 							return;
 						}
 
@@ -1845,49 +1847,30 @@
 			var message = document.getElementById( 'rf-test-email-message' );
 			var formId = document.querySelector( 'input[name="form_id"]' );
 
-			/**
-			 * Show the feedback line below the button.
-			 *
-			 * @param {string} text Message text ('' hides the line).
-			 * @param {string} tone 'error' | 'info' | 'ok' | ''.
-			 */
-			function setMessage( text, tone ) {
-				message.textContent = text || '';
-				message.className = 'rf-sms-message' + ( text && tone ? ' rf-sms-message--' + tone : '' );
-				message.hidden = ! text;
-			}
-
 			testEmailButton.addEventListener( 'click', function () {
-				var body = new window.FormData();
-
-				body.append( 'action', 'relevant_forms_send_test_email' );
-				body.append( '_wpnonce', settings.testEmailNonce );
-				body.append( 'form_id', formId ? formId.value : '0' );
-				body.append( 'recipients', field ? field.value : '' );
-
 				testEmailButton.disabled = true;
-				setMessage( strings.sending || '', 'info' );
+				setMessage( message, strings.sending || '', 'info' );
 
-				window.fetch( settings.ajaxUrl, {
-					method: 'POST',
-					credentials: 'same-origin',
-					body: body
-				} )
-					.then( function ( response ) {
-						return response.json();
-					} )
+				postAdminAjax(
+					'relevant_forms_send_test_email',
+					settings.testEmailNonce,
+					{
+						form_id: formId ? formId.value : '0',
+						recipients: field ? field.value : ''
+					}
+				)
 					.then( function ( result ) {
 						if ( ! result || ! result.success ) {
-							setMessage( ( result && result.data && result.data.message ) || strings.failed || '', 'error' );
+							setMessage( message, errorText( result, strings.failed ), 'error' );
 							return;
 						}
 
 						var to = result.data && result.data.recipients ? result.data.recipients.join( ', ' ) : '';
 
-						setMessage( ( strings.sent || '' ).replace( '%s', to ), 'ok' );
+						setMessage( message, ( strings.sent || '' ).replace( '%s', to ), 'ok' );
 					} )
 					.catch( function () {
-						setMessage( strings.failed || '', 'error' );
+						setMessage( message, strings.failed || '', 'error' );
 					} )
 					.then( function () {
 						testEmailButton.disabled = false;

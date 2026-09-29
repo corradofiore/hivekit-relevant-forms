@@ -11,6 +11,7 @@ namespace RelevantForms\Ai;
 
 use RelevantForms\AntiSpam\SpamSignals;
 use RelevantForms\Forms\Form;
+use RelevantForms\Support\TextList;
 
 /**
  * Assembles the payload sent to the Cloud classification endpoint.
@@ -182,14 +183,9 @@ final class ContextBuilder {
 	 */
 	private function lines( string $text ): array {
 		$lines = [];
-		$parts = preg_split( '/\r\n|\r|\n/', $text );
 
-		foreach ( is_array( $parts ) ? $parts : [] as $line ) {
-			$line = mb_substr( trim( $line ), 0, 200 );
-
-			if ( '' !== $line ) {
-				$lines[] = $line;
-			}
+		foreach ( TextList::lines( $text ) as $line ) {
+			$lines[] = mb_substr( $line, 0, 200 );
 
 			if ( count( $lines ) >= 20 ) {
 				break;

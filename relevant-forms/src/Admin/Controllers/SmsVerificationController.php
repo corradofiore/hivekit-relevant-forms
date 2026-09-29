@@ -95,8 +95,8 @@ final class SmsVerificationController {
 		}
 
 		// Requesting a code for this form's alert number is the explicit
-		// opt-in: it enables the priority-SMS consent for the site.
-		$connection->enableCapability( CloudConnection::CAP_SMS );
+		// opt-in: grant the priority-SMS consent for the site.
+		$connection->grantCapability( CloudConnection::CAP_SMS );
 
 		$client = new CloudClient( CloudConfig::apiBase(), CloudConfig::key() );
 		$result = $client->requestSmsVerification( $phone );

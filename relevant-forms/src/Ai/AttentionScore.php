@@ -30,8 +30,14 @@ final class AttentionScore {
 
 	/**
 	 * Priority threshold (doc §20): 85+ deserves priority attention.
+	 * One source for both the local score gate and the SMS default.
+	 */
+	public const PRIORITY_THRESHOLD = 85;
+
+	/**
+	 * Whether the score deserves priority attention.
 	 */
 	public static function isPriority( int $score ): bool {
-		return $score >= 85;
+		return $score >= self::PRIORITY_THRESHOLD;
 	}
 }

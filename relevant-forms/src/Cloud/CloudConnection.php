@@ -149,6 +149,22 @@ final class CloudConnection {
 	}
 
 	/**
+	 * Enable a capability only when the site can actually use it
+	 * (configured service + connected account). Returns true when it was
+	 * newly enabled. Never disables — unchecking a form must not revoke
+	 * consent other forms rely on.
+	 *
+	 * @param string $capability Capability key.
+	 */
+	public function grantCapability( string $capability ): bool {
+		if ( ! CloudConfig::isConfigured() || self::STATE_DISCONNECTED === $this->state() ) {
+			return false;
+		}
+
+		return ! $this->capabilityEnabled( $capability ) && $this->enableCapability( $capability );
+	}
+
+	/**
 	 * Explicitly disable a capability and recompute the consent state.
 	 */
 	public function disableCapability( string $capability ): bool {

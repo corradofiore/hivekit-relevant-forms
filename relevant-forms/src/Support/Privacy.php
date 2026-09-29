@@ -37,7 +37,7 @@ final class Privacy {
 	/**
 	 * HMAC a value with the WordPress auth salt so hashes are site-specific.
 	 */
-	public static function hash( string $value ): string {
+	private static function hash( string $value ): string {
 		return hash_hmac( 'sha256', $value, wp_salt( 'auth' ) );
 	}
 }
