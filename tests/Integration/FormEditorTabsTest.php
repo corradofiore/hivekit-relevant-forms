@@ -63,6 +63,7 @@ final class FormEditorTabsTest extends TestCase {
 		$this->assertStringContainsString( 'name="sender_email"', $settings );
 		$this->assertStringContainsString( 'name="ai_enabled"', $settings );
 		$this->assertStringContainsString( 'name="ai_priorities"', $settings );
+		$this->assertStringContainsString( 'What needs immediate attention', $settings );
 		$this->assertStringContainsString( 'name="ai_privacy_mode"', $settings );
 		$this->assertStringContainsString( 'name="ai_spam"', $settings );
 		$this->assertStringContainsString( 'Unwanted enquiries', $settings );

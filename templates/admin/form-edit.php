@@ -228,14 +228,14 @@ if ( $isEditing ) {
 				<th scope="row"><label for="relevant-ai-purpose"><?php esc_html_e( 'Form purpose', 'relevant-forms' ); ?></label></th>
 				<td>
 					<textarea class="relevant-forms-textarea" id="relevant-ai-purpose" name="ai_purpose" rows="4"><?php echo esc_textarea( (string) ( $ai_policy['purpose'] ?? '' ) ); ?></textarea>
-					<p class="description relevant-forms-textarea-caption"><?php esc_html_e( 'Tell our Relevant AI what a relevant submission looks like, e.g. "Requests for quotes from homeowners", "RSVP for training events", etc.', 'relevant-forms' ); ?></p>
+					<p class="description relevant-forms-textarea-caption"><?php esc_html_e( 'What this form is about, so the AI can judge whether a submission is relevant, e.g. "Requests for quotes from homeowners", "RSVP for training events".', 'relevant-forms' ); ?></p>
 				</td>
 			</tr>
 			<tr>
-				<th scope="row"><label for="relevant-ai-priorities"><?php esc_html_e( 'Priorities', 'relevant-forms' ); ?></label></th>
+				<th scope="row"><label for="relevant-ai-priorities"><?php esc_html_e( 'What needs immediate attention', 'relevant-forms' ); ?></label></th>
 				<td>
 					<textarea class="relevant-forms-textarea" id="relevant-ai-priorities" name="ai_priorities" rows="3" placeholder="<?php esc_attr_e( 'one per line', 'relevant-forms' ); ?>"><?php echo esc_textarea( (string) ( $ai_policy['priorities'] ?? '' ) ); ?></textarea>
-					<p class="description relevant-forms-textarea-caption"><?php esc_html_e( 'What counts as high priority for this form, e.g. "emergency repairs", "quote requests". One per line.', 'relevant-forms' ); ?></p>
+					<p class="description relevant-forms-textarea-caption"><?php esc_html_e( 'Situations that should reach you right away, so the AI can judge urgency, e.g. "burst pipes", "no heating in winter". One per line.', 'relevant-forms' ); ?></p>
 				</td>
 			</tr>
 			<tr>
