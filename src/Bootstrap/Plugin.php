@@ -20,6 +20,7 @@ use RelevantForms\Admin\Controllers\PaymentEntryController;
 use RelevantForms\Admin\Controllers\PaymentSettingsController;
 use RelevantForms\Admin\Controllers\RedirectTargetSearchController;
 use RelevantForms\Admin\Controllers\SmsVerificationController;
+use RelevantForms\Admin\Controllers\TestEmailController;
 use RelevantForms\Admin\Pages\SettingsPage;
 use RelevantForms\Assets\FrontendAssets;
 use RelevantForms\Database\MigrationRunner;
@@ -60,6 +61,7 @@ final class Plugin {
 		ImportController::register();
 		RedirectTargetSearchController::register();
 		SmsVerificationController::register();
+		TestEmailController::register();
 		PaymentReturnHandler::register();
 		PaymentEntryController::register();
 		PaymentSettingsController::register();
