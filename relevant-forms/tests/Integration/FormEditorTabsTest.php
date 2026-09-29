@@ -67,6 +67,9 @@ final class FormEditorTabsTest extends TestCase {
 		$this->assertStringContainsString( 'name="ai_privacy_mode"', $settings );
 		$this->assertStringContainsString( 'name="ai_spam"', $settings );
 		$this->assertStringContainsString( 'Unwanted enquiries', $settings );
+		$this->assertStringContainsString( 'id="rf-send-test-email"', $settings );
+		$this->assertStringContainsString( 'id="relevant-test-email-to"', $settings );
+		$this->assertSame( 6, substr_count( $settings, 'rf-ai-dependent' ) );
 		$this->assertStringContainsString( 'relevant-forms-ai-panel', $settings );
 		$this->assertStringContainsString( 'AI evaluates meaning, relevance, intent and urgency.', $settings );
 		$this->assertStringNotContainsString( 'id="rf-fields-list"', $settings );
@@ -75,6 +78,48 @@ final class FormEditorTabsTest extends TestCase {
 		$this->assertStringContainsString( 'id="rf-fields-editors"', $fields );
 		$this->assertStringContainsString( 'id="rf-add-field"', $fields );
 		$this->assertStringNotContainsString( 'name="form_name"', $fields );
+	}
+
+	/**
+	 * The recipients caption lists every site administrator email.
+	 */
+	public function testRecipientsCaptionListsTheAdministratorEmails(): void {
+		$current = self::factory()->user->create(
+			[
+				'role'       => 'administrator',
+				'user_email' => 'current@example.com',
+			]
+		);
+		wp_set_current_user( $current );
+
+		self::factory()->user->create(
+			[
+				'role'       => 'administrator',
+				'user_login' => 'aa_admin',
+				'user_email' => 'alpha@example.com',
+			]
+		);
+		self::factory()->user->create(
+			[
+				'role'       => 'administrator',
+				'user_login' => 'zz_admin',
+				'user_email' => 'omega@example.com',
+			]
+		);
+
+		$html = $this->renderEditor();
+
+		$this->assertSame(
+			1,
+			preg_match( '/site administrator email \(([^)]+)\)/', $html, $matches )
+		);
+
+		$listed = array_map( 'trim', explode( ',', $matches[1] ) );
+
+		$this->assertGreaterThanOrEqual( 3, count( $listed ) );
+		$this->assertContains( 'current@example.com', $listed );
+		$this->assertContains( 'alpha@example.com', $listed );
+		$this->assertContains( 'omega@example.com', $listed );
 	}
 
 	/**

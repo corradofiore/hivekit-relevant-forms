@@ -496,3 +496,8 @@ td.relevant-forms-used-on .relevant-forms-used-on__popover:target {
 #rf-sms-code-row {
 	margin-top: 0.5em;
 }
+
+/* Form editor: rows that only matter while the AI-classification opt-in is on. */
+.form-table tr.rf-ai-dependent[hidden] {
+	display: none;
+}

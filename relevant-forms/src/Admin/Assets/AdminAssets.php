@@ -11,6 +11,7 @@ namespace RelevantForms\Admin\Assets;
 
 use RelevantForms\Admin\Controllers\RedirectTargetSearchController;
 use RelevantForms\Admin\Controllers\SmsVerificationController;
+use RelevantForms\Admin\Controllers\TestEmailController;
 use RelevantForms\Forms\Visibility\VisibilityRules;
 use RelevantForms\Support\AssetVersion;
 
@@ -71,6 +72,7 @@ final class AdminAssets {
 				'noResults'           => __( 'No pages or posts found.', 'relevant-forms' ),
 				'smsSendNonce'        => wp_create_nonce( SmsVerificationController::ACTION_SEND ),
 				'smsVerifyNonce'      => wp_create_nonce( SmsVerificationController::ACTION_VERIFY ),
+				'testEmailNonce'      => wp_create_nonce( TestEmailController::ACTION ),
 				'smsStrings'          => [
 					'checkPhone'    => __( 'Enter the phone number first.', 'relevant-forms' ),
 					'sending'       => __( 'Sending code…', 'relevant-forms' ),
@@ -79,6 +81,12 @@ final class AdminAssets {
 					'unverified'    => __( 'Not verified — send and verify the code before saving.', 'relevant-forms' ),
 					'devCode'       => __( 'Dev code:', 'relevant-forms' ),
 					'requestFailed' => __( 'The request failed. Try again.', 'relevant-forms' ),
+				],
+				'testEmailStrings'    => [
+					'sending' => __( 'Sending…', 'relevant-forms' ),
+					/* translators: %s: recipient email addresses. */
+					'sent'    => __( 'Test email sent to %s.', 'relevant-forms' ),
+					'failed'  => __( 'The test email could not be sent. Check the site\'s mail configuration.', 'relevant-forms' ),
 				],
 				'cloudKeyStrings'     => [
 					'edit'   => __( 'Edit', 'relevant-forms' ),

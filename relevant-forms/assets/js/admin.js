@@ -1811,6 +1811,91 @@
 		} )();
 	}
 
+	/*
+	 * AI classification: the dependent fields only matter while the form
+	 * opts in — hide them while the checkbox is off. Hiding (not disabling)
+	 * keeps the stored values in the save request.
+	 */
+	var aiToggle = document.querySelector( 'input[name="ai_enabled"]' );
+	var aiDependentRows = document.querySelectorAll( '.rf-ai-dependent' );
+
+	if ( aiToggle && aiDependentRows.length ) {
+		var syncAiRows = function () {
+			Array.prototype.forEach.call( aiDependentRows, function ( row ) {
+				row.hidden = ! aiToggle.checked;
+			} );
+		};
+
+		aiToggle.addEventListener( 'change', syncAiRows );
+		syncAiRows();
+	}
+
+	/*
+	 * Test email: sends one message using this form's notification
+	 * settings to the typed addresses, or to the site administrators when
+	 * the field is left empty.
+	 */
+	var testEmailButton = document.getElementById( 'rf-send-test-email' );
+
+	if ( testEmailButton && window.relevantFormsAdmin ) {
+		( function () {
+			var settings = window.relevantFormsAdmin;
+			var strings = settings.testEmailStrings || {};
+			var field = document.getElementById( 'relevant-test-email-to' );
+			var message = document.getElementById( 'rf-test-email-message' );
+			var formId = document.querySelector( 'input[name="form_id"]' );
+
+			/**
+			 * Show the feedback line below the button.
+			 *
+			 * @param {string} text Message text ('' hides the line).
+			 * @param {string} tone 'error' | 'info' | 'ok' | ''.
+			 */
+			function setMessage( text, tone ) {
+				message.textContent = text || '';
+				message.className = 'rf-sms-message' + ( text && tone ? ' rf-sms-message--' + tone : '' );
+				message.hidden = ! text;
+			}
+
+			testEmailButton.addEventListener( 'click', function () {
+				var body = new window.FormData();
+
+				body.append( 'action', 'relevant_forms_send_test_email' );
+				body.append( '_wpnonce', settings.testEmailNonce );
+				body.append( 'form_id', formId ? formId.value : '0' );
+				body.append( 'recipients', field ? field.value : '' );
+
+				testEmailButton.disabled = true;
+				setMessage( strings.sending || '', 'info' );
+
+				window.fetch( settings.ajaxUrl, {
+					method: 'POST',
+					credentials: 'same-origin',
+					body: body
+				} )
+					.then( function ( response ) {
+						return response.json();
+					} )
+					.then( function ( result ) {
+						if ( ! result || ! result.success ) {
+							setMessage( ( result && result.data && result.data.message ) || strings.failed || '', 'error' );
+							return;
+						}
+
+						var to = result.data && result.data.recipients ? result.data.recipients.join( ', ' ) : '';
+
+						setMessage( ( strings.sent || '' ).replace( '%s', to ), 'ok' );
+					} )
+					.catch( function () {
+						setMessage( strings.failed || '', 'error' );
+					} )
+					.then( function () {
+						testEmailButton.disabled = false;
+					} );
+			} );
+		} )();
+	}
+
 	/**
 	 * Toggle the form editor tabs (settings / fields).
 	 *

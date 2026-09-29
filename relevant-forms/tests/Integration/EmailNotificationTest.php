@@ -58,8 +58,59 @@ final class EmailNotificationTest extends TestCase {
 
 		$this->assertTrue( $result );
 		$this->assertCount( 1, $sent );
-		$this->assertSame( [ 'admin@example.com' ], $sent[0]['to'] );
+
+		// The configured administration address is the first recipient.
+		$this->assertSame( 'admin@example.com', $sent[0]['to'][0] );
 		$this->assertStringContainsString( 'Hello', $sent[0]['message'] );
+	}
+
+	/**
+	 * Without form recipients every site administrator gets the email.
+	 */
+	public function testFallsBackToAllSiteAdministrators(): void {
+		$repository = new FormRepository();
+
+		$id   = $repository->create( 'Admins', FormSchema::empty( 'Admins' ), 'published' );
+		$form = $repository->find( $id );
+
+		self::factory()->user->create(
+			[
+				'role'       => 'administrator',
+				'user_email' => 'first@example.com',
+			]
+		);
+		self::factory()->user->create(
+			[
+				'role'       => 'administrator',
+				'user_email' => 'second@example.com',
+			]
+		);
+		self::factory()->user->create(
+			[
+				'role'       => 'editor',
+				'user_email' => 'editor@example.com',
+			]
+		);
+
+		$sent = [];
+
+		add_filter(
+			'pre_wp_mail',
+			static function ( ?bool $shortCircuit, array $args ) use ( &$sent ): bool {
+				$sent[] = $args;
+				return true;
+			},
+			10,
+			2
+		);
+
+		$this->assertTrue( ( new EmailNotification() )->send( $form, [], null ) );
+
+		$to = $sent[0]['to'];
+
+		$this->assertContains( 'first@example.com', $to );
+		$this->assertContains( 'second@example.com', $to );
+		$this->assertNotContains( 'editor@example.com', $to );
 	}
 
 	/**

@@ -165,13 +165,26 @@ if ( $isEditing ) {
 		</table>
 
 		<?php $sender = $form->schema->sender(); ?>
+		<?php $admin_emails = \RelevantForms\Support\SiteAdmins::emails(); ?>
 		<h2><?php esc_html_e( 'Notifications', 'relevant-forms' ); ?></h2>
 		<table class="form-table" role="presentation">
 			<tr>
 				<th scope="row"><label for="relevant-notification-emails"><?php esc_html_e( 'Email recipients', 'relevant-forms' ); ?></label></th>
 				<td>
 					<textarea class="relevant-forms-textarea" id="relevant-notification-emails" name="notification_emails" rows="6" placeholder="<?php esc_attr_e( 'one address per line', 'relevant-forms' ); ?>"><?php echo esc_textarea( implode( "\n", $form->schema->notificationEmails() ) ); ?></textarea>
-					<p class="description relevant-forms-textarea-caption"><?php esc_html_e( 'Leave empty to use the site administrator email.', 'relevant-forms' ); ?></p>
+					<p class="description relevant-forms-textarea-caption">
+						<?php if ( [] !== $admin_emails ) : ?>
+							<?php
+							printf(
+								/* translators: %s: administrator email addresses. */
+								esc_html__( 'Leave empty to use the site administrator email (%s).', 'relevant-forms' ),
+								esc_html( implode( ', ', $admin_emails ) )
+							);
+							?>
+						<?php else : ?>
+							<?php esc_html_e( 'Leave empty to use the site administrator email.', 'relevant-forms' ); ?>
+						<?php endif; ?>
+					</p>
 				</td>
 			</tr>
 			<tr>
@@ -186,6 +199,15 @@ if ( $isEditing ) {
 				<td>
 					<input type="email" class="regular-text" id="relevant-sender-email" name="sender_email" value="<?php echo esc_attr( $sender['email'] ); ?>">
 					<p class="description"><?php esc_html_e( 'Used together with the sender name; leave both empty to use the WordPress default.', 'relevant-forms' ); ?></p>
+				</td>
+			</tr>
+			<tr>
+				<th scope="row"><?php esc_html_e( 'Send test email', 'relevant-forms' ); ?></th>
+				<td>
+					<textarea class="relevant-forms-textarea" id="relevant-test-email-to" rows="2" placeholder="<?php esc_attr_e( 'one address per line', 'relevant-forms' ); ?>"></textarea>
+					<button type="button" class="button" id="rf-send-test-email"><?php esc_html_e( 'Send test email', 'relevant-forms' ); ?></button>
+					<p class="rf-sms-message" id="rf-test-email-message" role="status" aria-live="polite" hidden></p>
+					<p class="description"><?php esc_html_e( 'Sends one test message with this form\'s sender settings. Leave the addresses empty to send it to the site administrators; paste an external address (e.g. from a deliverability testing service) to check where emails land.', 'relevant-forms' ); ?></p>
 				</td>
 			</tr>
 		</table>
@@ -224,28 +246,28 @@ if ( $isEditing ) {
 					</label>
 				</td>
 			</tr>
-			<tr>
+			<tr class="rf-ai-dependent">
 				<th scope="row"><label for="relevant-ai-purpose"><?php esc_html_e( 'Form purpose', 'relevant-forms' ); ?></label></th>
 				<td>
 					<textarea class="relevant-forms-textarea" id="relevant-ai-purpose" name="ai_purpose" rows="4"><?php echo esc_textarea( (string) ( $ai_policy['purpose'] ?? '' ) ); ?></textarea>
 					<p class="description relevant-forms-textarea-caption"><?php esc_html_e( 'What this form is about, so the AI can judge whether a submission is relevant, e.g. "Requests for quotes from homeowners", "RSVP for training events".', 'relevant-forms' ); ?></p>
 				</td>
 			</tr>
-			<tr>
+			<tr class="rf-ai-dependent">
 				<th scope="row"><label for="relevant-ai-priorities"><?php esc_html_e( 'What needs immediate attention', 'relevant-forms' ); ?></label></th>
 				<td>
 					<textarea class="relevant-forms-textarea" id="relevant-ai-priorities" name="ai_priorities" rows="3" placeholder="<?php esc_attr_e( 'one per line', 'relevant-forms' ); ?>"><?php echo esc_textarea( (string) ( $ai_policy['priorities'] ?? '' ) ); ?></textarea>
 					<p class="description relevant-forms-textarea-caption"><?php esc_html_e( 'Situations that should reach you right away, so the AI can judge urgency, e.g. "burst pipes", "no heating in winter". One per line.', 'relevant-forms' ); ?></p>
 				</td>
 			</tr>
-			<tr>
+			<tr class="rf-ai-dependent">
 				<th scope="row"><label for="relevant-ai-spam"><?php esc_html_e( 'Unwanted enquiries', 'relevant-forms' ); ?></label></th>
 				<td>
 					<textarea class="relevant-forms-textarea" id="relevant-ai-spam" name="ai_spam" rows="4"><?php echo esc_textarea( (string) ( $ai_policy['spam'] ?? '' ) ); ?></textarea>
 					<p class="description relevant-forms-textarea-caption"><?php esc_html_e( 'What to treat as spam or irrelevant for this form, e.g. "SEO services", "guest posts", "Automated sales pitches and link drops". One category per line.', 'relevant-forms' ); ?></p>
 				</td>
 			</tr>
-			<tr>
+			<tr class="rf-ai-dependent">
 				<th scope="row"><?php esc_html_e( 'Privacy mode', 'relevant-forms' ); ?></th>
 				<td>
 					<label>
@@ -255,7 +277,7 @@ if ( $isEditing ) {
 					<p class="description"><?php esc_html_e( 'Recommended. Disable only if classification quality suffers and you accept sending raw submissions.', 'relevant-forms' ); ?></p>
 				</td>
 			</tr>
-			<tr>
+			<tr class="rf-ai-dependent">
 				<th scope="row"><?php esc_html_e( 'Priority SMS', 'relevant-forms' ); ?></th>
 				<td>
 					<label>
@@ -264,7 +286,7 @@ if ( $isEditing ) {
 					</label>
 				</td>
 			</tr>
-			<tr>
+			<tr class="rf-ai-dependent">
 				<th scope="row"><label for="relevant-ai-sms-phone"><?php esc_html_e( 'Priority SMS recipient', 'relevant-forms' ); ?></label></th>
 				<td>
 					<input type="tel" class="regular-text" id="relevant-ai-sms-phone" name="ai_sms_phone" value="<?php echo esc_attr( $sms_phone ); ?>" data-stored="<?php echo esc_attr( $sms_phone ); ?>" placeholder="+39 333 1234567" autocomplete="tel" <?php disabled( ! $sms_alert_on ); ?>>

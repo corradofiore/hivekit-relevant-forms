@@ -13,6 +13,7 @@ use RelevantForms\Ai\Classification;
 use RelevantForms\Events\EventRecorder;
 use RelevantForms\Forms\Form;
 use RelevantForms\Support\Logger;
+use RelevantForms\Support\SiteAdmins;
 
 /**
  * Sends plain-text submission emails via wp_mail and records the outcome.
@@ -34,10 +35,7 @@ final class EmailNotification {
 		$recipients = $form->schema->notificationEmails();
 
 		if ( $recipients === [] ) {
-			$adminEmail = (string) get_option( 'admin_email' );
-			if ( '' !== $adminEmail ) {
-				$recipients = [ $adminEmail ];
-			}
+			$recipients = SiteAdmins::emails();
 		}
 
 		$recipients = array_values( array_filter( $recipients, 'is_email' ) );
@@ -60,12 +58,10 @@ final class EmailNotification {
 
 		// Per-form sender identity: name and address are used together or
 		// not at all (WordPress then applies its default From).
-		$sender      = $form->schema->sender();
-		$senderName  = trim( $sender['name'] );
-		$senderEmail = trim( $sender['email'] );
+		$from = SenderIdentity::fromHeader( $form );
 
-		if ( '' !== $senderName && is_email( $senderEmail ) ) {
-			$headers[] = sprintf( 'From: %s <%s>', $senderName, $senderEmail );
+		if ( '' !== $from ) {
+			$headers[] = $from;
 		}
 
 		try {
