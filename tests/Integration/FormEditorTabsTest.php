@@ -91,6 +91,43 @@ final class FormEditorTabsTest extends TestCase {
 	}
 
 	/**
+	 * The save button sits below the field list (left column) and at the
+	 * bottom of the editor column, plus one on the settings panel.
+	 */
+	public function testSaveButtonsRenderInBothFieldsColumns(): void {
+		wp_set_current_user( self::factory()->user->create( [ 'role' => 'administrator' ] ) );
+
+		$html     = $this->renderEditor();
+		$settings = $this->panel( $html, 'rf-panel-settings' );
+		$fields   = $this->panel( $html, 'rf-panel-fields' );
+
+		// Exactly three save buttons: settings panel, fields list column,
+		// fields editor column.
+		$this->assertSame( 3, substr_count( $html, 'rf-save--' ) );
+		$this->assertSame( 1, substr_count( $settings, 'rf-save--settings' ) );
+		$this->assertSame( 1, substr_count( $fields, 'rf-save--list' ) );
+		$this->assertSame( 1, substr_count( $fields, 'rf-save--editor' ) );
+
+		$this->assertSame( 1, substr_count( $settings, '>Save Form</button>' ) );
+		$this->assertSame( 2, substr_count( $fields, '>Save Form</button>' ) );
+
+		// Left column: below the field list, before the editor column.
+		$list      = (int) strpos( $fields, 'id="rf-fields-list"' );
+		$listSave  = (int) strpos( $fields, 'rf-save--list' );
+		$editorCol = (int) strpos( $fields, 'rf-fields-column--editor' );
+
+		$this->assertLessThan( $listSave, $list );
+		$this->assertLessThan( $editorCol, $listSave );
+
+		// Right column: below the visibility block.
+		$visibility = (int) strpos( $fields, 'id="rf-fields-visibility"' );
+		$columnSave = (int) strpos( $fields, 'rf-save--editor' );
+
+		$this->assertLessThan( $columnSave, $visibility );
+		$this->assertGreaterThan( $editorCol, $columnSave );
+	}
+
+	/**
 	 * The recipients caption lists every site administrator email.
 	 */
 	public function testRecipientsCaptionListsTheAdministratorEmails(): void {
