@@ -218,17 +218,19 @@
 	}
 
 	/**
-	 * Parse the choices textarea: one choice per line, optional value after
-	 * the first "|" (same rule as the PHP renderers).
+	 * Parse the choices textarea — one choice per line, "Value|Label" for
+	 * regular choices, "Item|Price" for priced payment choices (same rules
+	 * as the PHP renderers).
 	 *
-	 * @param {string} raw Textarea value.
+	 * @param {string}  raw        Textarea value.
+	 * @param {boolean} valueFirst Whether the value comes before the pipe.
 	 * @return {Array} Choices as {label, value} pairs.
 	 */
-	function parseChoiceLines( raw ) {
+	function parseChoiceLines( raw, valueFirst ) {
 		var choices = [];
 
 		raw.split( '\n' ).forEach( function ( line ) {
-			var pipe, label, value;
+			var pipe, first, last, label, value;
 
 			line = line.trim();
 
@@ -237,8 +239,11 @@
 			}
 
 			pipe = line.indexOf( '|' );
-			label = ( pipe === -1 ? line : line.slice( 0, pipe ) ).trim();
-			value = pipe === -1 ? label : ( line.slice( pipe + 1 ).trim() || label );
+			first = ( pipe === -1 ? line : line.slice( 0, pipe ) ).trim();
+			last = pipe === -1 ? first : ( line.slice( pipe + 1 ).trim() || first );
+
+			value = valueFirst ? first : last;
+			label = valueFirst ? last : first;
 
 			if ( '' === label ) {
 				return;
@@ -622,7 +627,7 @@
 		}
 
 		if ( choicesInput ) {
-			rebuildSampleChoices( wrapper, baseId, type, editor.getAttribute( 'data-for' ), parseChoiceLines( choicesInput.value ) );
+			rebuildSampleChoices( wrapper, baseId, type, editor.getAttribute( 'data-for' ), parseChoiceLines( choicesInput.value, isChoiceSource( type ) ) );
 		}
 
 		// The preview must never join the save form, or browser validation
@@ -682,7 +687,7 @@
 		var editor = fieldEditors.querySelector( '.rf-field-editor[data-for="' + fieldId + '"]' );
 		var choicesInput = editor ? editor.querySelector( 'textarea[name$="[choices]"]' ) : null;
 
-		return choicesInput ? parseChoiceLines( choicesInput.value ) : [];
+		return choicesInput ? parseChoiceLines( choicesInput.value, true ) : [];
 	}
 
 	/**

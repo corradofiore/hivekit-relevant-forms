@@ -196,14 +196,30 @@ $inputIdBase = 'rf-field-' . $fieldId;
 			<?php endif; ?>
 
 			<?php if ( $isChoice || $isPricedPayment ) : ?>
+				<?php
+				$choiceLines = array_map(
+					static function ( array $choice ) use ( $isPricedPayment ): string {
+						if ( $choice['label'] === $choice['value'] ) {
+							return $choice['label'];
+						}
+
+						// Regular choices read "Value|Label"; priced choices keep
+						// the item first: "Item|Price".
+						return $isPricedPayment
+							? $choice['label'] . '|' . $choice['value']
+							: $choice['value'] . '|' . $choice['label'];
+					},
+					$field_type->normalizeChoices( $definition )
+				);
+				?>
 				<tr>
 					<th scope="row"><label for="<?php echo esc_attr( $inputIdBase . '-choices' ); ?>"><?php esc_html_e( 'Choices', 'relevant-forms' ); ?></label></th>
 					<td>
-						<textarea class="widefat" id="<?php echo esc_attr( $inputIdBase . '-choices' ); ?>" rows="4" name="relevant_fields[<?php echo esc_attr( $fieldId ); ?>][choices]"><?php echo esc_textarea( implode( "\n", array_map( static fn ( array $choice ): string => $choice['label'] === $choice['value'] ? $choice['label'] : $choice['label'] . '|' . $choice['value'], $field_type->normalizeChoices( $definition ) ) ) ); ?></textarea>
+						<textarea class="widefat" id="<?php echo esc_attr( $inputIdBase . '-choices' ); ?>" rows="4" name="relevant_fields[<?php echo esc_attr( $fieldId ); ?>][choices]"><?php echo esc_textarea( implode( "\n", $choiceLines ) ); ?></textarea>
 						<?php if ( $isPricedPayment ) : ?>
 							<p class="description"><?php esc_html_e( 'One per line. The price follows the item after a pipe (|), e.g. T-shirt|25.00.', 'relevant-forms' ); ?></p>
 						<?php else : ?>
-							<p class="description"><?php esc_html_e( 'One per line. Optionally set the submitted value after a pipe (|), e.g. Red|red.', 'relevant-forms' ); ?></p>
+							<p class="description"><?php esc_html_e( 'One value per line in "value|label" format, e.g. not_sure|Not sure', 'relevant-forms' ); ?></p>
 						<?php endif; ?>
 					</td>
 				</tr>

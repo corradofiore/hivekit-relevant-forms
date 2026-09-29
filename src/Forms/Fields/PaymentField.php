@@ -34,6 +34,19 @@ abstract class PaymentField implements FieldType, ChoiceFieldType {
 	}
 
 	/**
+	 * {@inheritDoc}
+	 *
+	 * Priced rows keep the item first — "Item|Price" — with the price as the
+	 * value; regular choices read "Value|Label".
+	 *
+	 * @param array<string, mixed> $definition Field definition.
+	 * @return array<int, array{label: string, value: string}>
+	 */
+	public function normalizeChoices( array $definition ): array {
+		return $this->parseChoiceRows( $definition, false );
+	}
+
+	/**
 	 * Choices with normalized prices.
 	 *
 	 * The choice textarea stores `Label|Price` lines; the normalized "value"

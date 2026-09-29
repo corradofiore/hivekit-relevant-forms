@@ -93,7 +93,7 @@ it(
 	'enforces select allowed values',
 	function () {
 		$type       = FieldTypeRegistry::get( 'select' );
-		$definition = [ 'choices' => [ 'Red|red', 'Blue|blue' ] ];
+		$definition = [ 'choices' => [ 'red|Red', 'blue|Blue' ] ];
 
 		expect( $type->validate( $definition, 'red' ) )->toBeNull();
 		expect( $type->validate( $definition, 'green' ) )->not->toBeNull();
@@ -106,7 +106,7 @@ it(
 	'sanitizes checkbox groups to allowed values only',
 	function () {
 		$type       = FieldTypeRegistry::get( 'checkbox' );
-		$definition = [ 'choices' => [ 'A|a', 'B|b' ] ];
+		$definition = [ 'choices' => [ 'a|A', 'b|B' ] ];
 
 		expect( $type->sanitize( $definition, [ 'a', 'z' ] ) )->toBe( [ 'a' ] );
 		expect( $type->validate( $definition, [ 'a', 'z' ] ) )->not->toBeNull();
