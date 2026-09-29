@@ -29,6 +29,8 @@ if ( $isEditing ) {
 		)
 		: __( 'Edit Form', 'relevant-forms' );
 }
+
+$rf_save_label = $isEditing ? __( 'Save Form', 'relevant-forms' ) : __( 'Create Form', 'relevant-forms' );
 ?>
 <div class="wrap relevant-forms-builder">
 	<h1><?php echo esc_html( $pageTitle ); ?></h1>
@@ -302,6 +304,7 @@ if ( $isEditing ) {
 			</tr>
 		</table>
 		</div><!-- /.relevant-forms-ai-panel -->
+		<p class="submit rf-save rf-save--settings"><button type="submit" class="button button-primary"><?php echo esc_html( $rf_save_label ); ?></button></p>
 		</div><!-- #rf-panel-settings -->
 
 		<div id="rf-panel-fields" class="relevant-forms-tabs__panel">
@@ -346,6 +349,7 @@ if ( $isEditing ) {
 					}
 					?>
 				</div>
+				<p class="submit rf-save rf-save--list"><button type="submit" class="button button-primary"><?php echo esc_html( $rf_save_label ); ?></button></p>
 			</div>
 			<div class="rf-fields-column rf-fields-column--editor">
 				<h2 id="rf-fields-title"><?php esc_html_e( 'Fields', 'relevant-forms' ); ?></h2>
@@ -376,11 +380,10 @@ if ( $isEditing ) {
 					}
 					?>
 				</div>
+				<p class="submit rf-save rf-save--editor"><button type="submit" class="button button-primary"><?php echo esc_html( $rf_save_label ); ?></button></p>
 			</div>
 		</div>
 		</div><!-- #rf-panel-fields -->
-
-		<?php submit_button( $isEditing ? __( 'Save Form', 'relevant-forms' ) : __( 'Create Form', 'relevant-forms' ) ); ?>
 	</form>
 
 	<?php foreach ( $types as $field_type ) : ?>
