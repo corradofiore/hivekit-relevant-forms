@@ -109,6 +109,32 @@ it(
 );
 
 it(
+	'strips the stored rules from the first field only',
+	function () use ( $rule, $config ) {
+		$fields = [
+			[
+				'id'         => 'f_first',
+				'type'       => 'text',
+				'visibility' => $config( 'hidden', [ [ $rule( 'f_second', 'is', 'x' ) ] ] ),
+			],
+			[
+				'id'         => 'f_second',
+				'type'       => 'text',
+				'visibility' => $config( 'hidden', [ [ $rule( 'f_first', 'is', 'x' ) ] ] ),
+			],
+		];
+
+		$stripped = VisibilityRules::withoutFirstFieldRules( $fields );
+
+		expect( isset( $stripped[0]['visibility'] ) )->toBeFalse();
+		expect( isset( $stripped[1]['visibility'] ) )->toBeTrue();
+
+		// The caller's list is left untouched.
+		expect( isset( $fields[0]['visibility'] ) )->toBeTrue();
+	}
+);
+
+it(
 	'flips the default when a group matches',
 	function () use ( $rule, $config, $field, $target ) {
 		$fields = [

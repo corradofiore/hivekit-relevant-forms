@@ -118,10 +118,12 @@ final class FormEditorVisibilityTest extends TestCase {
 		$this->assertGreaterThan( $preview, $title );
 		$this->assertGreaterThan( $title, $section );
 
-		// One block per field, keyed like the editors, with the default
-		// select posting under the field's visibility path.
+		// One block per field, keyed like the editors. The first (only)
+		// field here is always shown, so its block explains that instead
+		// of offering controls.
 		$this->assertStringContainsString( '<div class="rf-field-visibility" data-for="f_name">', $html );
-		$this->assertStringContainsString( 'name="relevant_fields[f_name][visibility][default]"', $html );
+		$this->assertStringContainsString( 'always shown', $html );
+		$this->assertStringNotContainsString( 'name="relevant_fields[f_name][visibility][default]"', $html );
 
 		// The form has fields: the section is not hidden.
 		$this->assertDoesNotMatchRegularExpression( '/id="rf-fields-visibility"[^>]*hidden/', $html );
@@ -208,6 +210,70 @@ final class FormEditorVisibilityTest extends TestCase {
 		$html   = $this->renderEditor( $formId );
 
 		$this->assertStringContainsString( '<option value="f_ghost" selected="selected">f_ghost (not above)</option>', $html );
+	}
+
+	/**
+	 * Visibility controls start with the second field: the first field
+	 * cannot be conditional.
+	 */
+	public function testTheFirstFieldCannotBeConditional(): void {
+		wp_set_current_user( self::factory()->user->create( [ 'role' => 'administrator' ] ) );
+
+		$formId = $this->makeVisibilityForm();
+
+		$html = $this->renderEditor( $formId );
+
+		// The first field's block explains the exemption...
+		$this->assertStringContainsString( 'always shown', $html );
+
+		// ...and offers no controls, while the second field keeps them.
+		$this->assertStringNotContainsString( 'name="relevant_fields[f_plan][visibility][default]"', $html );
+		$this->assertStringNotContainsString( 'relevant_fields[f_plan][visibility][groups]', $html );
+		$this->assertStringContainsString( 'name="relevant_fields[f_extra][visibility][default]"', $html );
+	}
+
+	/**
+	 * Rules stored on the first field are ignored: no controls and no
+	 * preview summary (they disappear from the schema on the next save).
+	 */
+	public function testStoredRulesOnTheFirstFieldAreIgnored(): void {
+		wp_set_current_user( self::factory()->user->create( [ 'role' => 'administrator' ] ) );
+
+		$repository = new FormRepository();
+
+		$schema = FormSchema::empty( 'Contact' )->withFields(
+			[
+				[
+					'id'         => 'f_first',
+					'type'       => 'text',
+					'label'      => 'First',
+					'visibility' => [
+						'default' => 'hidden',
+						'groups'  => [
+							[
+								[
+									'field'    => 'f_second',
+									'operator' => 'is',
+									'value'    => 'x',
+								],
+							],
+						],
+					],
+				],
+				[
+					'id'    => 'f_second',
+					'type'  => 'text',
+					'label' => 'Second',
+				],
+			]
+		);
+
+		$formId = $repository->create( 'Contact', $schema, 'published' );
+
+		$html = $this->renderEditor( $formId );
+
+		$this->assertStringNotContainsString( 'name="relevant_fields[f_first][visibility][default]"', $html );
+		$this->assertStringNotContainsString( 'Hidden when:', $html );
 	}
 
 	/**

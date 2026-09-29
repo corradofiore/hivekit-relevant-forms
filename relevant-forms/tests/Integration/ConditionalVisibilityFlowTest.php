@@ -13,6 +13,7 @@ namespace RelevantForms\Tests\Integration;
 
 use RelevantForms\Entries\EntryRepository;
 use RelevantForms\Forms\Form;
+use RelevantForms\Forms\FormRenderer;
 use RelevantForms\Forms\FormRepository;
 use RelevantForms\Forms\FormSchema;
 use RelevantForms\Forms\SubmissionFeedback;
@@ -100,6 +101,29 @@ final class ConditionalVisibilityFlowTest extends TestCase {
 	}
 
 	/**
+	 * The first field ignores its stored rules: it is always shown and
+	 * stored, whatever the rules would decide.
+	 */
+	public function testTheFirstFieldIgnoresItsStoredRules(): void {
+		$form = $this->makeFirstFieldConditionalForm();
+
+		// The renderer drops the rules entirely: no payload for the
+		// front-end script, no hidden marker on the field.
+		$html = FormRenderer::renderForm( $form );
+
+		$this->assertStringNotContainsString( 'data-rf-visibility', $html );
+		$this->assertStringContainsString( 'relevant_field_f_plan', $html );
+
+		// A value that its rules would hide is still stored.
+		$this->submit( $form, 'free', '' );
+
+		$entries = ( new EntryRepository() )->findMany( [ 'form_id' => $form->id ] );
+
+		$this->assertCount( 1, $entries );
+		$this->assertSame( 'free', $entries[0]->meta['f_plan'] );
+	}
+
+	/**
 	 * Run the front-end handler and capture the redirect target.
 	 *
 	 * @param Form   $form  Form.
@@ -171,6 +195,45 @@ final class ConditionalVisibilityFlowTest extends TestCase {
 							],
 						],
 					],
+				],
+			]
+		);
+
+		$id = $repository->create( 'Conditional', $schema, 'published' );
+
+		return $repository->find( $id );
+	}
+
+	/**
+	 * A conditional fixture whose FIRST field carries rules (imported shape).
+	 */
+	private function makeFirstFieldConditionalForm(): Form {
+		$repository = new FormRepository();
+
+		$schema = FormSchema::empty( 'Conditional' )->withFields(
+			[
+				[
+					'id'         => 'f_plan',
+					'type'       => 'text',
+					'label'      => 'Plan',
+					'required'   => true,
+					'visibility' => [
+						'default' => 'hidden',
+						'groups'  => [
+							[
+								[
+									'field'    => 'f_extra',
+									'operator' => 'is',
+									'value'    => 'unlock',
+								],
+							],
+						],
+					],
+				],
+				[
+					'id'    => 'f_extra',
+					'type'  => 'text',
+					'label' => 'Extra',
 				],
 			]
 		);

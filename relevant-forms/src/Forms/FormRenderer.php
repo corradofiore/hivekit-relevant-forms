@@ -78,7 +78,10 @@ final class FormRenderer {
 
 		wp_enqueue_style( 'relevant-forms' );
 
-		$definitions = $form->schema->fields();
+		// The first field is always shown: rules can only depend on fields
+		// above, and nothing sits above the first field. Stored rules
+		// (legacy or imported) are ignored.
+		$definitions = VisibilityRules::withoutFirstFieldRules( $form->schema->fields() );
 		$visibility  = VisibilityRules::evaluate( $definitions, $values );
 		$definitions = self::prepareDefinitions( $definitions, $visibility, $values, $form->schema->currency() );
 		$pages       = self::groupPages( $definitions, $visibility );

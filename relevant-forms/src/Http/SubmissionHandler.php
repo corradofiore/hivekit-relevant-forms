@@ -171,12 +171,14 @@ final class SubmissionHandler {
 	 * @return array{0: array<string, string>, 1: array<string, mixed>, 2: array<string, mixed>, 3: array<string, mixed>} Errors (field id → message), sanitized values, raw display values and the server-computed payment breakdown.
 	 */
 	private static function validateSubmission( Form $form ): array {
+		// The first field is always shown: rules can only depend on fields
+		// above, and nothing sits above the first field (FormRenderer).
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- nonce is verified by verifyNonce() before validation runs.
 		$raw         = wp_unslash( $_POST );
 		$values      = [];
 		$display     = [];
 		$errors      = [];
-		$definitions = $form->schema->fields();
+		$definitions = VisibilityRules::withoutFirstFieldRules( $form->schema->fields() );
 		$currency    = $form->schema->currency();
 
 		$context = [];

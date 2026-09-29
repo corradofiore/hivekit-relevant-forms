@@ -317,6 +317,14 @@ if ( $isEditing ) {
 				$builder_items[ $builder_field_index ] = [ $builder_definition, $builder_field_type ];
 			}
 		}
+
+		// The first field is always shown: its rules could only depend on
+		// fields above it, and there are none. Ignore the stored ones.
+		$builder_first_key = array_key_first( $builder_items );
+
+		if ( null !== $builder_first_key ) {
+			unset( $builder_items[ $builder_first_key ][0]['visibility'] );
+		}
 		?>
 		<div class="rf-fields-columns">
 			<div class="rf-fields-column rf-fields-column--list">
@@ -363,6 +371,7 @@ if ( $isEditing ) {
 				<div id="rf-fields-visibility" class="rf-fields-visibility"<?php echo [] === $builder_fields ? ' hidden' : ''; ?>>
 					<?php
 					foreach ( $builder_items as $builder_visibility_index => [ $definition, $field_type ] ) {
+						$builder_visibility_is_first = array_key_first( $builder_items ) === $builder_visibility_index;
 						require RELEVANT_FORMS_PATH . 'templates/admin/field-visibility.php';
 					}
 					?>
@@ -401,7 +410,8 @@ if ( $isEditing ) {
 
 			// Template fragments have no previous fields: admin.js fills the
 			// source options when the field is added to the list.
-			$builder_visibility_index = 0;
+			$builder_visibility_index    = 0;
+			$builder_visibility_is_first = false;
 			require RELEVANT_FORMS_PATH . 'templates/admin/field-visibility.php';
 			?>
 		</template>
