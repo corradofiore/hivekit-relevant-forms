@@ -1039,12 +1039,38 @@
 	}
 
 	/**
+	 * Mirror the always-shown exemption onto the current block order: the
+	 * topmost field's block shows the explanation instead of its controls
+	 * (its rules are never applied and the save handler drops posted ones).
+	 */
+	function syncFirstFieldControls() {
+		var items = fieldList ? fieldList.querySelectorAll( '.rf-field-item' ) : [];
+		var firstId = items.length ? items[ 0 ].getAttribute( 'data-for' ) : '';
+
+		fieldVisibility.querySelectorAll( '.rf-field-visibility' ).forEach( function ( block ) {
+			var controls = block.querySelector( '.rf-field-visibility__controls' );
+			var note = block.querySelector( '[data-first-note]' );
+
+			if ( ! controls || ! note ) {
+				return;
+			}
+
+			var isFirst = block.getAttribute( 'data-for' ) === firstId;
+
+			controls.hidden = isFirst;
+			note.hidden = ! isFirst;
+		} );
+	}
+
+	/**
 	 * Refresh the source dropdowns of every rule (order/name changes).
 	 */
 	function refreshVisibilitySources() {
 		if ( ! fieldVisibility ) {
 			return;
 		}
+
+		syncFirstFieldControls();
 
 		fieldVisibility.querySelectorAll( '.rf-field-visibility' ).forEach( function ( block ) {
 			block.querySelectorAll( '[data-rule]' ).forEach( function ( rule ) {

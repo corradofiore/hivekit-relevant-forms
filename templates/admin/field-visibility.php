@@ -35,9 +35,8 @@ foreach ( $builder_fields as $vis_field ) {
 }
 ?>
 <div class="rf-field-visibility" data-for="<?php echo esc_attr( $vis_field_id ); ?>">
-	<?php if ( $builder_visibility_is_first ) : ?>
-		<p class="rf-field-visibility__intro description"><?php esc_html_e( 'This field is always shown: it has no fields above it for a visibility rule to depend on.', 'relevant-forms' ); ?></p>
-	<?php else : ?>
+	<p class="rf-field-visibility__intro description" data-first-note<?php echo $builder_visibility_is_first ? '' : ' hidden'; ?>><?php esc_html_e( 'This field is always shown: it has no fields above it for a visibility rule to depend on.', 'relevant-forms' ); ?></p>
+	<div class="rf-field-visibility__controls"<?php echo $builder_visibility_is_first ? ' hidden' : ''; ?>>
 	<p class="rf-field-visibility__intro"><?php esc_html_e( 'Rules flip the field from its default state when a whole group matches. Rules inside a group are joined with AND, groups with OR.', 'relevant-forms' ); ?></p>
 
 	<p class="rf-field-visibility__default">
@@ -176,5 +175,5 @@ foreach ( $builder_fields as $vis_field ) {
 	</div>
 
 	<button type="button" class="button-link rf-visibility-add-group"><?php esc_html_e( '+ Add group', 'relevant-forms' ); ?></button>
-	<?php endif; ?>
+	</div>
 </div>
