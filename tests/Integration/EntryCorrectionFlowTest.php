@@ -56,9 +56,8 @@ final class EntryCorrectionFlowTest extends TestCase {
 		update_option(
 			'relevant_forms_settings',
 			[
-				'cloud_url'       => 'https://cloud.example.com',
-				'cloud_api_key'   => 'site-key',
-				'ai_site_purpose' => 'Plumbing company',
+				'cloud_url'     => 'https://cloud.example.com',
+				'cloud_api_key' => 'site-key',
 			]
 		);
 		delete_option( PreferenceProfile::OPTION );

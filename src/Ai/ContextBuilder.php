@@ -14,14 +14,10 @@ use RelevantForms\Forms\Form;
 
 /**
  * Assembles the payload sent to the Cloud classification endpoint.
- * The submission is redacted before it ever leaves WordPress.
+ * The submission is redacted before it ever leaves WordPress unless
+ * privacy mode is switched off for the form (doc §18).
  */
 final class ContextBuilder {
-
-	/**
-	 * Settings option key.
-	 */
-	private const OPTION = 'relevant_forms_settings';
 
 	/**
 	 * Maximum fields/entries forwarded.
@@ -64,17 +60,18 @@ final class ContextBuilder {
 	 * @return array<string, mixed>
 	 */
 	public function build( Form $form, array $values, array $protection ): array {
-		$settings = (array) get_option( self::OPTION, [] );
-		$policy   = $form->schema->aiPolicy();
+		$policy = $form->schema->aiPolicy();
+
+		// Privacy is a per-form setting (default ON); it governs everything
+		// sent for this classification, including the corrections profile.
+		$this->redactor = new Redactor( (bool) ( $policy['privacy_mode'] ?? true ) );
 
 		$context = [
-			'site_purpose'       => mb_substr( trim( (string) ( $settings['ai_site_purpose'] ?? '' ) ), 0, 500 ),
 			'form_name'          => mb_substr( $form->name, 0, 200 ),
 			'form_purpose'       => mb_substr( trim( (string) ( $policy['purpose'] ?? '' ) ), 0, 500 ),
 			'form_spam'          => $this->lines( (string) ( $policy['spam'] ?? '' ) ),
 			'field_labels'       => $this->fieldLabels( $form ),
-			'priorities'         => $this->lines( (string) ( $settings['ai_priorities'] ?? '' ) ),
-			'unwanted'           => $this->lines( (string) ( $settings['ai_unwanted'] ?? '' ) ),
+			'priorities'         => $this->lines( (string) ( $policy['priorities'] ?? '' ) ),
 			'preference_profile' => $this->profile->guidance(),
 			'recent_corrections' => $this->recentCorrections(),
 			'submission'         => $this->submission( $values ),

@@ -56,7 +56,7 @@ When explicitly enabled, Relevant Cloud returns validated signals such as spam p
 
 = Optional priority SMS alerts =
 
-Important submissions should not look identical to every other email. When managed SMS is configured, a high-priority submission can trigger a short SMS alert while ordinary submissions continue through normal email and inbox handling. Alerts contain the classification summary and a secure link to the entry (WordPress login required) – never the full submission.
+Important submissions should not look identical to every other email. When managed SMS is configured, a high-priority submission can trigger a short SMS alert while ordinary submissions continue through normal email and inbox handling. Each form has its own alert toggle and verified mobile number. Alerts contain the classification summary and a secure link to the entry (WordPress login required) – never the full submission.
 
 = Optional managed secure uploads =
 
@@ -71,7 +71,7 @@ Permanent cloud credentials are never exposed to the visitor's browser.
 
 = Privacy and control =
 
-External processing is optional. Core does not send form submissions to Relevant Cloud merely because the plugin is installed or activated: an administrator must connect the site and explicitly enable each capability. Redaction (emails, phone numbers, IP addresses, URL paths) is applied by default before semantic classification. Administrators can disconnect Relevant Cloud at any time without disabling Core forms.
+External processing is optional. Core does not send form submissions to Relevant Cloud merely because the plugin is installed or activated: an administrator must connect the site and explicitly enable each capability. Redaction (emails, phone numbers, IP addresses, URL paths) is applied by default, per form, before semantic classification. Administrators can disconnect Relevant Cloud at any time without disabling Core forms.
 
 = Relevant Pro =
 
@@ -117,7 +117,7 @@ Subprocessors (including Stripe): [INSERT RELEVANT SUBPROCESSORS URL]
 3. Create a form under **Relevant Forms → Forms**, or import supported forms from WPForms under **Relevant Forms → Import**.
 4. Embed a form with the `[relevant_form id="123"]` shortcode or the `relevant_forms_render( 123 )` template function.
 5. Submit a test entry and verify local storage and email behavior.
-6. Optionally, connect Relevant Cloud from **Relevant Forms → Settings** to enable semantic classification, managed SMS alerts or managed secure uploads.
+6. Optionally, connect Relevant Cloud from **Relevant Forms → Settings** to enable semantic classification, managed SMS alerts or managed secure uploads, then configure each form's sender, AI guidance and alert recipient in the form editor.
 
 == Frequently Asked Questions ==
 
@@ -160,7 +160,7 @@ Relevant Forms is an independent product and is not affiliated with or endorsed 
 * Uploads: local private quarantine with strict validation and a scan-before-download policy.
 * Migration: WPForms compatibility scanner and draft importer (field types including page breaks, dividers, entry previews, content blocks and custom HTML code blocks, notifications, confirmations and conditional logic converted to visibility rules), plus a Tier 1 hook compatibility layer that runs only while WPForms itself is not active. Imported forms keep the original WPForms form ID, so integrations with per-form mappings — e.g. Newsletter subscription sources — keep working after the switch.
 * Payments: Stripe Connect card payments (fixed items, priced choices, donation-style amounts, live total), hosted Stripe Checkout on the site owner's own Stripe account, 2% platform fee, admin refunds and WPForms payment-field import with amounts preserved.
-* Optional Relevant Cloud: explicit consent connection flow, semantic classification with redaction, priority SMS alerts, managed secure uploads, usage metering and per-site subscriptions with hosted checkout.
+* Optional Relevant Cloud: explicit consent connection flow, semantic classification with redaction, priority SMS alerts, managed secure uploads, usage metering and per-site subscriptions with hosted checkout. Notification sender, AI guidance (purpose, priorities, unwanted enquiries, privacy mode) and the priority SMS recipient are configured per form in the form editor.
 * Privacy: no external calls before explicit configuration; the plugin is fully functional without Relevant Cloud.
 
 == Upgrade Notice ==

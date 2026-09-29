@@ -62,11 +62,8 @@ final class AiClassificationFlowTest extends TestCase {
 		update_option(
 			'relevant_forms_settings',
 			[
-				'cloud_url'       => 'https://cloud.example.com',
-				'cloud_api_key'   => 'site-key',
-				'ai_site_purpose' => 'Plumbing company',
-				'ai_priorities'   => 'emergency repairs',
-				'ai_privacy_mode' => 1,
+				'cloud_url'     => 'https://cloud.example.com',
+				'cloud_api_key' => 'site-key',
 			]
 		);
 
@@ -123,8 +120,10 @@ final class AiClassificationFlowTest extends TestCase {
 		$this->assertStringContainsString( '[EMAIL]', $body );
 		$this->assertStringNotContainsString( 'ada@example.com', $body );
 
-		// Per-form guidance reaches the classifier (purpose + spam criteria).
+		// Per-form guidance reaches the classifier (purpose, priorities,
+		// unwanted enquiries).
 		$this->assertStringContainsString( 'Automated sales pitches and link drops', $body );
+		$this->assertStringContainsString( 'emergency repairs', $body );
 
 		$names = array_column( EventRecorder::forEntry( (int) $entry->id ), 'event' );
 		$this->assertContains( 'classification_completed', $names );
@@ -274,20 +273,37 @@ final class AiClassificationFlowTest extends TestCase {
 	}
 
 	/**
-	 * The editor save persists the per-form AI policy (purpose + spam).
+	 * The editor save persists the per-form policy (sender + AI content) and
+	 * keeps import metadata / upload policy intact.
 	 */
-	public function testSavingPersistsTheAiPolicy(): void {
+	public function testSavingPersistsThePerFormPolicy(): void {
 		wp_set_current_user( self::factory()->user->create( [ 'role' => 'administrator' ] ) );
 
-		$form = $this->makeForm( true );
+		$repository = new FormRepository();
+		$form       = $this->makeForm( true );
+
+		// Simulate import provenance + a stored top-level upload policy.
+		$repository->update(
+			$form->id,
+			$form->name,
+			$form->schema
+				->withMetadata( [ 'wpforms_form_id' => 1105 ] )
+				->withUploadPolicy( [ 'legacy' => true ] ),
+			'published'
+		);
+		$form = $repository->find( $form->id );
 
 		$_POST = [
-			'form_id'     => $form->id,
-			'form_name'   => 'Enquiry',
-			'form_status' => 'published',
-			'ai_enabled'  => '1',
-			'ai_purpose'  => 'Quote requests from homeowners',
-			'ai_spam'     => 'Automated sales pitches and link drops',
+			'form_id'         => $form->id,
+			'form_name'       => 'Enquiry',
+			'form_status'     => 'published',
+			'sender_name'     => 'Acme Forms',
+			'sender_email'    => 'no-reply@acme.example',
+			'ai_enabled'      => '1',
+			'ai_purpose'      => 'Quote requests from homeowners',
+			'ai_priorities'   => 'emergency repairs',
+			'ai_spam'         => 'Automated sales pitches and link drops',
+			'ai_privacy_mode' => '1',
 		];
 
 		$_REQUEST['_wpnonce'] = wp_create_nonce( 'relevant_form_save' );
@@ -314,10 +330,24 @@ final class AiClassificationFlowTest extends TestCase {
 
 		$this->assertStringContainsString( 'saved=1', $url );
 
-		$policy = ( new FormRepository() )->find( $form->id )->schema->aiPolicy();
+		$saved  = $repository->find( $form->id );
+		$policy = $saved->schema->aiPolicy();
 
+		$this->assertSame(
+			[
+				'name'  => 'Acme Forms',
+				'email' => 'no-reply@acme.example',
+			],
+			$saved->schema->sender()
+		);
 		$this->assertSame( 'Quote requests from homeowners', $policy['purpose'] ?? '' );
+		$this->assertSame( 'emergency repairs', $policy['priorities'] ?? '' );
 		$this->assertSame( 'Automated sales pitches and link drops', $policy['spam'] ?? '' );
+		$this->assertSame( 1, $policy['privacy_mode'] ?? 0 );
+
+		// Non-editor keys survive the save.
+		$this->assertSame( [ 'wpforms_form_id' => 1105 ], $saved->schema->metadata() );
+		$this->assertSame( [ 'legacy' => true ], $saved->schema->uploadPolicy() );
 	}
 
 	/**
@@ -362,9 +392,11 @@ final class AiClassificationFlowTest extends TestCase {
 			)
 			->withAiPolicy(
 				[
-					'enabled' => $aiEnabled,
-					'purpose' => 'Quote requests from homeowners',
-					'spam'    => 'Automated sales pitches and link drops',
+					'enabled'      => $aiEnabled,
+					'purpose'      => 'Quote requests from homeowners',
+					'priorities'   => 'emergency repairs',
+					'spam'         => 'Automated sales pitches and link drops',
+					'privacy_mode' => 1,
 				]
 			);
 

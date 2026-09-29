@@ -164,6 +164,7 @@ if ( $isEditing ) {
 			<?php endif; ?>
 		</table>
 
+		<?php $sender = $form->schema->sender(); ?>
 		<h2><?php esc_html_e( 'Notifications', 'relevant-forms' ); ?></h2>
 		<table class="form-table" role="presentation">
 			<tr>
@@ -173,10 +174,25 @@ if ( $isEditing ) {
 					<p class="description relevant-forms-textarea-caption"><?php esc_html_e( 'Leave empty to use the site administrator email.', 'relevant-forms' ); ?></p>
 				</td>
 			</tr>
+			<tr>
+				<th scope="row"><label for="relevant-sender-name"><?php esc_html_e( 'Sender name', 'relevant-forms' ); ?></label></th>
+				<td>
+					<input type="text" class="regular-text" id="relevant-sender-name" name="sender_name" value="<?php echo esc_attr( $sender['name'] ); ?>">
+					<p class="description"><?php esc_html_e( 'Shown as the sender of this form\'s notification emails.', 'relevant-forms' ); ?></p>
+				</td>
+			</tr>
+			<tr>
+				<th scope="row"><label for="relevant-sender-email"><?php esc_html_e( 'Sender email', 'relevant-forms' ); ?></label></th>
+				<td>
+					<input type="email" class="regular-text" id="relevant-sender-email" name="sender_email" value="<?php echo esc_attr( $sender['email'] ); ?>">
+					<p class="description"><?php esc_html_e( 'Used together with the sender name; leave both empty to use the WordPress default.', 'relevant-forms' ); ?></p>
+				</td>
+			</tr>
 		</table>
 
 		<?php
 		$ai_policy    = $form->schema->aiPolicy();
+		$privacy_on   = (bool) ( $ai_policy['privacy_mode'] ?? true );
 		$sms_alert_on = ! empty( $ai_policy['sms_alert'] );
 		$sms_phone    = (string) ( $ai_policy['sms_phone'] ?? '' );
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- display-only notice state carried in the redirect.
@@ -197,7 +213,7 @@ if ( $isEditing ) {
 		<div class="relevant-forms-ai-panel">
 			<h2><?php esc_html_e( 'AI classification', 'relevant-forms' ); ?></h2>
 			<p class="relevant-forms-ai-panel__intro"><?php esc_html_e( 'AI evaluates meaning, relevance, intent and urgency. Important submissions receive a transparent attention score, so they do not look identical to every other email.', 'relevant-forms' ); ?></p>
-			<p class="description"><?php esc_html_e( 'Requires Relevant Cloud with classification enabled in Relevant Forms → Settings. Submissions are redacted before they are sent.', 'relevant-forms' ); ?></p>
+			<p class="description"><?php esc_html_e( 'Requires Relevant Cloud with classification enabled in Relevant Forms → Settings. Submissions are redacted before they are sent unless privacy mode is turned off below.', 'relevant-forms' ); ?></p>
 		<table class="form-table" role="presentation">
 			<tr>
 				<th scope="row"><?php esc_html_e( 'Classify submissions', 'relevant-forms' ); ?></th>
@@ -216,10 +232,27 @@ if ( $isEditing ) {
 				</td>
 			</tr>
 			<tr>
-				<th scope="row"><label for="relevant-ai-spam"><?php esc_html_e( 'What counts as spam', 'relevant-forms' ); ?></label></th>
+				<th scope="row"><label for="relevant-ai-priorities"><?php esc_html_e( 'Priorities', 'relevant-forms' ); ?></label></th>
+				<td>
+					<textarea class="relevant-forms-textarea" id="relevant-ai-priorities" name="ai_priorities" rows="3" placeholder="<?php esc_attr_e( 'one per line', 'relevant-forms' ); ?>"><?php echo esc_textarea( (string) ( $ai_policy['priorities'] ?? '' ) ); ?></textarea>
+					<p class="description relevant-forms-textarea-caption"><?php esc_html_e( 'What counts as high priority for this form, e.g. "emergency repairs", "quote requests". One per line.', 'relevant-forms' ); ?></p>
+				</td>
+			</tr>
+			<tr>
+				<th scope="row"><label for="relevant-ai-spam"><?php esc_html_e( 'Unwanted enquiries', 'relevant-forms' ); ?></label></th>
 				<td>
 					<textarea class="relevant-forms-textarea" id="relevant-ai-spam" name="ai_spam" rows="4"><?php echo esc_textarea( (string) ( $ai_policy['spam'] ?? '' ) ); ?></textarea>
-					<p class="description relevant-forms-textarea-caption"><?php esc_html_e( 'Describe messages this form should treat as spam, e.g. "Automated sales pitches and link drops", "Comments not relevant to (insert your site\'s topic) or very generic". One category per line.', 'relevant-forms' ); ?></p>
+					<p class="description relevant-forms-textarea-caption"><?php esc_html_e( 'What to treat as spam or irrelevant for this form, e.g. "SEO services", "guest posts", "Automated sales pitches and link drops". One category per line.', 'relevant-forms' ); ?></p>
+				</td>
+			</tr>
+			<tr>
+				<th scope="row"><?php esc_html_e( 'Privacy mode', 'relevant-forms' ); ?></th>
+				<td>
+					<label>
+						<input type="checkbox" name="ai_privacy_mode" value="1" <?php checked( $privacy_on ); ?>>
+						<?php esc_html_e( 'Redact emails, phone numbers, IP addresses and URL paths before sending', 'relevant-forms' ); ?>
+					</label>
+					<p class="description"><?php esc_html_e( 'Recommended. Disable only if classification quality suffers and you accept sending raw submissions.', 'relevant-forms' ); ?></p>
 				</td>
 			</tr>
 			<tr>

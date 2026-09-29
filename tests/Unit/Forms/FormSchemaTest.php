@@ -49,6 +49,41 @@ it(
 );
 
 it(
+	'carries the per-form sender, ai policy extras and non-editor keys',
+	function () {
+		$schema = FormSchema::fromArray(
+			[
+				'name'          => 'Enquiry',
+				'sender'        => [
+					'name'  => 'Acme Forms',
+					'email' => 'no-reply@acme.example',
+				],
+				'ai_policy'     => [
+					'priorities'   => 'emergency repairs',
+					'privacy_mode' => 0,
+				],
+				'metadata'      => [ 'wpforms_form_id' => 1105 ],
+				'upload_policy' => [ 'legacy' => true ],
+			]
+		);
+
+		expect( $schema->sender() )->toBe(
+			[
+				'name'  => 'Acme Forms',
+				'email' => 'no-reply@acme.example',
+			]
+		);
+		expect( $schema->aiPolicy()['privacy_mode'] )->toBe( 0 );
+
+		$copy = $schema->withSender( 'Other', 'other@example.com' );
+
+		expect( $copy->sender()['name'] )->toBe( 'Other' );
+		expect( $copy->metadata() )->toBe( [ 'wpforms_form_id' => 1105 ] );
+		expect( $copy->uploadPolicy() )->toBe( [ 'legacy' => true ] );
+	}
+);
+
+it(
 	'carries a normalized payment currency with a usd fallback',
 	function () {
 		$schema = FormSchema::empty( 'Payments' );

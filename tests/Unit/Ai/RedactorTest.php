@@ -19,8 +19,6 @@ beforeEach(
 it(
 	'redacts emails, phones, IPs and URL paths by default',
 	function () {
-		Monkey\Functions\when( 'get_option' )->justReturn( [] );
-
 		$redactor = new Redactor();
 
 		expect( $redactor->redact( 'Write to jane@example.com or call +1 (555) 123-4567.' ) )
@@ -34,8 +32,6 @@ it(
 it(
 	'redacts every string value of a submission map',
 	function () {
-		Monkey\Functions\when( 'get_option' )->justReturn( [] );
-
 		$redacted = ( new Redactor() )->redactValues(
 			[
 				'name'  => 'Jane',
@@ -55,16 +51,14 @@ it(
 it(
 	'passes values through when privacy mode is disabled',
 	function () {
-		Monkey\Functions\when( 'get_option' )->justReturn( [ 'ai_privacy_mode' => 0 ] );
-
-		expect( ( new Redactor() )->redact( 'jane@example.com' ) )->toBe( 'jane@example.com' );
+		expect( ( new Redactor( false ) )->isEnabled() )->toBeFalse();
+		expect( ( new Redactor( false ) )->redact( 'jane@example.com' ) )->toBe( 'jane@example.com' );
 	}
 );
 
 it(
 	'lets sites extend the redaction patterns',
 	function () {
-		Monkey\Functions\when( 'get_option' )->justReturn( [] );
 		Monkey\Functions\when( 'apply_filters' )->alias(
 			static function ( string $hook, array $patterns ): array {
 				if ( 'relevant_forms_ai_redaction' === $hook ) {

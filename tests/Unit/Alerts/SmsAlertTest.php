@@ -27,7 +27,6 @@ beforeEach(
 			'relevant_forms_settings' => [
 				'cloud_url'     => 'https://cloud.example.com',
 				'cloud_api_key' => 'site-key',
-				'sms_recipient' => '+3912345',
 			],
 		];
 
@@ -54,18 +53,33 @@ beforeEach(
 );
 
 /**
- * Build a form entity.
+ * Build a form entity with the given AI policy.
+ *
+ * @param array<string, mixed> $policy AI policy.
  */
-function rf_sms_form(): Form {
+function rf_sms_form_with_policy( array $policy ): Form {
 	$schema = FormSchema::fromArray(
 		[
 			'name'      => 'Emergency Request',
-			'ai_policy' => [ 'enabled' => true ],
+			'ai_policy' => $policy,
 			'fields'    => [],
 		]
 	);
 
 	return new Form( 7, 'Emergency Request', 'published', $schema, '2026-01-01 00:00:00', '2026-01-01 00:00:00' );
+}
+
+/**
+ * Build the standard form: alerts on, verified number set.
+ */
+function rf_sms_form(): Form {
+	return rf_sms_form_with_policy(
+		[
+			'enabled'   => true,
+			'sms_alert' => true,
+			'sms_phone' => '+3912345',
+		]
+	);
 }
 
 /**
@@ -110,23 +124,52 @@ it(
 
 		$alert = new SmsAlert();
 
-		expect( $alert->isEnabled() )->toBeFalse();
-		expect( $alert->shouldSend( rf_sms_classification( 0.02, 0.9, 0.9 ) ) )->toBeFalse();
+		expect( $alert->isEnabled( rf_sms_form() ) )->toBeFalse();
+		expect( $alert->shouldSend( rf_sms_classification( 0.02, 0.9, 0.9 ), rf_sms_form() ) )->toBeFalse();
 	}
 );
 
 it(
-	'requires a recipient and configured credentials',
+	'requires a verified per-form recipient (no site-wide fallback)',
 	function () {
 		rf_sms_enable();
-		$GLOBALS['rf_sms_store']['relevant_forms_settings']['sms_recipient'] = '';
 
-		expect( ( new SmsAlert() )->isEnabled() )->toBeFalse();
-
+		// The legacy site-wide recipient option is ignored (hard cut).
 		$GLOBALS['rf_sms_store']['relevant_forms_settings']['sms_recipient'] = '+3912345';
-		$GLOBALS['rf_sms_store']['relevant_forms_settings']                  = [];
 
 		expect( ( new SmsAlert() )->isEnabled() )->toBeFalse();
+		expect( ( new SmsAlert() )->recipient( rf_sms_form() ) )->toBe( '+3912345' );
+
+		// Credentials still gate everything.
+		$backup = $GLOBALS['rf_sms_store']['relevant_forms_settings'];
+		$GLOBALS['rf_sms_store']['relevant_forms_settings'] = [];
+
+		expect( ( new SmsAlert() )->isEnabled( rf_sms_form() ) )->toBeFalse();
+
+		$GLOBALS['rf_sms_store']['relevant_forms_settings'] = $backup;
+
+		// Alert off or number missing: nothing to send to.
+		expect(
+			( new SmsAlert() )->isEnabled(
+				rf_sms_form_with_policy(
+					[
+						'enabled'   => true,
+						'sms_alert' => false,
+						'sms_phone' => '+3912345',
+					]
+				)
+			)
+		)->toBeFalse();
+		expect(
+			( new SmsAlert() )->isEnabled(
+				rf_sms_form_with_policy(
+					[
+						'enabled'   => true,
+						'sms_alert' => true,
+					]
+				)
+			)
+		)->toBeFalse();
 	}
 );
 
@@ -136,9 +179,10 @@ it(
 		rf_sms_enable();
 
 		$alert = new SmsAlert();
+		$form  = rf_sms_form();
 
-		expect( $alert->shouldSend( rf_sms_classification( 0.02, 0.5, 0.3 ) ) )->toBeFalse();
-		expect( $alert->shouldSend( rf_sms_classification( 0.02, 0.9, 0.9 ) ) )->toBeTrue();
+		expect( $alert->shouldSend( rf_sms_classification( 0.02, 0.5, 0.3 ), $form ) )->toBeFalse();
+		expect( $alert->shouldSend( rf_sms_classification( 0.02, 0.9, 0.9 ), $form ) )->toBeTrue();
 	}
 );
 

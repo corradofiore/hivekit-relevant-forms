@@ -59,11 +59,8 @@ final class SmsAlertFlowTest extends TestCase {
 		update_option(
 			'relevant_forms_settings',
 			[
-				'cloud_url'       => 'https://cloud.example.com',
-				'cloud_api_key'   => 'site-key',
-				'sms_recipient'   => '+3912345',
-				'ai_site_purpose' => 'Plumbing company',
-				'ai_privacy_mode' => 1,
+				'cloud_url'     => 'https://cloud.example.com',
+				'cloud_api_key' => 'site-key',
 			]
 		);
 
@@ -149,6 +146,41 @@ final class SmsAlertFlowTest extends TestCase {
 		$connection->disableCapability( CloudConnection::CAP_SMS );
 
 		$form = $this->makeForm();
+
+		$this->submit( $form->id, $this->fields() );
+
+		$this->assertCount( 0, $this->alertRequests() );
+
+		$entry = $this->latestEntry( $form );
+		$this->assertArrayNotHasKey( '_sms_alert', $entry->meta );
+	}
+
+	/**
+	 * A form without its own verified number never alerts (no fallback).
+	 */
+	public function test_no_alert_without_a_per_form_recipient(): void {
+		$repository = new FormRepository();
+
+		$schema = FormSchema::empty( 'No Number' )
+			->withFields(
+				[
+					[
+						'id'       => 'f_msg',
+						'type'     => 'textarea',
+						'label'    => 'Message',
+						'required' => true,
+					],
+				]
+			)
+			->withAiPolicy(
+				[
+					'enabled'   => true,
+					'sms_alert' => true,
+				]
+			);
+
+		$id   = $repository->create( 'No Number', $schema, 'published' );
+		$form = $repository->find( $id );
 
 		$this->submit( $form->id, $this->fields() );
 
@@ -269,7 +301,13 @@ final class SmsAlertFlowTest extends TestCase {
 					],
 				]
 			)
-			->withAiPolicy( [ 'enabled' => true ] );
+			->withAiPolicy(
+				[
+					'enabled'   => true,
+					'sms_alert' => true,
+					'sms_phone' => '+3912345',
+				]
+			);
 
 		$id = $repository->create( 'Emergency Request', $schema, 'published' );
 

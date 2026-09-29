@@ -20,11 +20,6 @@ use RelevantForms\Support\Logger;
 final class EmailNotification {
 
 	/**
-	 * Settings option key.
-	 */
-	private const OPTION = 'relevant_forms_settings';
-
-	/**
 	 * Send the notification email for a submission.
 	 *
 	 * Failures never destroy the submission: they are logged and recorded as
@@ -53,7 +48,6 @@ final class EmailNotification {
 			return false;
 		}
 
-		$settings = (array) get_option( self::OPTION, [] );
 		$siteName = wp_specialchars_decode( (string) get_bloginfo( 'name' ), ENT_QUOTES );
 		$summary  = self::summarize( $classification );
 
@@ -64,8 +58,11 @@ final class EmailNotification {
 		$body    = $this->buildBody( $form, $values );
 		$headers = [ 'Content-Type: text/plain; charset=UTF-8' ];
 
-		$senderName  = (string) ( $settings['notification_sender_name'] ?? '' );
-		$senderEmail = (string) ( $settings['notification_sender_email'] ?? '' );
+		// Per-form sender identity: name and address are used together or
+		// not at all (WordPress then applies its default From).
+		$sender      = $form->schema->sender();
+		$senderName  = trim( $sender['name'] );
+		$senderEmail = trim( $sender['email'] );
 
 		if ( '' !== $senderName && is_email( $senderEmail ) ) {
 			$headers[] = sprintf( 'From: %s <%s>', $senderName, $senderEmail );

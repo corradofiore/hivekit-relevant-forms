@@ -59,8 +59,13 @@ final class FormEditorTabsTest extends TestCase {
 		$this->assertStringContainsString( 'name="form_status"', $settings );
 		$this->assertStringContainsString( 'name="confirmation_message"', $settings );
 		$this->assertStringContainsString( 'name="notification_emails"', $settings );
+		$this->assertStringContainsString( 'name="sender_name"', $settings );
+		$this->assertStringContainsString( 'name="sender_email"', $settings );
 		$this->assertStringContainsString( 'name="ai_enabled"', $settings );
+		$this->assertStringContainsString( 'name="ai_priorities"', $settings );
+		$this->assertStringContainsString( 'name="ai_privacy_mode"', $settings );
 		$this->assertStringContainsString( 'name="ai_spam"', $settings );
+		$this->assertStringContainsString( 'Unwanted enquiries', $settings );
 		$this->assertStringContainsString( 'relevant-forms-ai-panel', $settings );
 		$this->assertStringContainsString( 'AI evaluates meaning, relevance, intent and urgency.', $settings );
 		$this->assertStringNotContainsString( 'id="rf-fields-list"', $settings );

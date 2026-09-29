@@ -58,9 +58,11 @@ final class SettingsPage {
 			$storageProvider = 'local';
 		}
 
+		// Per-form settings (notification sender, AI purpose/priorities/
+		// unwanted/privacy, SMS recipient) live in the form schema now; the
+		// legacy option keys are intentionally dropped from the rebuilt array
+		// (hard cut — they stop being stored on the next save).
 		$settings = [
-			'notification_sender_name'          => sanitize_text_field( (string) ( $input['notification_sender_name'] ?? '' ) ),
-			'notification_sender_email'         => sanitize_email( (string) ( $input['notification_sender_email'] ?? '' ) ),
 			'debug_logging'                     => empty( $input['debug_logging'] ) ? 0 : 1,
 			'storage_provider'                  => $storageProvider,
 			'storage_block_unscanned_downloads' => empty( $input['storage_block_unscanned_downloads'] ) ? 0 : 1,
@@ -70,11 +72,6 @@ final class SettingsPage {
 			'cloud_api_key'                     => '' !== (string) ( $input['cloud_api_key'] ?? '' )
 				? sanitize_text_field( (string) $input['cloud_api_key'] )
 				: (string) ( $current['cloud_api_key'] ?? '' ),
-			'ai_site_purpose'                   => mb_substr( sanitize_textarea_field( (string) ( $input['ai_site_purpose'] ?? '' ) ), 0, 500 ),
-			'ai_priorities'                     => mb_substr( sanitize_textarea_field( (string) ( $input['ai_priorities'] ?? '' ) ), 0, 2000 ),
-			'ai_unwanted'                       => mb_substr( sanitize_textarea_field( (string) ( $input['ai_unwanted'] ?? '' ) ), 0, 2000 ),
-			'ai_privacy_mode'                   => empty( $input['ai_privacy_mode'] ) ? 0 : 1,
-			'sms_recipient'                     => mb_substr( sanitize_text_field( (string) ( $input['sms_recipient'] ?? '' ) ), 0, 32 ),
 		];
 
 		self::syncCapabilityConsent( CloudConnection::CAP_AI, ! empty( $input['ai_enabled'] ) );

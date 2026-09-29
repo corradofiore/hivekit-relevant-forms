@@ -32,11 +32,6 @@ final class SmsAlert {
 	public const DEFAULT_THRESHOLD = 85;
 
 	/**
-	 * Settings option key.
-	 */
-	private const OPTION = 'relevant_forms_settings';
-
-	/**
 	 * Constructor.
 	 *
 	 * @param CloudConnection|null $connection Consent state.
@@ -72,8 +67,9 @@ final class SmsAlert {
 	}
 
 	/**
-	 * Recipient phone number: the constant wins, then the form's verified
-	 * per-form number (when the editor option is on), then the site default.
+	 * Recipient phone number: the RELEVANT_SMS_RECIPIENT constant wins,
+	 * otherwise the form's verified number (when the editor option is on).
+	 * Without one there is no alert.
 	 *
 	 * @param Form|null $form Form entity, when the alert is form-scoped.
 	 */
@@ -84,18 +80,14 @@ final class SmsAlert {
 			return trim( $constant );
 		}
 
-		if ( null !== $form ) {
-			$policy = $form->schema->aiPolicy();
-			$phone  = trim( (string) ( $policy['sms_phone'] ?? '' ) );
-
-			if ( '' !== $phone && ! empty( $policy['sms_alert'] ) ) {
-				return $phone;
-			}
+		if ( null === $form ) {
+			return '';
 		}
 
-		$settings = (array) get_option( self::OPTION, [] );
+		$policy = $form->schema->aiPolicy();
+		$phone  = trim( (string) ( $policy['sms_phone'] ?? '' ) );
 
-		return trim( (string) ( $settings['sms_recipient'] ?? '' ) );
+		return ( '' !== $phone && ! empty( $policy['sms_alert'] ) ) ? $phone : '';
 	}
 
 	/**
