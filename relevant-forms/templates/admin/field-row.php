@@ -27,7 +27,7 @@ $isEntryPreview = 'entry-preview' === (string) $definition['type'];
 $isContent      = 'content' === (string) $definition['type'];
 $isHtml         = 'html' === (string) $definition['type'];
 
-$labelHeading = __( 'Label', 'relevant-forms' );
+	$labelHeading = __( 'Field name', 'relevant-forms' );
 
 if ( $isSection ) {
 	$labelHeading = __( 'Section header', 'relevant-forms' );
@@ -222,9 +222,9 @@ $inputIdBase = 'rf-field-' . $fieldId;
 					<td>
 						<textarea class="widefat" id="<?php echo esc_attr( $inputIdBase . '-choices' ); ?>" rows="4" name="relevant_fields[<?php echo esc_attr( $fieldId ); ?>][choices]"><?php echo esc_textarea( implode( "\n", $choiceLines ) ); ?></textarea>
 						<?php if ( $isPricedPayment ) : ?>
-							<p class="description"><?php echo esc_html( sprintf( /* translators: %s: form currency code, e.g. USD. */ __( 'One per line. The price follows the item after a pipe (|), e.g. T-shirt|25.00. Prices are in %s.', 'relevant-forms' ), $currencyCode ) ); ?></p>
+							<p class="description"><?php echo wp_kses( sprintf( /* translators: %s: form currency code, e.g. USD. */ __( 'One per line. The price follows the item after a pipe (<code>|</code>), e.g. <code>T-shirt|25.00</code>. Prices are in %s.', 'relevant-forms' ), esc_html( $currencyCode ) ), [ 'code' => [] ] ); ?></p>
 						<?php else : ?>
-							<p class="description"><?php esc_html_e( 'One value per line in "value|label" format, e.g. not_sure|Not sure', 'relevant-forms' ); ?></p>
+							<p class="description"><?php echo wp_kses( __( 'One value per line in "<code>value|label</code>" format, e.g. <code>not_sure|Not sure</code>', 'relevant-forms' ), [ 'code' => [] ] ); ?></p>
 						<?php endif; ?>
 					</td>
 				</tr>

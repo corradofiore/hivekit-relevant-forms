@@ -157,6 +157,10 @@ final class AdminMenuTest extends TestCase {
 
 		$this->assertSame( 'index.php', AdminMenu::highlightEditorParent( 'index.php' ) );
 		$this->assertSame( 'index.php', AdminMenu::highlightEditorSubmenu( 'index.php' ) );
+
+		// A null stays null: casting it to '' would count as "set" and
+		// suppress core's own highlighting for ordinary submenu pages.
+		$this->assertNull( AdminMenu::highlightEditorSubmenu( null ) );
 	}
 
 	/**
