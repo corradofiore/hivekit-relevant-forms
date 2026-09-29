@@ -12,8 +12,8 @@ namespace RelevantForms\Cloud;
 /**
  * Resolves the Cloud service URL and site key. The service URL is
  * code-owned (`DEFAULT_URL`) with staging overrides; the settings screen
- * only asks for the API key, which is never displayed back (v2 §8
- * consent rules).
+ * only asks for the API key, which is stored write-only and only ever
+ * shown back as a masked preview (v2 §8 consent rules).
  */
 final class CloudConfig {
 
@@ -84,6 +84,21 @@ final class CloudConfig {
 		$settings = (array) get_option( self::OPTION, [] );
 
 		return (string) ( $settings['cloud_api_key'] ?? '' );
+	}
+
+	/**
+	 * Masked preview of a stored key: only the first and last four
+	 * characters of realistically long keys are shown; shorter values are
+	 * hidden entirely. The full key is never returned.
+	 */
+	public static function mask( string $key ): string {
+		$hidden = str_repeat( '•', 8 );
+
+		if ( strlen( $key ) < 16 ) {
+			return $hidden;
+		}
+
+		return substr( $key, 0, 4 ) . $hidden . substr( $key, -4 );
 	}
 
 	/**

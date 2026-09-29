@@ -65,4 +65,13 @@ final class CloudConfigTest extends TestCase {
 		update_option( 'relevant_forms_settings', [ 'cloud_api_key' => 'site-key-1' ] );
 		$this->assertTrue( CloudConfig::isConfigured() );
 	}
+
+	/**
+	 * The mask preview shows only the key ends; short values reveal
+	 * nothing at all.
+	 */
+	public function testMaskPreviewShowsOnlyTheKeyEnds(): void {
+		$this->assertSame( 'sfk_••••••••cdef', CloudConfig::mask( 'sfk_1234567890abcdef' ) );
+		$this->assertSame( '••••••••', CloudConfig::mask( 'short-key' ) );
+	}
 }
