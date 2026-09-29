@@ -20,12 +20,20 @@
 .relevant-forms-field input[type="email"],
 .relevant-forms-field input[type="tel"],
 .relevant-forms-field input[type="url"],
-.relevant-forms-field input[type="number"],
 .relevant-forms-field input[type="date"],
 .relevant-forms-field select,
 .relevant-forms-field textarea {
 	width: 100%;
 	max-width: 100%;
+}
+
+/*
+ * Number fields take a third of the text-field width: they hold short
+ * numeric answers, and a full-width box overstates them.
+ */
+.relevant-forms-field input[type="number"] {
+	width: calc( 100% / 3 );
+	max-width: calc( 100% / 3 );
 }
 
 .relevant-forms-help {
