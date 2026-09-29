@@ -10,6 +10,7 @@ declare(strict_types=1);
 namespace RelevantForms\Tests\Integration;
 
 use RelevantForms\Admin\Pages\SettingsPage;
+use RelevantForms\Cloud\CloudConfig;
 use RelevantForms\Cloud\CloudConnection;
 use RelevantForms\Http\CloudController;
 use RelevantForms\Tests\Integration\Support\RedirectedException;
@@ -307,6 +308,58 @@ final class CloudConnectFlowTest extends TestCase {
 		$this->assertStringNotContainsString( 'scan_backend_url', $html );
 		$this->assertStringNotContainsString( 'scan_backend_key', $html );
 		$this->assertStringNotContainsString( 'Scan backend', $html );
+	}
+
+	/**
+	 * A stored key renders masked with an Edit reveal; the full key is
+	 * never echoed back into the page.
+	 */
+	public function testStoredKeyRendersMaskedWithAnEditReveal(): void {
+		$key = 'sfk_1234567890abcdef1234567890abcdef';
+
+		update_option( 'relevant_forms_settings', [ 'cloud_api_key' => $key ] );
+
+		set_current_screen( 'toplevel_page_relevant-settings' );
+
+		ob_start();
+		SettingsPage::render();
+		$html = (string) ob_get_clean();
+
+		$this->assertStringContainsString( CloudConfig::mask( $key ), $html );
+		$this->assertStringNotContainsString( $key, $html );
+		$this->assertStringContainsString( 'relevant-cloud-key-edit', $html );
+		$this->assertStringContainsString( 'Paste a new key here', $html );
+	}
+
+	/**
+	 * No stored key: a plain blank field, no preview and no Edit reveal.
+	 */
+	public function testMissingKeyRendersThePlainBlankField(): void {
+		update_option( 'relevant_forms_settings', [] );
+
+		set_current_screen( 'toplevel_page_relevant-settings' );
+
+		ob_start();
+		SettingsPage::render();
+		$html = (string) ob_get_clean();
+
+		$this->assertStringNotContainsString( 'relevant-cloud-key-edit', $html );
+		$this->assertStringNotContainsString( 'Paste a new key here', $html );
+		$this->assertStringContainsString( 'name="relevant_forms_settings[cloud_api_key]"', $html );
+	}
+
+	/**
+	 * Saving with the replacement field blank keeps the stored key; a
+	 * filled field replaces it.
+	 */
+	public function testBlankReplacementFieldKeepsTheStoredKey(): void {
+		update_option( 'relevant_forms_settings', [ 'cloud_api_key' => 'sfk_original_key_1234567890' ] );
+
+		$kept = SettingsPage::sanitize( [] );
+		$this->assertSame( 'sfk_original_key_1234567890', $kept['cloud_api_key'] ?? '' );
+
+		$replaced = SettingsPage::sanitize( [ 'cloud_api_key' => 'sfk_replacement_key_0987654321' ] );
+		$this->assertSame( 'sfk_replacement_key_0987654321', $replaced['cloud_api_key'] ?? '' );
 	}
 
 	/**

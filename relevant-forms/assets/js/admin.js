@@ -1873,5 +1873,40 @@
 		activate( known ? initial : items[ 0 ].tab.getAttribute( 'href' ) );
 	}
 
+	/**
+	 * Settings: a stored Cloud API key is only previewed masked; "Edit"
+	 * reveals a blank replacement field in the row below.
+	 */
+	function initCloudKeyField() {
+		var toggle = document.getElementById( 'relevant-cloud-key-edit' );
+		var row = document.getElementById( 'relevant-cloud-key-new-row' );
+		var input = document.getElementById( 'relevant-cloud-key' );
+
+		if ( ! toggle || ! row || ! input ) {
+			return;
+		}
+
+		var strings = window.relevantFormsAdmin && window.relevantFormsAdmin.cloudKeyStrings
+			? window.relevantFormsAdmin.cloudKeyStrings
+			: { edit: 'Edit', cancel: 'Cancel' };
+
+		toggle.addEventListener( 'click', function ( event ) {
+			event.preventDefault();
+
+			var opening = row.hidden;
+
+			row.hidden = ! opening;
+			toggle.setAttribute( 'aria-expanded', opening ? 'true' : 'false' );
+			toggle.textContent = opening ? strings.cancel : strings.edit;
+
+			if ( opening ) {
+				input.focus();
+			} else {
+				input.value = '';
+			}
+		} );
+	}
+
 	initTabs();
+	initCloudKeyField();
 } )();

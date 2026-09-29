@@ -86,18 +86,41 @@ if ( ! defined( 'ABSPATH' ) ) {
 		$cloudState = $connection->state();
 		?>
 		<table class="form-table" role="presentation">
-			<tr>
-				<th scope="row"><label for="relevant-cloud-key"><?php esc_html_e( 'Cloud API key', 'relevant-forms' ); ?></label></th>
-				<td>
-					<input type="password" class="regular-text" id="relevant-cloud-key" name="relevant_forms_settings[cloud_api_key]" value="" <?php disabled( defined( 'RELEVANT_CLOUD_API_KEY' ) ); ?> autocomplete="new-password">
-					<?php if ( defined( 'RELEVANT_CLOUD_API_KEY' ) ) : ?>
+			<?php $storedCloudKey = (string) ( $settings['cloud_api_key'] ?? '' ); ?>
+			<?php if ( defined( 'RELEVANT_CLOUD_API_KEY' ) ) : ?>
+				<tr>
+					<th scope="row"><?php esc_html_e( 'Cloud API key', 'relevant-forms' ); ?></th>
+					<td>
+						<input type="password" class="regular-text" id="relevant-cloud-key" name="relevant_forms_settings[cloud_api_key]" value="" disabled autocomplete="new-password">
 						<p class="description"><?php esc_html_e( 'Defined in wp-config.php.', 'relevant-forms' ); ?></p>
-					<?php elseif ( '' !== (string) ( $settings['cloud_api_key'] ?? '' ) ) : ?>
-						<p class="description"><?php esc_html_e( 'A key is stored. Leave blank to keep it.', 'relevant-forms' ); ?></p>
-					<?php endif; ?>
-					<p class="description"><?php esc_html_e( 'Issued by your Relevant Cloud dashboard. The service endpoint is built in.', 'relevant-forms' ); ?></p>
-				</td>
-			</tr>
+						<p class="description"><?php esc_html_e( 'Issued by your Relevant Cloud dashboard. The service endpoint is built in.', 'relevant-forms' ); ?></p>
+					</td>
+				</tr>
+			<?php elseif ( '' !== $storedCloudKey ) : ?>
+				<tr>
+					<th scope="row"><?php esc_html_e( 'Cloud API key', 'relevant-forms' ); ?></th>
+					<td>
+						<code><?php echo esc_html( \RelevantForms\Cloud\CloudConfig::mask( $storedCloudKey ) ); ?></code>
+						&middot; <a href="#relevant-cloud-key-new-row" id="relevant-cloud-key-edit" aria-controls="relevant-cloud-key-new-row" aria-expanded="false"><?php esc_html_e( 'Edit', 'relevant-forms' ); ?></a>
+						<p class="description"><?php esc_html_e( 'A key from your Relevant Cloud dashboard is stored. The full key is never shown again.', 'relevant-forms' ); ?></p>
+					</td>
+				</tr>
+				<tr id="relevant-cloud-key-new-row" hidden>
+					<th scope="row"><label for="relevant-cloud-key"><?php esc_html_e( 'New key', 'relevant-forms' ); ?></label></th>
+					<td>
+						<input type="password" class="regular-text" id="relevant-cloud-key" name="relevant_forms_settings[cloud_api_key]" value="" autocomplete="new-password">
+						<p class="description"><?php esc_html_e( 'Paste a new key here if you want to replace the existing one. Leave blank to keep the current key.', 'relevant-forms' ); ?></p>
+					</td>
+				</tr>
+			<?php else : ?>
+				<tr>
+					<th scope="row"><label for="relevant-cloud-key"><?php esc_html_e( 'Cloud API key', 'relevant-forms' ); ?></label></th>
+					<td>
+						<input type="password" class="regular-text" id="relevant-cloud-key" name="relevant_forms_settings[cloud_api_key]" value="" autocomplete="new-password">
+						<p class="description"><?php esc_html_e( 'Issued by your Relevant Cloud dashboard. The service endpoint is built in.', 'relevant-forms' ); ?></p>
+					</td>
+				</tr>
+			<?php endif; ?>
 			<tr>
 				<th scope="row"><?php esc_html_e( 'Connection state', 'relevant-forms' ); ?></th>
 				<td>

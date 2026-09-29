@@ -80,6 +80,10 @@ final class AdminAssets {
 					'devCode'       => __( 'Dev code:', 'relevant-forms' ),
 					'requestFailed' => __( 'The request failed. Try again.', 'relevant-forms' ),
 				],
+				'cloudKeyStrings'     => [
+					'edit'   => __( 'Edit', 'relevant-forms' ),
+					'cancel' => __( 'Cancel', 'relevant-forms' ),
+				],
 				'fieldStrings'        => [
 					'untitled' => __( 'Untitled field', 'relevant-forms' ),
 				],
