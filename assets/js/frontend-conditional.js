@@ -232,6 +232,20 @@
 				fieldset.removeAttribute( 'aria-required' );
 			}
 
+			// Radio groups mirror the native attribute the field renderer
+			// ships, so a revealed required group blocks submission like a
+			// dropdown does. Other groups (checkboxes, payments) stay
+			// aria-only, matching their renderers.
+			if ( wrapper.classList.contains( 'relevant-forms-field--radio' ) ) {
+				fieldset.querySelectorAll( 'input[type="radio"]' ).forEach( function ( control ) {
+					if ( visible && required ) {
+						control.setAttribute( 'required', 'required' );
+					} else {
+						control.removeAttribute( 'required' );
+					}
+				} );
+			}
+
 			return;
 		}
 
