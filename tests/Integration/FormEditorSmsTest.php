@@ -57,6 +57,9 @@ final class FormEditorSmsTest extends TestCase {
 
 		// The field is active because the option is on.
 		$this->assertDoesNotMatchRegularExpression( '/id="relevant-ai-sms-phone"[^>]*disabled/', $html );
+
+		// The recipient row is visible while the option is on.
+		$this->assertDoesNotMatchRegularExpression( '/id="relevant-ai-sms-recipient-row"[^>]*hidden/', $html );
 	}
 
 	/**
@@ -95,6 +98,9 @@ final class FormEditorSmsTest extends TestCase {
 		$this->assertDoesNotMatchRegularExpression( '/name="ai_sms_alert"[^>]*checked/', $html );
 		$this->assertMatchesRegularExpression( '/id="relevant-ai-sms-phone"[^>]*disabled/', $html );
 		$this->assertMatchesRegularExpression( '/id="rf-sms-send-code"[^>]*disabled/', $html );
+
+		// The recipient row is hidden while the option is off.
+		$this->assertMatchesRegularExpression( '/id="relevant-ai-sms-recipient-row"[^>]*hidden/', $html );
 	}
 
 	/**
