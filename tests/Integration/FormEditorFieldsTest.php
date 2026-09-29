@@ -287,9 +287,10 @@ final class FormEditorFieldsTest extends TestCase {
 	}
 
 	/**
-	 * Each list item has a second row with the Duplicate and Delete actions.
+	 * Each list item has a second row with the Edit, Duplicate and Delete
+	 * actions.
 	 */
-	public function testEachItemShowsDuplicateAndDeleteActions(): void {
+	public function testEachItemShowsEditDuplicateAndDeleteActions(): void {
 		wp_set_current_user( self::factory()->user->create( [ 'role' => 'administrator' ] ) );
 
 		$formId = $this->makeForm();
@@ -298,6 +299,7 @@ final class FormEditorFieldsTest extends TestCase {
 		$list = $this->listRegion( $html );
 
 		$this->assertSame( 2, substr_count( $list, 'rf-field-item__actions' ) );
+		$this->assertSame( 2, substr_count( $list, 'class="button-link rf-edit">Edit</button>' ) );
 		$this->assertSame( 2, substr_count( $list, 'class="button-link rf-duplicate">Duplicate</button>' ) );
 		$this->assertSame( 2, substr_count( $list, 'class="button-link rf-remove">Delete</button>' ) );
 
