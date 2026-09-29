@@ -9,6 +9,7 @@ declare(strict_types=1);
 
 namespace RelevantForms\Admin\Controllers;
 
+use RelevantForms\Support\Ajax;
 use WP_Query;
 
 /**
@@ -43,9 +44,7 @@ final class RedirectTargetSearchController {
 	 * Handle the AJAX request.
 	 */
 	public static function handle(): void {
-		if ( ! current_user_can( 'manage_options' ) ) {
-			wp_send_json_error( [ 'message' => __( 'You do not have permission to search pages and posts.', 'relevant-forms' ) ], 403 );
-		}
+		Ajax::ensureManager( __( 'You do not have permission to search pages and posts.', 'relevant-forms' ) );
 
 		check_ajax_referer( self::ACTION );
 

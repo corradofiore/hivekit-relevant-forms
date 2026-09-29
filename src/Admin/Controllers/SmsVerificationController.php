@@ -13,6 +13,7 @@ use RelevantForms\Alerts\PhoneNumber;
 use RelevantForms\Cloud\CloudClient;
 use RelevantForms\Cloud\CloudConfig;
 use RelevantForms\Cloud\CloudConnection;
+use RelevantForms\Support\Ajax;
 
 /**
  * Sends and verifies the 6-digit one-time code for the phone number used
@@ -63,9 +64,7 @@ final class SmsVerificationController {
 	 * AJAX: issue a 6-digit code to the submitted number.
 	 */
 	public static function send(): void {
-		if ( ! current_user_can( 'manage_options' ) ) {
-			wp_send_json_error( [ 'message' => __( 'You do not have permission to verify phone numbers.', 'relevant-forms' ) ], 403 );
-		}
+		Ajax::ensureManager( __( 'You do not have permission to verify phone numbers.', 'relevant-forms' ) );
 
 		check_ajax_referer( self::ACTION_SEND );
 
@@ -73,25 +72,13 @@ final class SmsVerificationController {
 		$phone = PhoneNumber::normalize( $phone );
 
 		if ( null === $phone ) {
-			wp_send_json_error(
-				[
-					'code'    => 'invalid_phone',
-					'message' => __( 'Use an international number with the country code, e.g. +39 333 123 4567.', 'relevant-forms' ),
-				],
-				400
-			);
+			Ajax::fail( 'invalid_phone', __( 'Use an international number with the country code, e.g. +39 333 123 4567.', 'relevant-forms' ), 400 );
 		}
 
 		$connection = new CloudConnection();
 
 		if ( ! CloudConfig::isConfigured() || CloudConnection::STATE_DISCONNECTED === $connection->state() ) {
-			wp_send_json_error(
-				[
-					'code'    => 'not_connected',
-					'message' => __( 'Connect this site to Relevant Cloud in Relevant Forms → Settings before verifying a number.', 'relevant-forms' ),
-				],
-				400
-			);
+			Ajax::fail( 'not_connected', __( 'Connect this site to Relevant Cloud in Relevant Forms → Settings before verifying a number.', 'relevant-forms' ), 400 );
 		}
 
 		// Requesting a code for this form's alert number is the explicit
@@ -103,13 +90,7 @@ final class SmsVerificationController {
 		$data   = $result['data'];
 
 		if ( null === $data || ! isset( $data['verification_id'] ) ) {
-			wp_send_json_error(
-				[
-					'code'    => self::errorCode( $result ),
-					'message' => self::errorMessage( $result ),
-				],
-				502
-			);
+			Ajax::fail( self::errorCode( $result ), self::errorMessage( $result ), 502 );
 		}
 
 		$normalized = (string) $data['phone'];
@@ -129,9 +110,7 @@ final class SmsVerificationController {
 	 * AJAX: check the 6-digit code and mark the number verified.
 	 */
 	public static function verify(): void {
-		if ( ! current_user_can( 'manage_options' ) ) {
-			wp_send_json_error( [ 'message' => __( 'You do not have permission to verify phone numbers.', 'relevant-forms' ) ], 403 );
-		}
+		Ajax::ensureManager( __( 'You do not have permission to verify phone numbers.', 'relevant-forms' ) );
 
 		check_ajax_referer( self::ACTION_VERIFY );
 
@@ -141,48 +120,24 @@ final class SmsVerificationController {
 		$code  = trim( $code );
 
 		if ( null === $phone ) {
-			wp_send_json_error(
-				[
-					'code'    => 'invalid_phone',
-					'message' => __( 'Use an international number with the country code, e.g. +39 333 123 4567.', 'relevant-forms' ),
-				],
-				400
-			);
+			Ajax::fail( 'invalid_phone', __( 'Use an international number with the country code, e.g. +39 333 123 4567.', 'relevant-forms' ), 400 );
 		}
 
 		if ( 1 !== preg_match( '/^[0-9]{6}$/', $code ) ) {
-			wp_send_json_error(
-				[
-					'code'    => 'invalid_code',
-					'message' => __( 'Enter the 6-digit code we texted you.', 'relevant-forms' ),
-				],
-				400
-			);
+			Ajax::fail( 'invalid_code', __( 'Enter the 6-digit code we texted you.', 'relevant-forms' ), 400 );
 		}
 
 		$verificationId = (int) get_transient( self::pendingKey( $phone ) );
 
 		if ( $verificationId <= 0 ) {
-			wp_send_json_error(
-				[
-					'code'    => 'no_pending_code',
-					'message' => __( 'Send a code first.', 'relevant-forms' ),
-				],
-				400
-			);
+			Ajax::fail( 'no_pending_code', __( 'Send a code first.', 'relevant-forms' ), 400 );
 		}
 
 		$client = new CloudClient( CloudConfig::apiBase(), CloudConfig::key() );
 		$result = $client->verifySmsCode( $verificationId, $code );
 
 		if ( empty( $result['data']['verified'] ) ) {
-			wp_send_json_error(
-				[
-					'code'    => self::errorCode( $result ),
-					'message' => self::errorMessage( $result ),
-				],
-				502
-			);
+			Ajax::fail( self::errorCode( $result ), self::errorMessage( $result ), 502 );
 		}
 
 		$verified = isset( $result['data']['phone'] ) ? (string) $result['data']['phone'] : $phone;
