@@ -394,7 +394,7 @@ final class ShortcodeRenderTest extends TestCase {
 						'id'      => 'f_plan',
 						'type'    => 'select',
 						'label'   => 'Plan',
-						'choices' => [ 'Starter|starter', 'Pro|pro' ],
+						'choices' => [ 'starter|Starter', 'pro|Pro' ],
 					],
 					[
 						'id'            => 'f_preview',

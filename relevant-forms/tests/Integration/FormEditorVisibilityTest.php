@@ -382,7 +382,7 @@ final class FormEditorVisibilityTest extends TestCase {
 					'id'      => 'f_plan',
 					'type'    => 'select',
 					'label'   => 'Plan',
-					'choices' => [ 'Free', 'Pro|pro' ],
+					'choices' => [ 'Free', 'pro|Pro' ],
 				],
 				[
 					'id'         => 'f_extra',
