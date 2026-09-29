@@ -321,6 +321,11 @@
 			input.setAttribute( 'value', isPayment ? String( index ) : choice.value );
 			input.setAttribute( 'form', 'relevant-forms-preview' );
 
+			// Keep the native mark the server render ships for required groups.
+			if ( 'true' === group.getAttribute( 'aria-required' ) ) {
+				input.setAttribute( 'required', 'required' );
+			}
+
 			if ( checked.indexOf( input.value ) !== -1 ) {
 				input.checked = true;
 			}

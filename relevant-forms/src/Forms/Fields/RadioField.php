@@ -60,15 +60,21 @@ final class RadioField implements FieldType, ChoiceFieldType {
 	 * {@inheritDoc}
 	 */
 	public function render( array $definition, mixed $value, ?string $error, string $formId ): string {
+		// The native attribute goes on the inputs themselves: aria-required
+		// alone only describes the state, while a required dropdown blocks
+		// submission in the browser — radio groups must behave the same.
+		$required_attr = ! empty( $definition['required'] ) ? ' required' : '';
+
 		$inputs = [];
 		foreach ( $this->normalizeChoices( $definition ) as $index => $choice ) {
 			$inputs[] = sprintf(
-				'<span class="relevant-forms-choice"><input type="radio" name="%1$s" id="%2$s-%3$d" value="%4$s"%5$s><label for="%2$s-%3$d">%6$s</label></span>',
+				'<span class="relevant-forms-choice"><input type="radio" name="%1$s" id="%2$s-%3$d" value="%4$s"%5$s%6$s><label for="%2$s-%3$d">%7$s</label></span>',
 				esc_attr( FieldMarkup::name( $definition ) ),
 				esc_attr( FieldMarkup::id( $definition, $formId ) ),
 				$index,
 				esc_attr( $choice['value'] ),
 				checked( (string) $value, $choice['value'], false ),
+				$required_attr,
 				esc_html( $choice['label'] )
 			);
 		}

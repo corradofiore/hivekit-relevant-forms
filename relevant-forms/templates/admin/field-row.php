@@ -40,9 +40,14 @@ if ( $isSection ) {
 }
 
 $fieldType       = (string) $definition['type'];
+$isFile          = 'file' === $fieldType;
 $isPricedPayment = in_array( $fieldType, [ 'payment-select', 'payment-multiple', 'payment-checkbox' ], true );
 $isPaymentSingle = 'payment-single' === $fieldType;
 $isPaymentTotal  = 'payment-total' === $fieldType;
+
+// Amounts on payment rows show the form currency, so the editor does not
+// depend on the settings tab to know what the numbers mean.
+$currencyCode = strtoupper( \RelevantForms\Payments\Money::normalizeCurrency( $form->schema->currency() ) );
 
 // Base DOM id of the preview controls, used by admin.js to update the
 // preview (label, required, placeholder, help text...) while typing.
@@ -152,7 +157,7 @@ $inputIdBase = 'rf-field-' . $fieldId;
 
 			<?php if ( $isPaymentSingle ) : ?>
 				<tr>
-					<th scope="row"><label for="<?php echo esc_attr( $inputIdBase . '-amount' ); ?>"><?php esc_html_e( 'Amount', 'relevant-forms' ); ?></label></th>
+					<th scope="row"><label for="<?php echo esc_attr( $inputIdBase . '-amount' ); ?>"><?php echo esc_html( sprintf( /* translators: %s: form currency code, e.g. USD. */ __( 'Amount (%s)', 'relevant-forms' ), $currencyCode ) ); ?></label></th>
 					<td>
 						<input type="text" inputmode="decimal" class="rf-input-payment-amount" id="<?php echo esc_attr( $inputIdBase . '-amount' ); ?>" name="relevant_fields[<?php echo esc_attr( $fieldId ); ?>][amount]" value="<?php echo esc_attr( (string) ( $definition['amount'] ?? '0.00' ) ); ?>">
 						<p class="description"><?php esc_html_e( 'Ignored when the visitor enters the amount.', 'relevant-forms' ); ?></p>
@@ -166,13 +171,13 @@ $inputIdBase = 'rf-field-' . $fieldId;
 					</td>
 				</tr>
 				<tr>
-					<th scope="row"><label for="<?php echo esc_attr( $inputIdBase . '-min-amount' ); ?>"><?php esc_html_e( 'Minimum amount', 'relevant-forms' ); ?></label></th>
+					<th scope="row"><label for="<?php echo esc_attr( $inputIdBase . '-min-amount' ); ?>"><?php echo esc_html( sprintf( /* translators: %s: form currency code, e.g. USD. */ __( 'Minimum amount (%s)', 'relevant-forms' ), $currencyCode ) ); ?></label></th>
 					<td>
 						<input type="text" inputmode="decimal" id="<?php echo esc_attr( $inputIdBase . '-min-amount' ); ?>" name="relevant_fields[<?php echo esc_attr( $fieldId ); ?>][min_amount]" value="<?php echo esc_attr( (string) ( $definition['min_amount'] ?? '' ) ); ?>">
 					</td>
 				</tr>
 				<tr>
-					<th scope="row"><label for="<?php echo esc_attr( $inputIdBase . '-max-amount' ); ?>"><?php esc_html_e( 'Maximum amount', 'relevant-forms' ); ?></label></th>
+					<th scope="row"><label for="<?php echo esc_attr( $inputIdBase . '-max-amount' ); ?>"><?php echo esc_html( sprintf( /* translators: %s: form currency code, e.g. USD. */ __( 'Maximum amount (%s)', 'relevant-forms' ), $currencyCode ) ); ?></label></th>
 					<td>
 						<input type="text" inputmode="decimal" id="<?php echo esc_attr( $inputIdBase . '-max-amount' ); ?>" name="relevant_fields[<?php echo esc_attr( $fieldId ); ?>][max_amount]" value="<?php echo esc_attr( (string) ( $definition['max_amount'] ?? '' ) ); ?>">
 						<p class="description"><?php esc_html_e( 'Used when the visitor enters the amount. Leave empty for no custom limits.', 'relevant-forms' ); ?></p>
@@ -217,7 +222,7 @@ $inputIdBase = 'rf-field-' . $fieldId;
 					<td>
 						<textarea class="widefat" id="<?php echo esc_attr( $inputIdBase . '-choices' ); ?>" rows="4" name="relevant_fields[<?php echo esc_attr( $fieldId ); ?>][choices]"><?php echo esc_textarea( implode( "\n", $choiceLines ) ); ?></textarea>
 						<?php if ( $isPricedPayment ) : ?>
-							<p class="description"><?php esc_html_e( 'One per line. The price follows the item after a pipe (|), e.g. T-shirt|25.00.', 'relevant-forms' ); ?></p>
+							<p class="description"><?php echo esc_html( sprintf( /* translators: %s: form currency code, e.g. USD. */ __( 'One per line. The price follows the item after a pipe (|), e.g. T-shirt|25.00. Prices are in %s.', 'relevant-forms' ), $currencyCode ) ); ?></p>
 						<?php else : ?>
 							<p class="description"><?php esc_html_e( 'One value per line in "value|label" format, e.g. not_sure|Not sure', 'relevant-forms' ); ?></p>
 						<?php endif; ?>
@@ -225,7 +230,7 @@ $inputIdBase = 'rf-field-' . $fieldId;
 				</tr>
 			<?php endif; ?>
 
-			<?php if ( 'file' === (string) $definition['type'] ) : ?>
+			<?php if ( $isFile ) : ?>
 				<?php
 				$uploadPolicy = is_array( $definition['upload_policy'] ?? null ) ? $definition['upload_policy'] : [];
 				$allowedExt   = implode( "\n", array_map( 'strval', (array) ( $uploadPolicy['allowed_ext'] ?? \RelevantForms\Uploads\Policy\UploadPolicy::DEFAULT_EXTENSIONS ) ) );
@@ -269,7 +274,7 @@ $inputIdBase = 'rf-field-' . $fieldId;
 				</tr>
 			<?php endif; ?>
 
-			<?php if ( ! $isSection && ! $isPagebreak && ! $isEntryPreview && ! $isContent && ! $isHtml && ! $isPaymentTotal && ! $isPricedPayment ) : ?>
+			<?php if ( ! $isSection && ! $isPagebreak && ! $isEntryPreview && ! $isContent && ! $isHtml && ! $isPaymentTotal && ! $isPricedPayment && ! $isFile ) : ?>
 				<tr>
 					<th scope="row"><label for="<?php echo esc_attr( $inputIdBase . '-default' ); ?>"><?php esc_html_e( 'Default value', 'relevant-forms' ); ?></label></th>
 					<td>

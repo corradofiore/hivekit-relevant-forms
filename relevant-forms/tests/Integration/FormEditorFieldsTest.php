@@ -348,6 +348,72 @@ final class FormEditorFieldsTest extends TestCase {
 	}
 
 	/**
+	 * File upload fields have no default value: their editor skips the row
+	 * and shows the upload policy options instead.
+	 */
+	public function testFileUploadEditorsSkipTheDefaultValueRow(): void {
+		wp_set_current_user( self::factory()->user->create( [ 'role' => 'administrator' ] ) );
+
+		$repository = new FormRepository();
+		$schema     = FormSchema::empty( 'Uploads' )->withFields(
+			[
+				[
+					'id'    => 'f_notes',
+					'type'  => 'text',
+					'label' => 'Notes',
+				],
+				[
+					'id'    => 'f_resume',
+					'type'  => 'file',
+					'label' => 'Resume',
+				],
+			]
+		);
+
+		$html = $this->renderEditor( $repository->create( 'Uploads', $schema, 'published' ) );
+
+		// The text field keeps the row; the file field does not render it.
+		$this->assertStringContainsString( '<th scope="row"><label for="rf-field-f_notes-default">Default value</label></th>', $html );
+		$this->assertStringNotContainsString( 'rf-field-f_resume-default', $html );
+		$this->assertStringNotContainsString( 'relevant_fields[f_resume][default_value]', $html );
+
+		// The upload policy options still render.
+		$this->assertStringContainsString( 'rf-field-f_resume-max-size', $html );
+		$this->assertStringContainsString( 'rf-field-f_resume-scan', $html );
+	}
+
+	/**
+	 * Payment amount rows and priced choices name the form currency, so the
+	 * editor does not hide which unit the numbers use.
+	 */
+	public function testPaymentEditorsShowTheFormCurrency(): void {
+		wp_set_current_user( self::factory()->user->create( [ 'role' => 'administrator' ] ) );
+
+		$repository = new FormRepository();
+		$schema     = FormSchema::empty( 'Checkout' )->withCurrency( 'EUR' )->withFields(
+			[
+				[
+					'id'    => 'f_deposit',
+					'type'  => 'payment-single',
+					'label' => 'Deposit',
+				],
+				[
+					'id'    => 'f_merch',
+					'type'  => 'payment-select',
+					'label' => 'Merch',
+				],
+			]
+		);
+
+		$html = $this->renderEditor( $repository->create( 'Checkout', $schema, 'published' ) );
+
+		$this->assertStringContainsString( 'Amount (EUR)', $html );
+		$this->assertStringContainsString( 'Minimum amount (EUR)', $html );
+		$this->assertStringContainsString( 'Maximum amount (EUR)', $html );
+		$this->assertStringContainsString( 'Prices are in EUR.', $html );
+	}
+
+	/**
 	 * Paragraph previews carry the realtime character counter, wired to the
 	 * sample control id and showing the field's own limit.
 	 */

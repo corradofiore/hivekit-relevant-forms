@@ -114,6 +114,33 @@ it(
 );
 
 it(
+	'blocks empty submissions of required radio groups in the browser',
+	function () {
+		Monkey\Functions\when( 'esc_attr' )->returnArg();
+		Monkey\Functions\when( 'esc_html' )->returnArg();
+		Monkey\Functions\when( 'checked' )->justReturn( '' );
+
+		$type       = FieldTypeRegistry::get( 'radio' );
+		$definition = [
+			'id'       => 'pick',
+			'type'     => 'radio',
+			'required' => true,
+			'choices'  => [ 'a|A', 'b|B' ],
+		];
+
+		$markup = $type->render( $definition, null, null, '7' );
+
+		// Both radios carry the native attribute, so the browser enforces
+		// the group the way it does for a required dropdown.
+		expect( substr_count( $markup, ' required>' ) )->toBe( 2 );
+
+		$optional = $type->render( array_merge( $definition, [ 'required' => false ] ), null, null, '7' );
+
+		expect( $optional )->not->toContain( ' required>' );
+	}
+);
+
+it(
 	'normalizes consent values',
 	function () {
 		$type = FieldTypeRegistry::get( 'consent' );
