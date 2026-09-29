@@ -142,7 +142,9 @@ final class DiagnosticsPage {
 		$recipient = ( new SmsAlert() )->recipient();
 
 		if ( '' === $recipient ) {
-			return __( 'Priority SMS enabled — no recipient configured', 'relevant-forms' );
+			// Recipients are configured (and verified) per form; only the
+			// RELEVANT_SMS_RECIPIENT constant resolves without a form.
+			return __( 'Priority SMS enabled — numbers are configured per form', 'relevant-forms' );
 		}
 
 		return sprintf(

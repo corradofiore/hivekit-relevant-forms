@@ -163,34 +163,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 			</tr>
 		</table>
 
-		<h2><?php esc_html_e( 'AI classification', 'relevant-forms' ); ?></h2>
-		<p class="description">
-			<?php esc_html_e( 'Semantic classification runs on Relevant Cloud. Nothing is sent until you connect the site above, enable the capability here and opt forms in individually. Purpose, priorities, unwanted enquiries and privacy mode are configured per form in the form editor.', 'relevant-forms' ); ?>
-		</p>
-		<table class="form-table" role="presentation">
-			<tr>
-				<th scope="row"><?php esc_html_e( 'Enable classification', 'relevant-forms' ); ?></th>
-				<td>
-					<label>
-						<input type="checkbox" name="relevant_forms_settings[ai_enabled]" value="1" <?php checked( $connection->capabilityEnabled( \RelevantForms\Cloud\CloudConnection::CAP_AI ) ); ?> <?php disabled( \RelevantForms\Cloud\CloudConnection::STATE_DISCONNECTED === $cloudState ); ?>>
-						<?php esc_html_e( 'Let Relevant Cloud classify new submissions', 'relevant-forms' ); ?>
-					</label>
-					<?php if ( \RelevantForms\Cloud\CloudConnection::STATE_DISCONNECTED === $cloudState ) : ?>
-						<p class="description"><?php esc_html_e( 'Connect to Relevant Cloud first.', 'relevant-forms' ); ?></p>
-					<?php endif; ?>
-				</td>
-			</tr>
-			<tr>
-				<th scope="row"><?php esc_html_e( 'Priority SMS alerts', 'relevant-forms' ); ?></th>
-				<td>
-					<label>
-						<input type="checkbox" name="relevant_forms_settings[sms_enabled]" value="1" <?php checked( $connection->capabilityEnabled( \RelevantForms\Cloud\CloudConnection::CAP_SMS ) ); ?> <?php disabled( \RelevantForms\Cloud\CloudConnection::STATE_DISCONNECTED === $cloudState ); ?>>
-						<?php esc_html_e( 'Allow Relevant Cloud to send priority SMS alerts (attention >= 85)', 'relevant-forms' ); ?>
-					</label>
-					<p class="description"><?php esc_html_e( 'The recipient number is configured per form in the form editor and verified with a 6-digit code. Never sends the full submission: only the AI summary and a link to the entry (WordPress login required).', 'relevant-forms' ); ?></p>
-				</td>
-			</tr>
-		</table>
 		<?php submit_button(); ?>
 	</form>
 
