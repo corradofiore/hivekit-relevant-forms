@@ -306,7 +306,18 @@ if ( $isEditing ) {
 
 		<div id="rf-panel-fields" class="relevant-forms-tabs__panel">
 
-		<?php $builder_fields = $form->schema->fields(); ?>
+		<?php
+		$builder_fields = $form->schema->fields();
+		$builder_items  = [];
+
+		foreach ( $builder_fields as $builder_field_index => $builder_definition ) {
+			$builder_field_type = RelevantForms\Forms\Fields\FieldTypeRegistry::get( (string) $builder_definition['type'] );
+
+			if ( null !== $builder_field_type ) {
+				$builder_items[ $builder_field_index ] = [ $builder_definition, $builder_field_type ];
+			}
+		}
+		?>
 		<div class="rf-fields-columns">
 			<div class="rf-fields-column rf-fields-column--list">
 				<p class="rf-fields-add">
@@ -320,11 +331,7 @@ if ( $isEditing ) {
 				<div id="rf-fields-list" class="rf-fields-list" role="listbox" aria-label="<?php esc_attr_e( 'Form fields', 'relevant-forms' ); ?>">
 					<?php
 					$builder_index = 0;
-					foreach ( $builder_fields as $definition ) {
-						$field_type = RelevantForms\Forms\Fields\FieldTypeRegistry::get( (string) $definition['type'] );
-						if ( null === $field_type ) {
-							continue;
-						}
+					foreach ( $builder_items as [ $definition, $field_type ] ) {
 						$is_first = 0 === $builder_index;
 						require RELEVANT_FORMS_PATH . 'templates/admin/field-list-item.php';
 						++$builder_index;
@@ -337,11 +344,7 @@ if ( $isEditing ) {
 				<p id="rf-fields-empty" class="rf-fields-empty"<?php echo [] === $builder_fields ? '' : ' hidden'; ?>><?php esc_html_e( 'Select a field to edit it, or add a new one.', 'relevant-forms' ); ?></p>
 				<div id="rf-fields-editors">
 					<?php
-					foreach ( $builder_fields as $definition ) {
-						$field_type = RelevantForms\Forms\Fields\FieldTypeRegistry::get( (string) $definition['type'] );
-						if ( null === $field_type ) {
-							continue;
-						}
+					foreach ( $builder_items as [ $definition, $field_type ] ) {
 						require RELEVANT_FORMS_PATH . 'templates/admin/field-row.php';
 					}
 					?>
@@ -350,11 +353,7 @@ if ( $isEditing ) {
 				<h2 id="rf-fields-preview-title"<?php echo [] === $builder_fields ? ' hidden' : ''; ?>><?php esc_html_e( 'Preview', 'relevant-forms' ); ?></h2>
 				<div id="rf-fields-preview" class="rf-fields-preview"<?php echo [] === $builder_fields ? ' hidden' : ''; ?>>
 					<?php
-					foreach ( $builder_fields as $definition ) {
-						$field_type = RelevantForms\Forms\Fields\FieldTypeRegistry::get( (string) $definition['type'] );
-						if ( null === $field_type ) {
-							continue;
-						}
+					foreach ( $builder_items as [ $definition, $field_type ] ) {
 						require RELEVANT_FORMS_PATH . 'templates/admin/field-preview.php';
 					}
 					?>
@@ -363,11 +362,7 @@ if ( $isEditing ) {
 				<h2 id="rf-fields-visibility-title"<?php echo [] === $builder_fields ? ' hidden' : ''; ?>><?php esc_html_e( 'Field visibility rules', 'relevant-forms' ); ?></h2>
 				<div id="rf-fields-visibility" class="rf-fields-visibility"<?php echo [] === $builder_fields ? ' hidden' : ''; ?>>
 					<?php
-					foreach ( $builder_fields as $builder_visibility_index => $definition ) {
-						$field_type = RelevantForms\Forms\Fields\FieldTypeRegistry::get( (string) $definition['type'] );
-						if ( null === $field_type ) {
-							continue;
-						}
+					foreach ( $builder_items as $builder_visibility_index => [ $definition, $field_type ] ) {
 						require RELEVANT_FORMS_PATH . 'templates/admin/field-visibility.php';
 					}
 					?>

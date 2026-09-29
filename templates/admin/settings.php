@@ -12,6 +12,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // phpcs:disable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- template scope variables.
+
+use RelevantForms\Cloud\CloudConfig;
+use RelevantForms\Cloud\CloudConnection;
+use RelevantForms\Cloud\LegalLinks;
 ?>
 <div class="wrap">
 	<h1><?php esc_html_e( 'Relevant Forms Settings', 'relevant-forms' ); ?></h1>
@@ -70,8 +74,21 @@ if ( ! defined( 'ABSPATH' ) ) {
 		</p>
 
 		<?php
-		$connection = new \RelevantForms\Cloud\CloudConnection();
-		$cloudState = $connection->state();
+		$connection        = new CloudConnection();
+		$cloudState        = $connection->state();
+		$cloudDisconnected = CloudConnection::STATE_DISCONNECTED === $cloudState;
+
+		/**
+		 * Print a settings notice when its status marker matches.
+		 *
+		 * @param array<string, array{0: string, 1: string}> $notices Notice map: status marker → [ tone, message ].
+		 * @param string                                     $status  Active status marker.
+		 */
+		$renderNotice = static function ( array $notices, string $status ): void {
+			if ( isset( $notices[ $status ] ) ) {
+				echo '<div class="notice notice-' . esc_attr( $notices[ $status ][0] ) . ' is-dismissible"><p>' . esc_html( $notices[ $status ][1] ) . '</p></div>';
+			}
+		};
 		?>
 		<table class="form-table" role="presentation">
 			<?php $storedCloudKey = (string) ( $settings['cloud_api_key'] ?? '' ); ?>
@@ -88,7 +105,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 				<tr>
 					<th scope="row"><?php esc_html_e( 'Cloud API key', 'relevant-forms' ); ?></th>
 					<td>
-						<code><?php echo esc_html( \RelevantForms\Cloud\CloudConfig::mask( $storedCloudKey ) ); ?></code>
+						<code><?php echo esc_html( CloudConfig::mask( $storedCloudKey ) ); ?></code>
 						&middot; <a href="#relevant-cloud-key-new-row" id="relevant-cloud-key-edit" aria-controls="relevant-cloud-key-new-row" aria-expanded="false"><?php esc_html_e( 'Edit', 'relevant-forms' ); ?></a>
 						<p class="description"><?php esc_html_e( 'A key from your Relevant Cloud dashboard is stored. The full key is never shown again.', 'relevant-forms' ); ?></p>
 					</td>
@@ -131,7 +148,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 				<td>
 					<p class="description"><?php esc_html_e( 'Enabled capabilities send only the data they need: redacted submission text for classification, the alert summary and your mobile number for SMS, and the file itself for managed secure storage and scanning. Disconnecting stops all external calls.', 'relevant-forms' ); ?></p>
 					<?php
-					$legalLinks  = \RelevantForms\Cloud\LegalLinks::all();
+					$legalLinks  = LegalLinks::all();
 					$legalLabels = [
 						'terms'         => __( 'Terms of service', 'relevant-forms' ),
 						'privacy'       => __( 'Privacy policy', 'relevant-forms' ),
@@ -170,25 +187,22 @@ if ( ! defined( 'ABSPATH' ) ) {
 	// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only status marker set by our own redirect.
 	$cloudNotice = isset( $_GET['cloud'] ) ? sanitize_key( wp_unslash( $_GET['cloud'] ) ) : '';
 
-	if ( 'connected' === $cloudNotice ) :
-		?>
-		<div class="notice notice-success is-dismissible"><p><?php esc_html_e( 'Connected to Relevant Cloud.', 'relevant-forms' ); ?></p></div>
-	<?php elseif ( 'disconnected' === $cloudNotice ) : ?>
-		<div class="notice notice-info is-dismissible"><p><?php esc_html_e( 'Disconnected from Relevant Cloud. Core features continue to work.', 'relevant-forms' ); ?></p></div>
-	<?php elseif ( 'failed' === $cloudNotice ) : ?>
-		<div class="notice notice-error is-dismissible"><p><?php esc_html_e( 'Could not connect to Relevant Cloud. Check the URL and API key.', 'relevant-forms' ); ?></p></div>
-	<?php elseif ( 'not_configured' === $cloudNotice ) : ?>
-		<div class="notice notice-error is-dismissible"><p><?php esc_html_e( 'A Cloud API key is required before connecting.', 'relevant-forms' ); ?></p></div>
-	<?php elseif ( 'refreshed' === $cloudNotice ) : ?>
-		<div class="notice notice-success is-dismissible"><p><?php esc_html_e( 'Subscription and capabilities refreshed.', 'relevant-forms' ); ?></p></div>
-	<?php elseif ( 'refresh_failed' === $cloudNotice ) : ?>
-		<div class="notice notice-error is-dismissible"><p><?php esc_html_e( 'Could not refresh from Relevant Cloud. Check the connection and try again.', 'relevant-forms' ); ?></p></div>
-	<?php elseif ( 'not_connected' === $cloudNotice ) : ?>
-		<div class="notice notice-error is-dismissible"><p><?php esc_html_e( 'This connection has no site record yet; reconnect with a dashboard-issued API key to manage subscriptions.', 'relevant-forms' ); ?></p></div>
-	<?php endif; ?>
+	$renderNotice(
+		[
+			'connected'      => [ 'success', __( 'Connected to Relevant Cloud.', 'relevant-forms' ) ],
+			'disconnected'   => [ 'info', __( 'Disconnected from Relevant Cloud. Core features continue to work.', 'relevant-forms' ) ],
+			'failed'         => [ 'error', __( 'Could not connect to Relevant Cloud. Check the URL and API key.', 'relevant-forms' ) ],
+			'not_configured' => [ 'error', __( 'A Cloud API key is required before connecting.', 'relevant-forms' ) ],
+			'refreshed'      => [ 'success', __( 'Subscription and capabilities refreshed.', 'relevant-forms' ) ],
+			'refresh_failed' => [ 'error', __( 'Could not refresh from Relevant Cloud. Check the connection and try again.', 'relevant-forms' ) ],
+			'not_connected'  => [ 'error', __( 'This connection has no site record yet; reconnect with a dashboard-issued API key to manage subscriptions.', 'relevant-forms' ) ],
+		],
+		$cloudNotice
+	);
+	?>
 
 	<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
-		<?php if ( \RelevantForms\Cloud\CloudConnection::STATE_DISCONNECTED !== $cloudState ) : ?>
+		<?php if ( ! $cloudDisconnected ) : ?>
 			<input type="hidden" name="action" value="relevant_forms_cloud_disconnect">
 			<?php wp_nonce_field( 'relevant_cloud_disconnect' ); ?>
 			<?php submit_button( __( 'Disconnect from Cloud', 'relevant-forms' ), 'secondary', 'submit', false ); ?>
@@ -202,7 +216,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	<?php
 	$paymentsStatus    = $connection->payments();
 	$paymentsConnected = ! empty( $paymentsStatus['connected'] );
-	$paymentsClientOk  = \RelevantForms\Cloud\CloudConfig::isConfigured() && \RelevantForms\Cloud\CloudConnection::STATE_DISCONNECTED !== $cloudState;
+	$paymentsClientOk  = CloudConfig::isConfigured() && ! $cloudDisconnected;
 	$feePercent        = (float) ( $paymentsStatus['fee_percent'] ?? 2.0 );
 	$feeLabel          = rtrim( rtrim( number_format( $feePercent, 2, '.', '' ), '0' ), '.' );
 	?>
@@ -216,17 +230,18 @@ if ( ! defined( 'ABSPATH' ) ) {
 	// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only status marker set by our own redirect.
 	$paymentsNotice = isset( $_GET['payments'] ) ? sanitize_key( wp_unslash( $_GET['payments'] ) ) : '';
 	?>
-	<?php if ( 'connected' === $paymentsNotice ) : ?>
-		<div class="notice notice-success is-dismissible"><p><?php esc_html_e( 'Stripe account connected. Payments are ready on every form with payment fields.', 'relevant-forms' ); ?></p></div>
-	<?php elseif ( 'disconnected' === $paymentsNotice ) : ?>
-		<div class="notice notice-info is-dismissible"><p><?php esc_html_e( 'Stripe account disconnected. Existing entries keep their payment records.', 'relevant-forms' ); ?></p></div>
-	<?php elseif ( 'error' === $paymentsNotice ) : ?>
-		<div class="notice notice-error is-dismissible"><p><?php esc_html_e( 'The Stripe authorization was not completed. No changes were made.', 'relevant-forms' ); ?></p></div>
-	<?php elseif ( 'unavailable' === $paymentsNotice ) : ?>
-		<div class="notice notice-error is-dismissible"><p><?php esc_html_e( 'Payments are not available on this deployment yet. Check the Cloud connection and try again.', 'relevant-forms' ); ?></p></div>
-	<?php elseif ( 'not_connected' === $paymentsNotice ) : ?>
-		<div class="notice notice-error is-dismissible"><p><?php esc_html_e( 'Connect this site to Relevant Cloud first, then connect Stripe here.', 'relevant-forms' ); ?></p></div>
-	<?php endif; ?>
+	<?php
+	$renderNotice(
+		[
+			'connected'     => [ 'success', __( 'Stripe account connected. Payments are ready on every form with payment fields.', 'relevant-forms' ) ],
+			'disconnected'  => [ 'info', __( 'Stripe account disconnected. Existing entries keep their payment records.', 'relevant-forms' ) ],
+			'error'         => [ 'error', __( 'The Stripe authorization was not completed. No changes were made.', 'relevant-forms' ) ],
+			'unavailable'   => [ 'error', __( 'Payments are not available on this deployment yet. Check the Cloud connection and try again.', 'relevant-forms' ) ],
+			'not_connected' => [ 'error', __( 'Connect this site to Relevant Cloud first, then connect Stripe here.', 'relevant-forms' ) ],
+		],
+		$paymentsNotice
+	);
+	?>
 
 	<table class="form-table" role="presentation">
 		<tr>
@@ -285,18 +300,19 @@ if ( ! defined( 'ABSPATH' ) ) {
 	// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only status marker set by our own redirect.
 	$billingNotice = isset( $_GET['billing'] ) ? sanitize_key( wp_unslash( $_GET['billing'] ) ) : '';
 
-	if ( 'not_connected' === $billingNotice ) :
-		?>
-		<div class="notice notice-error is-dismissible"><p><?php esc_html_e( 'Connect this site to Relevant Cloud before managing a subscription.', 'relevant-forms' ); ?></p></div>
-	<?php elseif ( 'not_configured' === $billingNotice ) : ?>
-			<div class="notice notice-error is-dismissible"><p><?php esc_html_e( 'A Cloud API key is required before managing a subscription.', 'relevant-forms' ); ?></p></div>
-	<?php elseif ( 'unavailable' === $billingNotice ) : ?>
-		<div class="notice notice-error is-dismissible"><p><?php esc_html_e( 'This connection has no Relevant Cloud dashboard link yet. Reconnect with a dashboard-issued API key to manage billing.', 'relevant-forms' ); ?></p></div>
-	<?php endif; ?>
+	$renderNotice(
+		[
+			'not_connected'  => [ 'error', __( 'Connect this site to Relevant Cloud before managing a subscription.', 'relevant-forms' ) ],
+			'not_configured' => [ 'error', __( 'A Cloud API key is required before managing a subscription.', 'relevant-forms' ) ],
+			'unavailable'    => [ 'error', __( 'This connection has no Relevant Cloud dashboard link yet. Reconnect with a dashboard-issued API key to manage billing.', 'relevant-forms' ) ],
+		],
+		$billingNotice
+	);
+	?>
 
 	<h2><?php esc_html_e( 'Subscription', 'relevant-forms' ); ?></h2>
 	<?php $subscription = $connection->subscription(); ?>
-	<?php if ( \RelevantForms\Cloud\CloudConnection::STATE_DISCONNECTED === $cloudState ) : ?>
+	<?php if ( $cloudDisconnected ) : ?>
 		<p><?php esc_html_e( 'Connect to Relevant Cloud to subscribe or manage your plan.', 'relevant-forms' ); ?></p>
 	<?php else : ?>
 		<table class="form-table" role="presentation">
