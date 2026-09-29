@@ -80,7 +80,7 @@ final class AiClassifier {
 
 		$context = $this->builder->build( $form, $values, $protection );
 
-		$client = new CloudClient( CloudConfig::url(), CloudConfig::key() );
+		$client = new CloudClient( CloudConfig::apiBase(), CloudConfig::key() );
 		$data   = $client->classify( $context );
 
 		if ( null === $data || ! is_array( $data['classification'] ?? null ) ) {

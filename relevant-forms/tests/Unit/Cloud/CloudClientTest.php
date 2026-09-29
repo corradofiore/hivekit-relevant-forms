@@ -65,7 +65,7 @@ beforeEach(
 it(
 	'connects with bearer auth and the expected endpoint',
 	function () {
-		$client = new CloudClient( 'https://cloud.example.com', 'site-key-1' );
+		$client = new CloudClient( 'https://cloud.example.com/api/v1', 'site-key-1' );
 
 		$data = $client->connect( 'https://a.example', 'Acme' );
 
@@ -84,7 +84,7 @@ it(
 it(
 	'fetches usage from the expected endpoint',
 	function () {
-		$client = new CloudClient( 'https://cloud.example.com', 'site-key-1' );
+		$client = new CloudClient( 'https://cloud.example.com/api/v1', 'site-key-1' );
 
 		$data = $client->usage();
 

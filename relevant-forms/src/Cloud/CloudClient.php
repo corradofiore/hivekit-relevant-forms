@@ -20,7 +20,8 @@ final class CloudClient {
 	/**
 	 * Constructor.
 	 *
-	 * @param string $baseUrl Cloud base URL.
+	 * @param string $baseUrl Versioned API base — origin + /api/v1
+	 *                        (see CloudConfig::apiBase()).
 	 * @param string $apiKey  Site-scoped bearer key.
 	 */
 	public function __construct(
@@ -35,7 +36,7 @@ final class CloudClient {
 	 */
 	public function connect( string $siteUrl, string $siteName = '' ): ?array {
 		$response = wp_remote_post(
-			$this->baseUrl . '/api/v1/sites/connect',
+			$this->baseUrl . '/sites/connect',
 			[
 				'timeout' => 30,
 				'headers' => $this->headers(),
@@ -58,7 +59,7 @@ final class CloudClient {
 	 */
 	public function capabilities( string $siteId ): ?array {
 		$response = wp_remote_get(
-			$this->baseUrl . '/api/v1/sites/' . rawurlencode( $siteId ) . '/capabilities',
+			$this->baseUrl . '/sites/' . rawurlencode( $siteId ) . '/capabilities',
 			[
 				'timeout' => 30,
 				'headers' => $this->headers(),
@@ -75,7 +76,7 @@ final class CloudClient {
 	 */
 	public function usage(): ?array {
 		$response = wp_remote_get(
-			$this->baseUrl . '/api/v1/usage',
+			$this->baseUrl . '/usage',
 			[
 				'timeout' => 30,
 				'headers' => $this->headers(),
@@ -93,7 +94,7 @@ final class CloudClient {
 	 */
 	public function classify( array $context ): ?array {
 		$response = wp_remote_post(
-			$this->baseUrl . '/api/v1/classifications',
+			$this->baseUrl . '/classifications',
 			[
 				'timeout' => 20,
 				'headers' => $this->headers(),
@@ -112,7 +113,7 @@ final class CloudClient {
 	 */
 	public function sendSmsAlert( array $payload ): ?array {
 		$response = wp_remote_post(
-			$this->baseUrl . '/api/v1/alerts/sms',
+			$this->baseUrl . '/alerts/sms',
 			[
 				'timeout' => 15,
 				'headers' => $this->headers(),
@@ -130,7 +131,7 @@ final class CloudClient {
 	 * @return array{status: int, data: array<string, mixed>|null, error: array<string, mixed>|null}
 	 */
 	public function requestSmsVerification( string $phone ): array {
-		return $this->postEnvelope( '/api/v1/sms/verifications', [ 'phone' => $phone ], 15 );
+		return $this->postEnvelope( '/sms/verifications', [ 'phone' => $phone ], 15 );
 	}
 
 	/**
@@ -142,7 +143,7 @@ final class CloudClient {
 	 */
 	public function verifySmsCode( int $verificationId, string $code ): array {
 		return $this->postEnvelope(
-			'/api/v1/sms/verifications/verify',
+			'/sms/verifications/verify',
 			[
 				'verification_id' => $verificationId,
 				'code'            => $code,
@@ -160,7 +161,7 @@ final class CloudClient {
 	 */
 	public function createPaymentSession( array $payload ): ?array {
 		$response = wp_remote_post(
-			$this->baseUrl . '/api/v1/payments/sessions',
+			$this->baseUrl . '/payments/sessions',
 			[
 				'timeout' => 30,
 				'headers' => $this->headers(),
@@ -180,7 +181,7 @@ final class CloudClient {
 	 */
 	public function paymentSession( string $sessionId ): ?array {
 		$response = wp_remote_get(
-			$this->baseUrl . '/api/v1/payments/sessions/' . rawurlencode( $sessionId ),
+			$this->baseUrl . '/payments/sessions/' . rawurlencode( $sessionId ),
 			[
 				'timeout' => 15,
 				'headers' => $this->headers(),
@@ -198,7 +199,7 @@ final class CloudClient {
 	 */
 	public function refundPayment( string $sessionId ): ?array {
 		$response = wp_remote_post(
-			$this->baseUrl . '/api/v1/payments/' . rawurlencode( $sessionId ) . '/refund',
+			$this->baseUrl . '/payments/' . rawurlencode( $sessionId ) . '/refund',
 			[
 				'timeout' => 30,
 				'headers' => $this->headers(),
@@ -216,7 +217,7 @@ final class CloudClient {
 	 */
 	public function paymentsConnect(): ?array {
 		$response = wp_remote_post(
-			$this->baseUrl . '/api/v1/payments/connect',
+			$this->baseUrl . '/payments/connect',
 			[
 				'timeout' => 20,
 				'headers' => $this->headers(),
@@ -234,7 +235,7 @@ final class CloudClient {
 	 */
 	public function paymentsStatus(): ?array {
 		$response = wp_remote_get(
-			$this->baseUrl . '/api/v1/payments/connect/status',
+			$this->baseUrl . '/payments/connect/status',
 			[
 				'timeout' => 15,
 				'headers' => $this->headers(),
@@ -251,7 +252,7 @@ final class CloudClient {
 	 */
 	public function paymentsDisconnect(): ?array {
 		$response = wp_remote_post(
-			$this->baseUrl . '/api/v1/payments/connect/disconnect',
+			$this->baseUrl . '/payments/connect/disconnect',
 			[
 				'timeout' => 20,
 				'headers' => $this->headers(),
@@ -270,7 +271,7 @@ final class CloudClient {
 	 */
 	public function authorizeManagedUpload( array $payload ): ?array {
 		$response = wp_remote_post(
-			$this->baseUrl . '/api/v1/uploads/authorize',
+			$this->baseUrl . '/uploads/authorize',
 			[
 				'timeout' => 20,
 				'headers' => $this->headers(),
@@ -289,7 +290,7 @@ final class CloudClient {
 	 */
 	public function completeManagedUpload( string $objectKey ): ?array {
 		$response = wp_remote_post(
-			$this->baseUrl . '/api/v1/uploads/complete',
+			$this->baseUrl . '/uploads/complete',
 			[
 				'timeout' => 20,
 				'headers' => $this->headers(),
@@ -308,7 +309,7 @@ final class CloudClient {
 	 */
 	public function managedUploadStatus( string $objectKey ): ?array {
 		$response = wp_remote_get(
-			$this->baseUrl . '/api/v1/uploads/status?object_key=' . rawurlencode( $objectKey ),
+			$this->baseUrl . '/uploads/status?object_key=' . rawurlencode( $objectKey ),
 			[
 				'timeout' => 15,
 				'headers' => $this->headers(),
@@ -325,7 +326,7 @@ final class CloudClient {
 	 */
 	public function deleteManagedUpload( string $objectKey ): bool {
 		$response = wp_remote_request(
-			$this->baseUrl . '/api/v1/uploads?object_key=' . rawurlencode( $objectKey ),
+			$this->baseUrl . '/uploads?object_key=' . rawurlencode( $objectKey ),
 			[
 				'method'  => 'DELETE',
 				'timeout' => 15,
@@ -343,7 +344,7 @@ final class CloudClient {
 	 */
 	public function billingStatus(): ?array {
 		$response = wp_remote_get(
-			$this->baseUrl . '/api/v1/billing/status',
+			$this->baseUrl . '/billing/status',
 			[
 				'timeout' => 15,
 				'headers' => $this->headers(),
@@ -360,7 +361,7 @@ final class CloudClient {
 	 */
 	public function billingCheckout( string $plan, string $successUrl, string $cancelUrl ): ?array {
 		$response = wp_remote_post(
-			$this->baseUrl . '/api/v1/billing/checkout',
+			$this->baseUrl . '/billing/checkout',
 			[
 				'timeout' => 20,
 				'headers' => $this->headers(),
@@ -384,7 +385,7 @@ final class CloudClient {
 	 */
 	public function billingPortal( string $returnUrl ): ?array {
 		$response = wp_remote_get(
-			$this->baseUrl . '/api/v1/billing/portal?return_url=' . rawurlencode( $returnUrl ),
+			$this->baseUrl . '/billing/portal?return_url=' . rawurlencode( $returnUrl ),
 			[
 				'timeout' => 15,
 				'headers' => $this->headers(),

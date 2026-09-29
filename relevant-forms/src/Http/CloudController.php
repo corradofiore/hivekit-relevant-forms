@@ -43,7 +43,7 @@ final class CloudController {
 			self::redirect( 'not_configured' );
 		}
 
-		$data = ( new CloudClient( CloudConfig::url(), CloudConfig::key() ) )
+		$data = ( new CloudClient( CloudConfig::apiBase(), CloudConfig::key() ) )
 			->connect( home_url( '/' ), (string) get_bloginfo( 'name' ) );
 
 		if ( null === $data || '' === (string) ( $data['site_id'] ?? '' ) ) {
@@ -87,7 +87,7 @@ final class CloudController {
 			self::redirect( 'not_connected' );
 		}
 
-		$data = ( new CloudClient( CloudConfig::url(), CloudConfig::key() ) )
+		$data = ( new CloudClient( CloudConfig::apiBase(), CloudConfig::key() ) )
 			->capabilities( (string) $siteId );
 
 		if ( null === $data ) {

@@ -146,7 +146,7 @@ final class SmsAlert {
 		 */
 		$payload = (array) apply_filters( 'relevant_forms_sms_alert_payload', $payload, $form, $classification );
 
-		$client = new CloudClient( CloudConfig::url(), CloudConfig::key() );
+		$client = new CloudClient( CloudConfig::apiBase(), CloudConfig::key() );
 		$data   = $client->sendSmsAlert( $payload );
 
 		if ( null === $data ) {

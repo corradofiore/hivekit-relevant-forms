@@ -67,7 +67,7 @@ it(
 
 		rf_capture_billing_request( $captured, [ 'checkout_url' => 'https://billing.example/session' ] );
 
-		$data = ( new CloudClient( 'https://cloud.example.com', 'key' ) )->billingCheckout(
+		$data = ( new CloudClient( 'https://cloud.example.com/api/v1', 'key' ) )->billingCheckout(
 			'cloud',
 			'https://site.example/wp-admin/admin.php?page=relevant-settings&billing=return',
 			'https://site.example/wp-admin/admin.php?page=relevant-settings&billing=cancel'
@@ -89,7 +89,7 @@ it(
 
 		rf_capture_billing_request( $captured, [ 'portal_url' => 'https://billing.example/portal' ] );
 
-		$data = ( new CloudClient( 'https://cloud.example.com', 'key' ) )->billingPortal( 'https://site.example/goback' );
+		$data = ( new CloudClient( 'https://cloud.example.com/api/v1', 'key' ) )->billingPortal( 'https://site.example/goback' );
 
 		expect( $data['portal_url'] )->toBe( 'https://billing.example/portal' );
 		expect( $captured['url'] )->toContain( '/api/v1/billing/portal?return_url=' );
@@ -113,7 +113,7 @@ it(
 			]
 		);
 
-		$data = ( new CloudClient( 'https://cloud.example.com', 'key' ) )->billingStatus();
+		$data = ( new CloudClient( 'https://cloud.example.com/api/v1', 'key' ) )->billingStatus();
 
 		expect( $data['subscription']['plan'] )->toBe( 'cloud' );
 		expect( $captured['url'] )->toBe( 'https://cloud.example.com/api/v1/billing/status' );

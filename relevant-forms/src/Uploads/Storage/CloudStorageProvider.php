@@ -149,6 +149,6 @@ final class CloudStorageProvider implements FileStorageProviderInterface {
 	 * Configured Cloud client.
 	 */
 	private function client(): CloudClient {
-		return new CloudClient( CloudConfig::url(), CloudConfig::key() );
+		return new CloudClient( CloudConfig::apiBase(), CloudConfig::key() );
 	}
 }

@@ -153,6 +153,6 @@ final class CloudPaymentsGateway implements PaymentsGateway {
 	 * Cloud API client for the configured account.
 	 */
 	private function client(): CloudClient {
-		return new CloudClient( CloudConfig::url(), CloudConfig::key() );
+		return new CloudClient( CloudConfig::apiBase(), CloudConfig::key() );
 	}
 }

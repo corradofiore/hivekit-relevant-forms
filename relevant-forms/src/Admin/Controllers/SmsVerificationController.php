@@ -91,7 +91,7 @@ final class SmsVerificationController {
 			);
 		}
 
-		$client = new CloudClient( CloudConfig::url(), CloudConfig::key() );
+		$client = new CloudClient( CloudConfig::apiBase(), CloudConfig::key() );
 		$result = $client->requestSmsVerification( $phone );
 		$data   = $result['data'];
 
@@ -165,7 +165,7 @@ final class SmsVerificationController {
 			);
 		}
 
-		$client = new CloudClient( CloudConfig::url(), CloudConfig::key() );
+		$client = new CloudClient( CloudConfig::apiBase(), CloudConfig::key() );
 		$result = $client->verifySmsCode( $verificationId, $code );
 
 		if ( empty( $result['data']['verified'] ) ) {

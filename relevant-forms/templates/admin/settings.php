@@ -109,15 +109,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 		?>
 		<table class="form-table" role="presentation">
 			<tr>
-				<th scope="row"><label for="relevant-cloud-url"><?php esc_html_e( 'Cloud URL', 'relevant-forms' ); ?></label></th>
-				<td>
-					<input type="url" class="regular-text" id="relevant-cloud-url" name="relevant_forms_settings[cloud_url]" value="<?php echo esc_attr( (string) ( $settings['cloud_url'] ?? '' ) ); ?>" <?php disabled( defined( 'RELEVANT_CLOUD_URL' ) ); ?> placeholder="https://cloud.example.com">
-					<?php if ( defined( 'RELEVANT_CLOUD_URL' ) ) : ?>
-						<p class="description"><?php esc_html_e( 'Defined in wp-config.php.', 'relevant-forms' ); ?></p>
-					<?php endif; ?>
-				</td>
-			</tr>
-			<tr>
 				<th scope="row"><label for="relevant-cloud-key"><?php esc_html_e( 'Cloud API key', 'relevant-forms' ); ?></label></th>
 				<td>
 					<input type="password" class="regular-text" id="relevant-cloud-key" name="relevant_forms_settings[cloud_api_key]" value="" <?php disabled( defined( 'RELEVANT_CLOUD_API_KEY' ) ); ?> autocomplete="new-password">
@@ -126,6 +117,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 					<?php elseif ( '' !== (string) ( $settings['cloud_api_key'] ?? '' ) ) : ?>
 						<p class="description"><?php esc_html_e( 'A key is stored. Leave blank to keep it.', 'relevant-forms' ); ?></p>
 					<?php endif; ?>
+					<p class="description"><?php esc_html_e( 'Issued by your Relevant Cloud dashboard. The service endpoint is built in.', 'relevant-forms' ); ?></p>
 				</td>
 			</tr>
 			<tr>
@@ -263,7 +255,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	<?php elseif ( 'failed' === $cloudNotice ) : ?>
 		<div class="notice notice-error is-dismissible"><p><?php esc_html_e( 'Could not connect to Relevant Cloud. Check the URL and API key.', 'relevant-forms' ); ?></p></div>
 	<?php elseif ( 'not_configured' === $cloudNotice ) : ?>
-		<div class="notice notice-error is-dismissible"><p><?php esc_html_e( 'Cloud URL and API key are required before connecting.', 'relevant-forms' ); ?></p></div>
+		<div class="notice notice-error is-dismissible"><p><?php esc_html_e( 'A Cloud API key is required before connecting.', 'relevant-forms' ); ?></p></div>
 	<?php elseif ( 'refreshed' === $cloudNotice ) : ?>
 		<div class="notice notice-success is-dismissible"><p><?php esc_html_e( 'Subscription and capabilities refreshed.', 'relevant-forms' ); ?></p></div>
 	<?php elseif ( 'refresh_failed' === $cloudNotice ) : ?>
@@ -374,7 +366,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 		?>
 		<div class="notice notice-error is-dismissible"><p><?php esc_html_e( 'Connect this site to Relevant Cloud before managing a subscription.', 'relevant-forms' ); ?></p></div>
 	<?php elseif ( 'not_configured' === $billingNotice ) : ?>
-		<div class="notice notice-error is-dismissible"><p><?php esc_html_e( 'Cloud URL and API key are required before managing a subscription.', 'relevant-forms' ); ?></p></div>
+			<div class="notice notice-error is-dismissible"><p><?php esc_html_e( 'A Cloud API key is required before managing a subscription.', 'relevant-forms' ); ?></p></div>
 	<?php elseif ( 'unavailable' === $billingNotice ) : ?>
 		<div class="notice notice-error is-dismissible"><p><?php esc_html_e( 'This connection has no Relevant Cloud dashboard link yet. Reconnect with a dashboard-issued API key to manage billing.', 'relevant-forms' ); ?></p></div>
 	<?php endif; ?>

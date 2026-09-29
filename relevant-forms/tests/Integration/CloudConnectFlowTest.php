@@ -9,6 +9,7 @@ declare(strict_types=1);
 
 namespace RelevantForms\Tests\Integration;
 
+use RelevantForms\Admin\Pages\SettingsPage;
 use RelevantForms\Cloud\CloudConnection;
 use RelevantForms\Http\CloudController;
 use RelevantForms\Tests\Integration\Support\RedirectedException;
@@ -232,6 +233,63 @@ final class CloudConnectFlowTest extends TestCase {
 
 		$this->assertStringContainsString( 'cloud=refresh_failed', $url );
 		$this->assertSame( 'active', ( new CloudConnection() )->subscription()['status'] ?? null );
+	}
+
+	/**
+	 * Without any stored URL the client talks to the built-in service.
+	 */
+	public function testConnectUsesTheBuiltInServiceUrlByDefault(): void {
+		update_option( 'relevant_forms_settings', [ 'cloud_api_key' => 'site-key-1' ] );
+
+		$requested = [];
+
+		add_filter(
+			'pre_http_request',
+			static function ( mixed $pre, array $args, string $url ) use ( &$requested ): array {
+				unset( $pre, $args );
+
+				$requested[] = $url;
+
+				return [
+					'response' => [ 'code' => 201 ],
+					'body'     => wp_json_encode(
+						[
+							'success' => true,
+							'data'    => [
+								'site_id'      => 'site-uuid-1',
+								'status'       => 'active',
+								'capabilities' => [ 'deep_scan' => true ],
+								'subscription' => [],
+							],
+						]
+					),
+				];
+			},
+			10,
+			3
+		);
+
+		$url = $this->connect();
+
+		$this->assertStringContainsString( 'cloud=connected', $url );
+		$this->assertSame( 'https://api.relevantcloud.com/api/v1/sites/connect', $requested[0] ?? '' );
+	}
+
+	/**
+	 * The settings screen asks only for the site key.
+	 */
+	public function testSettingsScreenDoesNotAskForTheCloudUrl(): void {
+		update_option( 'relevant_forms_settings', [] );
+
+		set_current_screen( 'toplevel_page_relevant-settings' );
+
+		ob_start();
+		SettingsPage::render();
+		$html = (string) ob_get_clean();
+
+		$this->assertStringNotContainsString( 'cloud_url', $html );
+		$this->assertStringNotContainsString( 'Cloud URL', $html );
+		$this->assertStringContainsString( 'cloud_api_key', $html );
 	}
 
 	/**
