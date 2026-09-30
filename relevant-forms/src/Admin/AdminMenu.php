@@ -15,6 +15,7 @@ use RelevantForms\Admin\Pages\EntryViewPage;
 use RelevantForms\Admin\Pages\FormEditPage;
 use RelevantForms\Admin\Pages\FormListPage;
 use RelevantForms\Admin\Pages\ImportPage;
+use RelevantForms\Admin\Pages\LogsPage;
 use RelevantForms\Admin\Pages\SettingsPage;
 use RelevantForms\Forms\FormRepository;
 
@@ -128,6 +129,15 @@ final class AdminMenu {
 			self::CAPABILITY,
 			'relevant-diagnostics',
 			[ DiagnosticsPage::class, 'render' ]
+		);
+
+		add_submenu_page(
+			'relevant-forms',
+			__( 'Logs', 'relevant-forms' ),
+			__( 'Logs', 'relevant-forms' ),
+			self::CAPABILITY,
+			'relevant-logs',
+			[ LogsPage::class, 'render' ]
 		);
 	}
 

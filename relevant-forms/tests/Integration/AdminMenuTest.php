@@ -115,6 +115,26 @@ final class AdminMenuTest extends TestCase {
 	}
 
 	/**
+	 * The Logs viewer is registered after Diagnostics.
+	 */
+	public function testTheLogsPageIsRegisteredInTheMenu(): void {
+		wp_set_current_user( self::factory()->user->create( [ 'role' => 'administrator' ] ) );
+
+		AdminMenu::register();
+		AdminMenu::build();
+
+		$slugs = $this->submenuSlugs();
+
+		$this->assertContains( 'relevant-logs', $slugs );
+
+		$diagnostics = array_search( 'relevant-diagnostics', $slugs, true );
+		$logs        = array_search( 'relevant-logs', $slugs, true );
+
+		$this->assertNotFalse( $logs );
+		$this->assertGreaterThan( (int) $diagnostics, (int) $logs );
+	}
+
+	/**
 	 * Slugs of the Relevant Forms submenu items.
 	 *
 	 * @return list<string>

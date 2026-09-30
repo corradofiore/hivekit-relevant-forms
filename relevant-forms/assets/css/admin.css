@@ -56,6 +56,36 @@
 	color: #50575e;
 }
 
+.relevant-forms-status--error {
+	background: #fcf0f1;
+	color: #b32d2e;
+}
+
+.relevant-forms-status--warning {
+	background: #fcf9e8;
+	color: #8a6d3b;
+}
+
+.relevant-forms-status--info {
+	background: #f0f6fc;
+	color: #0a4b78;
+}
+
+.relevant-forms-status--debug {
+	background: #f0f0f1;
+	color: #50575e;
+}
+
+/* Logs viewer: expandable context JSON. */
+.relevant-forms-logs summary {
+	cursor: pointer;
+}
+
+.relevant-forms-logs pre {
+	margin: 0.35em 0 0;
+	white-space: pre-wrap;
+}
+
 .relevant-forms-empty {
 	background: #fff;
 	border: 1px solid #c3c4c7;

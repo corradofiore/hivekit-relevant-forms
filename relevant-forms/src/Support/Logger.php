@@ -22,7 +22,12 @@ final class Logger {
 	 *
 	 * @var array<int, string>
 	 */
-	private const LEVELS = [ 'error', 'warning', 'info', 'debug' ];
+	public const LEVELS = [ 'error', 'warning', 'info', 'debug' ];
+
+	/**
+	 * Default cap for persisted entries; older rows are pruned on write.
+	 */
+	public const MAX_ROWS = 2000;
 
 	/**
 	 * Settings option key.
@@ -99,6 +104,8 @@ final class Logger {
 					'created_at' => current_time( 'mysql', true ),
 				]
 			);
+
+			self::prune();
 		} catch ( \Throwable $exception ) {
 			// Last-resort fallback: never let logging break the request.
 			error_log( sprintf( '[relevant-forms] %s: %s', $level, $message ) ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
@@ -116,5 +123,38 @@ final class Logger {
 		$settings = (array) get_option( self::OPTION, [] );
 
 		return ! empty( $settings['debug_logging'] );
+	}
+
+	/**
+	 * Trim the log table to the configured cap, oldest entries first.
+	 *
+	 * Runs after every persisted entry — the table never exceeds the cap by
+	 * more than one row, so the extra DELETE stays cheap. The filter can
+	 * raise or lower the cap; 0 (or lower) disables trimming.
+	 */
+	private static function prune(): void {
+		global $wpdb;
+
+		$max = (int) apply_filters( 'relevant_forms_log_max_rows', self::MAX_ROWS );
+
+		if ( $max <= 0 ) {
+			return;
+		}
+
+		$table = $wpdb->prefix . 'relevant_logs';
+
+		/*
+		 * MySQL cannot read the delete target in a plain subquery: the inner
+		 * SELECT is wrapped in a derived table. OFFSET %d lands on the id of
+		 * the (cap + 1)-th newest row — everything at or below it is beyond
+		 * the cap. With fewer rows than that the subquery yields NULL and
+		 * nothing is deleted.
+		 */
+		$wpdb->query(
+			$wpdb->prepare(
+				'DELETE FROM ' . $table . ' WHERE id <= ( SELECT id FROM ( SELECT id FROM ' . $table . ' ORDER BY id DESC LIMIT 1 OFFSET %d ) AS older_entries )',
+				$max
+			)
+		);
 	}
 }
