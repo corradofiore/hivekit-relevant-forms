@@ -12,6 +12,7 @@ namespace RelevantForms\Tests\Integration;
 
 use RelevantForms\Admin\Controllers\LogsController;
 use RelevantForms\Admin\Pages\LogsPage;
+use RelevantForms\Admin\Pages\SettingsPage;
 use RelevantForms\Tests\Integration\Support\CapturesRedirects;
 
 /**
@@ -36,32 +37,33 @@ final class LogsPageTest extends TestCase {
 	 * Clean request state.
 	 */
 	public function tearDown(): void {
-		unset( $_GET['paged'], $_GET['level'], $_GET['s'], $_GET['cleared'], $_REQUEST['_wpnonce'] );
+		unset( $_GET['paged'], $_GET['level'], $_GET['s'], $_GET['cleared'], $_GET['debug_saved'], $_POST['debug_logging'], $_REQUEST['_wpnonce'] );
 
 		parent::tearDown();
 	}
 
 	/**
-	 * Empty table: empty state plus the debug-logging hint when it is off.
+	 * Empty table: the empty state renders with the unchecked debug control.
 	 */
-	public function testThePageRendersTheEmptyStateAndTheDebugHint(): void {
+	public function testTheEmptyStateRendersWithAnUncheckedDebugControl(): void {
 		update_option( 'relevant_forms_settings', [] );
 
 		$html = $this->renderPage();
 
 		$this->assertStringContainsString( 'No log entries found.', $html );
-		$this->assertStringContainsString( 'Enable debug logging in', $html );
+		$this->assertStringContainsString( 'name="debug_logging"', $html );
+		$this->assertDoesNotMatchRegularExpression( '/name="debug_logging" value="1"\s+checked/', $html );
 	}
 
 	/**
-	 * With debug logging on, the hint is gone.
+	 * With debug logging on, the control renders checked.
 	 */
-	public function testTheDebugHintIsHiddenWhenDebugLoggingIsOn(): void {
+	public function testTheDebugControlIsCheckedWhenDebugLoggingIsOn(): void {
 		update_option( 'relevant_forms_settings', [ 'debug_logging' => 1 ] );
 
 		$html = $this->renderPage();
 
-		$this->assertStringNotContainsString( 'Enable debug logging in', $html );
+		$this->assertMatchesRegularExpression( '/name="debug_logging" value="1"\s+checked/', $html );
 	}
 
 	/**
@@ -161,6 +163,66 @@ final class LogsPageTest extends TestCase {
 		$this->expectException( \WPDieException::class );
 
 		LogsController::handle();
+	}
+
+	/**
+	 * The toggle saves the flag and leaves the other settings untouched.
+	 */
+	public function testTheDebugToggleSavesTheFlagAndKeepsOtherKeys(): void {
+		update_option(
+			'relevant_forms_settings',
+			[
+				'storage_provider' => 'cloud',
+				'debug_logging'    => 0,
+			]
+		);
+
+		$url = $this->captureRedirect( [ LogsController::class, 'saveDebugLogging' ], 'relevant_forms_save_debug_logging', [ 'debug_logging' => '1' ] );
+
+		$this->assertStringContainsString( 'debug_saved=1', $url );
+
+		$settings = (array) get_option( 'relevant_forms_settings', [] );
+
+		$this->assertSame( 1, $settings['debug_logging'] );
+		$this->assertSame( 'cloud', $settings['storage_provider'] );
+	}
+
+	/**
+	 * Posting without the checkbox clears the flag.
+	 */
+	public function testTheDebugToggleClearsTheFlagWhenUnchecked(): void {
+		update_option( 'relevant_forms_settings', [ 'debug_logging' => 1 ] );
+
+		$url = $this->captureRedirect( [ LogsController::class, 'saveDebugLogging' ], 'relevant_forms_save_debug_logging' );
+
+		$this->assertStringContainsString( 'debug_saved=1', $url );
+
+		$settings = (array) get_option( 'relevant_forms_settings', [] );
+
+		$this->assertSame( 0, $settings['debug_logging'] );
+	}
+
+	/**
+	 * A bogus nonce is refused by the toggle.
+	 */
+	public function testTheDebugToggleRejectsABogusNonce(): void {
+		$_REQUEST['_wpnonce'] = 'bogus';
+
+		$this->expectException( \WPDieException::class );
+
+		LogsController::saveDebugLogging();
+	}
+
+	/**
+	 * Saving the settings form keeps the stored debug flag (the control
+	 * lives on the Logs screen, so the key is absent from that form).
+	 */
+	public function testSavingTheSettingsFormKeepsTheStoredDebugFlag(): void {
+		update_option( 'relevant_forms_settings', [ 'debug_logging' => 1 ] );
+
+		$sanitized = SettingsPage::sanitize( [] );
+
+		$this->assertSame( 1, $sanitized['debug_logging'] );
 	}
 
 	/**
