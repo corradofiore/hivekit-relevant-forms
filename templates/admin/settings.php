@@ -36,7 +36,7 @@ use RelevantForms\Cloud\LegalLinks;
 
 		<h2><?php esc_html_e( 'File storage', 'relevant-forms' ); ?></h2>
 		<p class="description">
-			<?php esc_html_e( 'Uploads are stored privately. Choose local private storage or Relevant Managed Secure Storage (Cloud). Bring-your-own object storage is part of Relevant Pro. Constants in wp-config.php override these settings.', 'relevant-forms' ); ?>
+			<?php esc_html_e( 'Where to store files uploaded via your forms: on your server (default) or on Relevant Cloud for enhanced security (requires an active subscription)', 'relevant-forms' ); ?>
 		</p>
 		<table class="form-table" role="presentation">
 			<tr>
