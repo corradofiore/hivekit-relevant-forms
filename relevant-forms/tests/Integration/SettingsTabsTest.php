@@ -138,6 +138,7 @@ final class SettingsTabsTest extends TestCase {
 		$this->assertStringNotContainsString( 'cloud_api_key', $storage );
 		$this->assertStringNotContainsString( 'Stripe account', $storage );
 
+		$this->assertStringContainsString( 'Accept payments on your forms in no time through your own Stripe account (Stripe Connect):', $payments );
 		$this->assertStringContainsString( 'No Stripe account connected.', $payments );
 		$this->assertStringContainsString( 'Connect Stripe', $payments );
 		$this->assertStringContainsString( '<ul class="description">', $payments );
