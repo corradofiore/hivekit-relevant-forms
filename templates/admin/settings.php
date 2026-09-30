@@ -41,8 +41,6 @@ use RelevantForms\Cloud\CloudConnection;
 	$cloudNotice = isset( $_GET['cloud'] ) ? sanitize_key( wp_unslash( $_GET['cloud'] ) ) : '';
 	// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only status marker set by our own redirect.
 	$paymentsNotice = isset( $_GET['payments'] ) ? sanitize_key( wp_unslash( $_GET['payments'] ) ) : '';
-	// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only status marker set by our own redirect.
-	$billingNotice = isset( $_GET['billing'] ) ? sanitize_key( wp_unslash( $_GET['billing'] ) ) : '';
 
 	/**
 	 * Print a settings notice when its status marker matches.
@@ -75,6 +73,7 @@ use RelevantForms\Cloud\CloudConnection;
 			$renderNotice(
 				[
 					'connected'      => [ 'success', __( 'Connected to Relevant Cloud.', 'relevant-forms' ) ],
+					'key_saved'      => [ 'success', __( 'Cloud API key saved.', 'relevant-forms' ) ],
 					'disconnected'   => [ 'info', __( 'Disconnected from Relevant Cloud. Core features continue to work.', 'relevant-forms' ) ],
 					'failed'         => [ 'error', __( 'Could not connect to Relevant Cloud. Check the URL and API key.', 'relevant-forms' ) ],
 					'not_configured' => [ 'error', __( 'A Cloud API key is required before connecting.', 'relevant-forms' ) ],
@@ -83,82 +82,6 @@ use RelevantForms\Cloud\CloudConnection;
 					'not_connected'  => [ 'error', __( 'This connection has no site record yet; reconnect with a dashboard-issued API key to manage subscriptions.', 'relevant-forms' ) ],
 				],
 				$cloudNotice
-			);
-			?>
-
-			<table class="form-table" role="presentation">
-				<?php $storedCloudKey = (string) ( $settings['cloud_api_key'] ?? '' ); ?>
-				<?php if ( defined( 'RELEVANT_CLOUD_API_KEY' ) ) : ?>
-					<tr>
-						<th scope="row"><?php esc_html_e( 'Cloud API key', 'relevant-forms' ); ?></th>
-						<td>
-							<input type="password" class="regular-text" id="relevant-cloud-key" name="relevant_forms_settings[cloud_api_key]" value="" disabled autocomplete="new-password">
-							<p class="description"><?php esc_html_e( 'Defined in wp-config.php.', 'relevant-forms' ); ?></p>
-							<p class="description"><?php esc_html_e( 'Issued by your Relevant Cloud dashboard. The service endpoint is built in.', 'relevant-forms' ); ?></p>
-						</td>
-					</tr>
-				<?php elseif ( '' !== $storedCloudKey ) : ?>
-					<tr>
-						<th scope="row"><?php esc_html_e( 'Cloud API key', 'relevant-forms' ); ?></th>
-						<td>
-							<code><?php echo esc_html( CloudConfig::mask( $storedCloudKey ) ); ?></code>
-							&middot; <a href="#relevant-cloud-key-new-row" id="relevant-cloud-key-edit" aria-controls="relevant-cloud-key-new-row" aria-expanded="false"><?php esc_html_e( 'Edit', 'relevant-forms' ); ?></a>
-							<p class="description"><?php esc_html_e( 'A key from your Relevant Cloud dashboard is stored. The full key is never shown again.', 'relevant-forms' ); ?></p>
-						</td>
-					</tr>
-					<tr id="relevant-cloud-key-new-row" hidden>
-						<th scope="row"><label for="relevant-cloud-key"><?php esc_html_e( 'New key', 'relevant-forms' ); ?></label></th>
-						<td>
-							<input type="password" class="regular-text" id="relevant-cloud-key" name="relevant_forms_settings[cloud_api_key]" value="" autocomplete="new-password">
-							<p class="description"><?php esc_html_e( 'Paste a new key here if you want to replace the existing one. Leave blank to keep the current key.', 'relevant-forms' ); ?></p>
-						</td>
-					</tr>
-				<?php else : ?>
-					<tr>
-						<th scope="row"><label for="relevant-cloud-key"><?php esc_html_e( 'Cloud API key', 'relevant-forms' ); ?></label></th>
-						<td>
-							<input type="password" class="regular-text" id="relevant-cloud-key" name="relevant_forms_settings[cloud_api_key]" value="" autocomplete="new-password">
-							<p class="description"><?php esc_html_e( 'Issued by your Relevant Cloud dashboard. The service endpoint is built in.', 'relevant-forms' ); ?></p>
-						</td>
-					</tr>
-				<?php endif; ?>
-				<tr>
-					<th scope="row"><?php esc_html_e( 'Connection state', 'relevant-forms' ); ?></th>
-					<td>
-						<code><?php echo esc_html( $cloudState ); ?></code>
-						<?php if ( null !== $connection->siteId() ) : ?>
-							<p class="description">
-								<?php
-								printf(
-									/* translators: %s: cloud site id */
-									esc_html__( 'Site ID: %s', 'relevant-forms' ),
-									esc_html( (string) $connection->siteId() )
-								);
-								?>
-							</p>
-						<?php endif; ?>
-					</td>
-				</tr>
-			</table>
-
-			<div class="relevant-forms-actions">
-				<?php if ( $cloudDisconnected ) : ?>
-					<button type="submit" form="rf-cloud-action-form" class="button button-primary"><?php esc_html_e( 'Connect to Cloud', 'relevant-forms' ); ?></button>
-				<?php else : ?>
-					<button type="submit" form="rf-cloud-action-form" class="button"><?php esc_html_e( 'Disconnect from Cloud', 'relevant-forms' ); ?></button>
-				<?php endif; ?>
-			</div>
-
-			<h2><?php esc_html_e( 'Subscription', 'relevant-forms' ); ?></h2>
-
-			<?php
-			$renderNotice(
-				[
-					'not_connected'  => [ 'error', __( 'Connect this site to Relevant Cloud before managing a subscription.', 'relevant-forms' ) ],
-					'not_configured' => [ 'error', __( 'A Cloud API key is required before managing a subscription.', 'relevant-forms' ) ],
-					'unavailable'    => [ 'error', __( 'This connection has no Relevant Cloud dashboard link yet. Reconnect with a dashboard-issued API key to manage billing.', 'relevant-forms' ) ],
-				],
-				$billingNotice
 			);
 			?>
 
@@ -171,7 +94,7 @@ use RelevantForms\Cloud\CloudConnection;
 						<th scope="row"><?php esc_html_e( 'Current plan', 'relevant-forms' ); ?></th>
 						<td>
 							<?php if ( [] === $subscription ) : ?>
-								<code><?php esc_html_e( 'unknown — reconnect or refresh capabilities', 'relevant-forms' ); ?></code>
+								<code><?php esc_html_e( 'unknown — reconnect with a dashboard-issued API key', 'relevant-forms' ); ?></code>
 							<?php else : ?>
 								<code><?php echo esc_html( (string) ( $subscription['plan'] ?? 'none' ) ); ?></code>
 								&middot; <code><?php echo esc_html( (string) ( $subscription['status'] ?? 'unknown' ) ); ?></code>
@@ -192,15 +115,80 @@ use RelevantForms\Cloud\CloudConnection;
 					<tr>
 						<th scope="row"><?php esc_html_e( 'Billing', 'relevant-forms' ); ?></th>
 						<td>
-							<div class="relevant-forms-actions">
-								<button type="submit" form="rf-cloud-billing-form" class="button button-primary"><?php esc_html_e( 'Manage billing', 'relevant-forms' ); ?></button>
-								<button type="submit" form="rf-cloud-refresh-form" class="button"><?php esc_html_e( 'Refresh subscription', 'relevant-forms' ); ?></button>
-							</div>
-							<p class="description"><?php esc_html_e( 'Plan changes, payment details and invoices live in the Relevant Cloud dashboard; the subscription state shown here is read-only.', 'relevant-forms' ); ?></p>
+							<?php $dashboardUrl = $connection->dashboardUrl(); ?>
+							<?php if ( null !== $dashboardUrl && '' !== $dashboardUrl ) : ?>
+								<a href="<?php echo esc_url( $dashboardUrl ); ?>"><?php esc_html_e( 'Manage billing in the Relevant Cloud dashboard', 'relevant-forms' ); ?></a>
+							<?php else : ?>
+								<p class="description"><?php esc_html_e( 'This connection has no Relevant Cloud dashboard link yet. Reconnect with a dashboard-issued API key to manage billing.', 'relevant-forms' ); ?></p>
+							<?php endif; ?>
 						</td>
 					</tr>
 				</table>
 			<?php endif; ?>
+
+			<h2><?php esc_html_e( 'Connection', 'relevant-forms' ); ?></h2>
+
+			<table class="form-table" role="presentation">
+				<tr>
+					<th scope="row"><?php esc_html_e( 'Connection state', 'relevant-forms' ); ?></th>
+					<td>
+						<p class="relevant-forms-connection-state">
+							<code><?php echo esc_html( $cloudState ); ?></code>
+							<?php if ( $cloudDisconnected ) : ?>
+								<button type="submit" form="rf-cloud-action-form" class="button button-primary"><?php esc_html_e( 'Connect to Cloud', 'relevant-forms' ); ?></button>
+							<?php else : ?>
+								<button type="submit" form="rf-cloud-action-form" class="button"><?php esc_html_e( 'Disconnect from Cloud', 'relevant-forms' ); ?></button>
+							<?php endif; ?>
+						</p>
+						<?php if ( null !== $connection->siteId() ) : ?>
+							<p class="description">
+								<?php
+								printf(
+									/* translators: %s: cloud site id */
+									esc_html__( 'Site ID: %s', 'relevant-forms' ),
+									esc_html( (string) $connection->siteId() )
+								);
+								?>
+							</p>
+						<?php endif; ?>
+					</td>
+				</tr>
+				<?php $storedCloudKey = (string) ( $settings['cloud_api_key'] ?? '' ); ?>
+				<?php if ( defined( 'RELEVANT_CLOUD_API_KEY' ) ) : ?>
+					<tr>
+						<th scope="row"><?php esc_html_e( 'Cloud API key', 'relevant-forms' ); ?></th>
+						<td>
+							<input type="password" class="regular-text" id="relevant-cloud-key" value="" disabled autocomplete="new-password">
+							<p class="description"><?php esc_html_e( 'Defined in wp-config.php.', 'relevant-forms' ); ?></p>
+							<p class="description"><?php esc_html_e( 'Issued by your Relevant Cloud dashboard. The service endpoint is built in.', 'relevant-forms' ); ?></p>
+						</td>
+					</tr>
+				<?php elseif ( '' !== $storedCloudKey ) : ?>
+					<tr>
+						<th scope="row"><?php esc_html_e( 'Cloud API key', 'relevant-forms' ); ?></th>
+						<td>
+							<code><?php echo esc_html( CloudConfig::mask( $storedCloudKey ) ); ?></code>
+							&middot; <a href="#relevant-cloud-key-new-row" id="relevant-cloud-key-edit" aria-controls="relevant-cloud-key-new-row" aria-expanded="false"><?php esc_html_e( 'Edit', 'relevant-forms' ); ?></a>
+							<p class="description"><?php esc_html_e( 'A key from your Relevant Cloud dashboard is stored. The full key is never shown again.', 'relevant-forms' ); ?></p>
+						</td>
+					</tr>
+					<tr id="relevant-cloud-key-new-row" hidden>
+						<th scope="row"><label for="relevant-cloud-key"><?php esc_html_e( 'New key', 'relevant-forms' ); ?></label></th>
+						<td>
+							<input type="password" class="regular-text" id="relevant-cloud-key" name="cloud_api_key" form="rf-cloud-key-form" value="" autocomplete="new-password">
+							<p class="description"><?php esc_html_e( 'Paste a new key here to replace the existing one. It saves the moment it is entered; leave blank to keep the current key.', 'relevant-forms' ); ?></p>
+						</td>
+					</tr>
+				<?php else : ?>
+					<tr>
+						<th scope="row"><label for="relevant-cloud-key"><?php esc_html_e( 'Cloud API key', 'relevant-forms' ); ?></label></th>
+						<td>
+							<input type="password" class="regular-text" id="relevant-cloud-key" name="cloud_api_key" form="rf-cloud-key-form" value="" autocomplete="new-password">
+							<p class="description"><?php esc_html_e( 'Issued by your Relevant Cloud dashboard. The service endpoint is built in; the key saves the moment it is entered.', 'relevant-forms' ); ?></p>
+						</td>
+					</tr>
+				<?php endif; ?>
+			</table>
 		</div><!-- #rf-panel-cloud -->
 
 		<div id="rf-panel-storage" class="relevant-forms-tabs__panel">
@@ -231,6 +219,8 @@ use RelevantForms\Cloud\CloudConnection;
 					</td>
 				</tr>
 			</table>
+
+			<?php submit_button(); ?>
 		</div><!-- #rf-panel-storage -->
 
 		<div id="rf-panel-payments" class="relevant-forms-tabs__panel">
@@ -297,8 +287,6 @@ use RelevantForms\Cloud\CloudConnection;
 				</tr>
 			</table>
 		</div><!-- #rf-panel-payments -->
-
-		<?php submit_button(); ?>
 	</form>
 
 	<?php /* Nonced action forms for the panel buttons, declared outside the options form (HTML forbids nested forms); each button targets its form by id. */ ?>
@@ -312,15 +300,11 @@ use RelevantForms\Cloud\CloudConnection;
 		<?php endif; ?>
 	</form>
 
-	<?php if ( ! $cloudDisconnected ) : ?>
-		<form id="rf-cloud-billing-form" method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" hidden>
-			<input type="hidden" name="action" value="relevant_forms_cloud_billing">
-			<?php wp_nonce_field( 'relevant_cloud_billing' ); ?>
-		</form>
-
-		<form id="rf-cloud-refresh-form" method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" hidden>
-			<input type="hidden" name="action" value="relevant_forms_cloud_refresh">
-			<?php wp_nonce_field( 'relevant_cloud_refresh' ); ?>
+	<?php if ( ! defined( 'RELEVANT_CLOUD_API_KEY' ) ) : ?>
+		<?php /* The key field saves on change: its input targets this nonced form. */ ?>
+		<form id="rf-cloud-key-form" method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" hidden>
+			<input type="hidden" name="action" value="relevant_forms_cloud_save_key">
+			<?php wp_nonce_field( 'relevant_cloud_save_key' ); ?>
 		</form>
 	<?php endif; ?>
 

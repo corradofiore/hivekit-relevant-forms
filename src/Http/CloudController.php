@@ -9,6 +9,7 @@ declare(strict_types=1);
 
 namespace RelevantForms\Http;
 
+use RelevantForms\Admin\Pages\SettingsPage;
 use RelevantForms\Cloud\CloudClient;
 use RelevantForms\Cloud\CloudConfig;
 use RelevantForms\Cloud\CloudConnection;
@@ -27,6 +28,7 @@ final class CloudController {
 		add_action( 'admin_post_relevant_forms_cloud_connect', [ self::class, 'connect' ] );
 		add_action( 'admin_post_relevant_forms_cloud_refresh', [ self::class, 'refresh' ] );
 		add_action( 'admin_post_relevant_forms_cloud_disconnect', [ self::class, 'disconnect' ] );
+		add_action( 'admin_post_relevant_forms_cloud_save_key', [ self::class, 'saveKey' ] );
 	}
 
 	/**
@@ -113,6 +115,34 @@ final class CloudController {
 		( new CloudConnection() )->disconnect();
 
 		self::redirect( 'disconnected' );
+	}
+
+	/**
+	 * Store a Cloud API key entered on the settings screen. The key field
+	 * saves on change; an empty value keeps the stored key.
+	 */
+	public static function saveKey(): void {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_die( esc_html__( 'You do not have permission to perform this action.', 'relevant-forms' ), '', [ 'response' => 403 ] );
+		}
+
+		check_admin_referer( 'relevant_cloud_save_key' );
+
+		$raw = wp_unslash( $_POST );
+		$key = (string) sanitize_text_field( (string) ( $raw['cloud_api_key'] ?? '' ) );
+
+		if ( '' === $key ) {
+			wp_safe_redirect( admin_url( 'admin.php?page=relevant-settings' ) );
+			exit;
+		}
+
+		$settings = (array) get_option( SettingsPage::OPTION, [] );
+
+		$settings['cloud_api_key'] = $key;
+
+		update_option( SettingsPage::OPTION, $settings );
+
+		self::redirect( 'key_saved' );
 	}
 
 	/**
