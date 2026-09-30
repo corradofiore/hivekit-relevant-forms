@@ -15,7 +15,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 use RelevantForms\Cloud\CloudConfig;
 use RelevantForms\Cloud\CloudConnection;
-use RelevantForms\Cloud\LegalLinks;
 ?>
 <div class="wrap">
 	<h1><?php esc_html_e( 'Relevant Forms Settings', 'relevant-forms' ); ?></h1>
@@ -133,41 +132,6 @@ use RelevantForms\Cloud\LegalLinks;
 								esc_html__( 'Site ID: %s', 'relevant-forms' ),
 								esc_html( (string) $connection->siteId() )
 							);
-							?>
-						</p>
-					<?php endif; ?>
-				</td>
-			</tr>
-			<tr>
-				<th scope="row"><?php esc_html_e( 'Data & privacy', 'relevant-forms' ); ?></th>
-				<td>
-					<p class="description"><?php esc_html_e( 'Enabled capabilities send only the data they need: redacted submission text for classification, the alert summary and your mobile number for SMS, and the file itself for managed secure storage and scanning. Disconnecting stops all external calls.', 'relevant-forms' ); ?></p>
-					<?php
-					$legalLinks  = LegalLinks::all();
-					$legalLabels = [
-						'terms'         => __( 'Terms of service', 'relevant-forms' ),
-						'privacy'       => __( 'Privacy policy', 'relevant-forms' ),
-						'subprocessors' => __( 'Subprocessors', 'relevant-forms' ),
-					];
-					?>
-					<?php if ( [] !== $legalLinks ) : ?>
-						<p>
-							<?php
-							$legalItems = [];
-
-							foreach ( $legalLinks as $legalKey => $legalUrl ) {
-								if ( ! isset( $legalLabels[ $legalKey ] ) ) {
-									continue;
-								}
-
-								$legalItems[] = sprintf(
-									'<a href="%s" target="_blank" rel="noopener noreferrer">%s</a>',
-									esc_url( (string) $legalUrl ),
-									esc_html( $legalLabels[ $legalKey ] )
-								);
-							}
-
-							echo wp_kses_post( implode( ' &middot; ', $legalItems ) );
 							?>
 						</p>
 					<?php endif; ?>
