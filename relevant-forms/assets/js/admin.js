@@ -2043,6 +2043,33 @@
 		} );
 	}
 
+	/**
+	 * Cloud API key: save the field the moment a value is entered by
+	 * submitting the nonced form the input is associated with. An empty
+	 * value is ignored so closing the editor never clears a stored key.
+	 */
+	function initCloudKeyAutosave() {
+		var form = document.getElementById( 'rf-cloud-key-form' );
+		var input = document.querySelector( 'input[form="rf-cloud-key-form"][name="cloud_api_key"]' );
+
+		if ( ! form || ! input ) {
+			return;
+		}
+
+		input.addEventListener( 'change', function () {
+			if ( '' === input.value ) {
+				return;
+			}
+
+			if ( form.requestSubmit ) {
+				form.requestSubmit();
+			} else {
+				form.submit();
+			}
+		} );
+	}
+
 	initTabs();
 	initCloudKeyField();
+	initCloudKeyAutosave();
 } )();

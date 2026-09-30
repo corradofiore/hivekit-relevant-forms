@@ -70,7 +70,7 @@ final class SettingsTabsTest extends TestCase {
 		$html = $this->renderSettings();
 		$main = $this->optionsForm( $html );
 
-		$this->assertStringContainsString( 'name="relevant_forms_settings[cloud_api_key]"', $main );
+		$this->assertStringNotContainsString( 'name="relevant_forms_settings[cloud_api_key]"', $main );
 		$this->assertStringContainsString( 'name="relevant_forms_settings[storage_provider]"', $main );
 		$this->assertStringContainsString( 'name="relevant_forms_settings[storage_block_unscanned_downloads]"', $main );
 		$this->assertStringContainsString( 'value="Save Changes"', $main );
@@ -82,11 +82,18 @@ final class SettingsTabsTest extends TestCase {
 		$this->assertStringNotContainsString( 'id="rf-cloud-action-form"', $main );
 		$this->assertStringContainsString( 'id="rf-cloud-action-form"', $html );
 		$this->assertStringContainsString( 'value="relevant_forms_cloud_connect"', $html );
+
+		// The API key field saves on entry through its own nonced form.
+		$this->assertStringContainsString( 'form="rf-cloud-key-form"', $main );
+		$this->assertStringContainsString( 'name="cloud_api_key"', $main );
+		$this->assertStringContainsString( 'id="rf-cloud-key-form"', $html );
+		$this->assertStringContainsString( 'value="relevant_forms_cloud_save_key"', $html );
 	}
 
 	/**
-	 * Connected screen: the Cloud panel exposes disconnect and billing
-	 * buttons that target their dedicated action forms.
+	 * Connected screen: the Cloud panel shows the plan, a direct billing
+	 * link and the Connection section; the key saves on entry so there is
+	 * no Save button on this tab.
 	 */
 	public function testConnectedCloudPanelTargetsItsActionForms(): void {
 		$this->connectCloud();
@@ -94,18 +101,24 @@ final class SettingsTabsTest extends TestCase {
 		$html  = $this->renderSettings();
 		$cloud = $this->panel( $html, 'rf-panel-cloud' );
 
+		// Subscription first: cached plan plus a direct billing link.
+		$this->assertStringContainsString( 'Current plan', $cloud );
+		$this->assertStringContainsString( 'href="https://cloud.example.com/billing"', $cloud );
+		$this->assertStringNotContainsString( 'rf-cloud-billing-form', $html );
+		$this->assertStringNotContainsString( 'rf-cloud-refresh-form', $html );
+
+		// Then the Connection section: state + disconnect button in the
+		// same value column, key field below.
+		$this->assertStringContainsString( '<h2>Connection</h2>', $cloud );
 		$this->assertStringContainsString( 'Disconnect from Cloud', $cloud );
 		$this->assertStringContainsString( 'form="rf-cloud-action-form"', $cloud );
-		$this->assertStringContainsString( 'Manage billing', $cloud );
-		$this->assertStringContainsString( 'form="rf-cloud-billing-form"', $cloud );
-		$this->assertStringContainsString( 'form="rf-cloud-refresh-form"', $cloud );
+		$this->assertStringContainsString( 'form="rf-cloud-key-form"', $cloud );
 
-		$this->assertStringContainsString( 'id="rf-cloud-billing-form"', $html );
-		$this->assertStringContainsString( 'value="relevant_forms_cloud_billing"', $html );
-		$this->assertStringContainsString( 'id="rf-cloud-refresh-form"', $html );
-		$this->assertStringContainsString( 'value="relevant_forms_cloud_refresh"', $html );
+		$this->assertLessThan( (int) strpos( $cloud, '<h2>Connection</h2>' ), (int) strpos( $cloud, 'Current plan' ) );
+		$this->assertLessThan( (int) strpos( $cloud, 'Cloud API key' ), (int) strpos( $cloud, 'Connection state' ) );
 
-		$this->assertStringNotContainsString( 'name="relevant_forms_settings[storage_provider]"', $cloud );
+		// No Save button on this tab: the key saves the moment it is entered.
+		$this->assertStringNotContainsString( 'Save Changes', $cloud );
 	}
 
 	/**
@@ -121,6 +134,7 @@ final class SettingsTabsTest extends TestCase {
 
 		$this->assertStringContainsString( 'name="relevant_forms_settings[storage_provider]"', $storage );
 		$this->assertStringContainsString( 'name="relevant_forms_settings[storage_block_unscanned_downloads]"', $storage );
+		$this->assertStringContainsString( 'value="Save Changes"', $storage );
 		$this->assertStringNotContainsString( 'cloud_api_key', $storage );
 		$this->assertStringNotContainsString( 'Stripe account', $storage );
 

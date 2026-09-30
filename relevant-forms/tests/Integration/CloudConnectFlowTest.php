@@ -116,7 +116,7 @@ final class CloudConnectFlowTest extends TestCase {
 		$this->assertSame( 'cloud', $connection->subscription()['plan'] ?? null );
 		$this->assertTrue( $connection->subscription()['entitled'] ?? false );
 
-		// D8: the dashboard deep link is cached for the "Manage billing" button.
+		// D8: the dashboard deep link is cached for the Billing link.
 		$this->assertSame( 'https://cloud.example.com/app/sites/site-uuid-1/billing', $connection->dashboardUrl() );
 
 		// Consent gate: capabilities require explicit enablement.
@@ -345,7 +345,7 @@ final class CloudConnectFlowTest extends TestCase {
 
 		$this->assertStringNotContainsString( 'relevant-cloud-key-edit', $html );
 		$this->assertStringNotContainsString( 'Paste a new key here', $html );
-		$this->assertStringContainsString( 'name="relevant_forms_settings[cloud_api_key]"', $html );
+		$this->assertStringContainsString( 'name="cloud_api_key"', $html );
 	}
 
 	/**

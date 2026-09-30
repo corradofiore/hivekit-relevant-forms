@@ -472,6 +472,13 @@ td.relevant-forms-used-on .relevant-forms-used-on__popover:target {
 	padding-left: 1.5em;
 }
 
+/* Settings: the connection-state row keeps its connect/disconnect button
+   inline after the state code. */
+
+.relevant-forms-connection-state .button {
+	margin-left: 8px;
+}
+
 /*
  * Form editor: half-width textareas on desktop, full width on small screens
  * (core's admin breakpoint) — also outranks core's .form-table td textarea.
