@@ -58,14 +58,10 @@ use RelevantForms\Cloud\LegalLinks;
 						<input type="checkbox" name="relevant_forms_settings[storage_block_unscanned_downloads]" value="1" <?php checked( ! empty( $settings['storage_block_unscanned_downloads'] ) ); ?>>
 						<?php esc_html_e( 'Block downloads of files that have not been scanned yet', 'relevant-forms' ); ?>
 					</label>
+					<p class="description"><?php esc_html_e( 'Basic scanning runs on this site in pure PHP. Deep scanning runs on the Relevant Cloud service for complex analysis and requires an active subscription. The Cloud connection is used automatically once the subscription is active.', 'relevant-forms' ); ?></p>
 				</td>
 			</tr>
 		</table>
-
-		<h2><?php esc_html_e( 'Malware scanning', 'relevant-forms' ); ?></h2>
-		<p class="description">
-			<?php esc_html_e( 'Basic scanning runs on this site in pure PHP (no services required). Deep scanning runs on the Relevant Cloud service for complex analysis — the Cloud connection is used automatically, with no separate endpoint or key. Deep local scanners are part of Relevant Pro.', 'relevant-forms' ); ?>
-		</p>
 
 		<h2><?php esc_html_e( 'Relevant Cloud', 'relevant-forms' ); ?></h2>
 		<p class="description">
