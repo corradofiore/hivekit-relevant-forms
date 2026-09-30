@@ -464,6 +464,14 @@ td.relevant-forms-used-on .relevant-forms-used-on__popover:target {
 	margin-right: 8px;
 }
 
+/* Settings: keep intro descriptions scannable as bulleted lists; the core
+   admin reset strips list styles, so restore the bullets explicitly. */
+
+.relevant-forms-tabs__panel ul.description {
+	list-style: disc;
+	padding-left: 1.5em;
+}
+
 /*
  * Form editor: half-width textareas on desktop, full width on small screens
  * (core's admin breakpoint) — also outranks core's .form-table td textarea.
