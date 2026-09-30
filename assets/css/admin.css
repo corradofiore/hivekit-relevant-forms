@@ -456,6 +456,14 @@ td.relevant-forms-used-on .relevant-forms-used-on__popover:target {
 	margin-top: 1em;
 }
 
+/* Settings: inline action button clusters. These buttons submit the nonced
+   action forms declared outside the options form (a form cannot be nested
+   inside another form). */
+
+.relevant-forms-actions .button {
+	margin-right: 8px;
+}
+
 /*
  * Form editor: half-width textareas on desktop, full width on small screens
  * (core's admin breakpoint) — also outranks core's .form-table td textarea.
