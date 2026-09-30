@@ -16,6 +16,7 @@ use RelevantForms\Admin\Controllers\EntryStatusController;
 use RelevantForms\Admin\Controllers\FormActionController;
 use RelevantForms\Admin\Controllers\FormSaveController;
 use RelevantForms\Admin\Controllers\ImportController;
+use RelevantForms\Admin\Controllers\LogsController;
 use RelevantForms\Admin\Controllers\PaymentEntryController;
 use RelevantForms\Admin\Controllers\PaymentSettingsController;
 use RelevantForms\Admin\Controllers\RedirectTargetSearchController;
@@ -56,6 +57,7 @@ final class Plugin {
 		CloudBillingController::register();
 		FormSaveController::register();
 		FormActionController::register();
+		LogsController::register();
 		EntryStatusController::register();
 		EntryCorrectionController::register();
 		ImportController::register();
