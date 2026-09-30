@@ -234,9 +234,12 @@ use RelevantForms\Cloud\CloudConnection;
 		</div><!-- #rf-panel-storage -->
 
 		<div id="rf-panel-payments" class="relevant-forms-tabs__panel">
-			<p class="description">
-				<?php esc_html_e( 'Accept payments on your forms through your own Stripe account (Stripe Connect). Buyers pay you directly on Stripe\'s hosted checkout; Relevant Cloud applies the platform fee below to each charge. Card data never touches this site.', 'relevant-forms' ); ?>
-			</p>
+			<ul class="description">
+				<li><?php esc_html_e( 'Accept payments on your forms through your own Stripe account (Stripe Connect).', 'relevant-forms' ); ?></li>
+				<li><?php esc_html_e( 'Buyers pay you directly on Stripe\'s hosted checkout.', 'relevant-forms' ); ?></li>
+				<li><?php esc_html_e( 'Relevant Cloud applies the platform fee below to each charge.', 'relevant-forms' ); ?></li>
+				<li><?php esc_html_e( 'Card data never touches this site.', 'relevant-forms' ); ?></li>
+			</ul>
 
 			<?php
 			$renderNotice(

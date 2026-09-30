@@ -103,7 +103,7 @@ When managed secure uploads are enabled, uploaded files are stored in private ob
 
 = Stripe (payments) =
 
-Payment fields are local and free: nothing leaves the site until an administrator connects a Stripe account and enables the Payments capability. When enabled, Relevant Cloud creates the hosted Stripe Checkout session for each submission on the site owner's own Stripe account, so buyers pay the site owner directly and card data is entered on Stripe's pages only — it never touches this plugin or its database. Checkout amounts, currency and item descriptions defined in the form are sent to Relevant Cloud for this purpose. Relevant Cloud retains a 2% platform fee from each charge; the remainder settles on the connected Stripe account.
+Payment fields are local and free: nothing leaves the site until an administrator connects a Stripe account and enables the Payments capability. When enabled, Relevant Cloud creates the hosted Stripe Checkout session for each submission on the site owner's own Stripe account, so buyers pay the site owner directly and card data is entered on Stripe's pages only — it never touches this plugin or its database. Checkout amounts, currency and item descriptions defined in the form are sent to Relevant Cloud for this purpose. Relevant Forms collects a 2% platform fee on each charge, in addition to Stripe's own processing fees; the remainder settles on the connected Stripe account.
 
 Stripe services agreement: https://stripe.com/legal/connect-account
 Stripe privacy policy: https://stripe.com/privacy
@@ -127,7 +127,7 @@ Yes. Core is intended to remain useful without purchasing Relevant Cloud or Rele
 
 = How do card payments work, and what does Relevant Cloud charge? =
 
-Payment fields are free and fully local; no payment provider is contacted until you connect your own Stripe account and enable the Payments capability. Buyers pay you directly on your Stripe account (hosted Stripe Checkout). Relevant Cloud brokers the connection and monitors each payment, and retains a 2% platform fee from each charge.
+Payment fields are free and fully local; no payment provider is contacted until you connect your own Stripe account and enable the Payments capability. Buyers pay you directly on your Stripe account (hosted Stripe Checkout). Relevant Cloud brokers the connection and monitors each payment. Relevant Forms collects a 2% platform fee on each charge, in addition to Stripe's own processing fees.
 
 = What is Relevant Cloud? =
 
