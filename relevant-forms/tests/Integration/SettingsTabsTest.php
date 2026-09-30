@@ -126,6 +126,7 @@ final class SettingsTabsTest extends TestCase {
 
 		$this->assertStringContainsString( 'No Stripe account connected.', $payments );
 		$this->assertStringContainsString( 'Connect Stripe', $payments );
+		$this->assertStringContainsString( 'in addition to Stripe', $payments );
 		$this->assertStringContainsString( 'form="rf-stripe-connect-form"', $payments );
 		$this->assertStringContainsString( 'form="rf-stripe-refresh-form"', $payments );
 		$this->assertStringContainsString( 'id="rf-stripe-connect-form"', $html );

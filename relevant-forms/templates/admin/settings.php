@@ -268,7 +268,7 @@ use RelevantForms\Cloud\CloudConnection;
 							<?php
 							printf(
 								/* translators: %s: platform fee percentage */
-								esc_html__( 'Platform fee: %s%% of each charge, collected automatically by Stripe. Payouts and refunds happen on your own Stripe account.', 'relevant-forms' ),
+								esc_html__( 'Platform fee: Relevant Forms collects a %s%% fee on each charge, in addition to Stripe\'s own processing fees. Both are collected automatically by Stripe. Payouts and refunds happen on your own Stripe account.', 'relevant-forms' ),
 								esc_html( $feeLabel )
 							);
 							?>
