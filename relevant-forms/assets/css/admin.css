@@ -465,11 +465,14 @@ td.relevant-forms-used-on .relevant-forms-used-on__popover:target {
 }
 
 /* Settings: keep intro descriptions scannable as bulleted lists; the core
-   admin reset strips list styles, so restore the bullets explicitly. */
+   admin reset strips list styles (bullets restored explicitly) and lists
+   would otherwise fall back to the 13px body size — match the 14px
+   regular admin text instead. */
 
 .relevant-forms-tabs__panel ul.description {
 	list-style: disc;
 	padding-left: 1.5em;
+	font-size: 14px;
 }
 
 /* Settings: the connection-state row keeps its connect/disconnect button
