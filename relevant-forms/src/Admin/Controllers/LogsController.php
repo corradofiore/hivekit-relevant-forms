@@ -10,20 +10,22 @@ declare(strict_types=1);
 namespace RelevantForms\Admin\Controllers;
 
 use RelevantForms\Admin\AdminMenu;
+use RelevantForms\Admin\Pages\SettingsPage;
 
 /**
- * Clears the plugin log table.
+ * Logs screen actions: clearing the table and the debug-logging toggle.
  *
- * The button is a nonce-signed link (native list-table pattern), so the
- * request arrives as GET on admin-post.php.
+ * The clear button is a nonce-signed link (native list-table pattern), so
+ * the request arrives as GET on admin-post.php; the toggle posts a form.
  */
 final class LogsController {
 
 	/**
-	 * Register the admin-post action.
+	 * Register the admin-post actions.
 	 */
 	public static function register(): void {
 		add_action( 'admin_post_relevant_forms_clear_logs', [ self::class, 'handle' ] );
+		add_action( 'admin_post_relevant_forms_save_debug_logging', [ self::class, 'saveDebugLogging' ] );
 	}
 
 	/**
@@ -42,6 +44,30 @@ final class LogsController {
 		$wpdb->query( 'DELETE FROM ' . $wpdb->prefix . 'relevant_logs' );
 
 		wp_safe_redirect( admin_url( 'admin.php?page=relevant-logs&cleared=1' ) );
+		exit;
+	}
+
+	/**
+	 * Handle the debug-logging toggle: capability + nonce, merge the flag
+	 * into the stored settings (other keys untouched), redirect back with
+	 * a notice marker.
+	 */
+	public static function saveDebugLogging(): void {
+		if ( ! current_user_can( AdminMenu::CAPABILITY ) ) {
+			wp_die( esc_html__( 'You do not have permission to perform this action.', 'relevant-forms' ), '', [ 'response' => 403 ] );
+		}
+
+		check_admin_referer( 'relevant_forms_save_debug_logging' );
+
+		$raw = wp_unslash( $_POST );
+
+		$settings = (array) get_option( SettingsPage::OPTION, [] );
+
+		$settings['debug_logging'] = empty( $raw['debug_logging'] ) ? 0 : 1;
+
+		update_option( SettingsPage::OPTION, $settings );
+
+		wp_safe_redirect( admin_url( 'admin.php?page=relevant-logs&debug_saved=1' ) );
 		exit;
 	}
 }

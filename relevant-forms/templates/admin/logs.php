@@ -38,6 +38,12 @@ $levelLabels = [
 		</div>
 	<?php endif; ?>
 
+	<?php if ( isset( $_GET['debug_saved'] ) ) : // phpcs:ignore WordPress.Security.NonceVerification.Recommended ?>
+		<div class="notice notice-success is-dismissible">
+			<p><?php esc_html_e( 'Debug logging updated.', 'relevant-forms' ); ?></p>
+		</div>
+	<?php endif; ?>
+
 	<?php if ( ! empty( $missing ) ) : ?>
 		<div class="notice notice-error inline">
 			<p><?php esc_html_e( 'The log table has not been created yet. Reload this page; if it persists, deactivate and reactivate the plugin.', 'relevant-forms' ); ?></p>
@@ -48,21 +54,18 @@ $levelLabels = [
 	endif;
 	?>
 
-	<?php if ( empty( $debugOn ) ) : ?>
-		<div class="notice notice-info inline">
-			<p>
-				<?php
-				echo wp_kses_post(
-					sprintf(
-						/* translators: %s: settings screen link. */
-						__( 'Only errors and warnings are recorded. Enable debug logging in %s to also capture informational events.', 'relevant-forms' ),
-						'<a href="' . esc_url( admin_url( 'admin.php?page=relevant-settings' ) ) . '">' . esc_html__( 'Settings', 'relevant-forms' ) . '</a>'
-					)
-				);
-				?>
-			</p>
-		</div>
-	<?php endif; ?>
+	<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+		<input type="hidden" name="action" value="relevant_forms_save_debug_logging">
+		<?php wp_nonce_field( 'relevant_forms_save_debug_logging' ); ?>
+		<p>
+			<label>
+				<input type="checkbox" name="debug_logging" value="1" <?php checked( $debugOn ); ?>>
+				<?php esc_html_e( 'Enable debug logging (records detailed info events)', 'relevant-forms' ); ?>
+			</label>
+			<button type="submit" class="button"><?php esc_html_e( 'Save', 'relevant-forms' ); ?></button>
+		</p>
+		<p class="description"><?php esc_html_e( 'Errors and warnings are always recorded. Debug logging additionally stores info and debug entries.', 'relevant-forms' ); ?></p>
+	</form>
 
 	<form method="get" action="<?php echo esc_url( admin_url( 'admin.php' ) ); ?>">
 		<input type="hidden" name="page" value="relevant-logs">

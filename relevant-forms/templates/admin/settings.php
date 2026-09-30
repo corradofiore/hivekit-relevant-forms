@@ -21,17 +21,6 @@ use RelevantForms\Cloud\CloudConnection;
 
 	<form method="post" action="options.php">
 		<?php settings_fields( 'relevant_forms_settings' ); ?>
-		<table class="form-table" role="presentation">
-			<tr>
-				<th scope="row"><?php esc_html_e( 'Debug logging', 'relevant-forms' ); ?></th>
-				<td>
-					<label>
-						<input type="checkbox" name="relevant_forms_settings[debug_logging]" value="1" <?php checked( ! empty( $settings['debug_logging'] ) ); ?>>
-						<?php esc_html_e( 'Enable debug logging (records detailed info events)', 'relevant-forms' ); ?>
-					</label>
-				</td>
-			</tr>
-		</table>
 
 		<h2><?php esc_html_e( 'File storage', 'relevant-forms' ); ?></h2>
 		<p class="description">

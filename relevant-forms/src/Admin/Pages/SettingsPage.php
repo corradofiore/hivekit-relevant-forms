@@ -13,7 +13,7 @@ use RelevantForms\Cloud\CloudConnection;
 use RelevantForms\Support\Logger;
 
 /**
- * Minimal general settings: notification sender and debug logging.
+ * General settings: file storage and the Relevant Cloud connection.
  */
 final class SettingsPage {
 
@@ -57,12 +57,20 @@ final class SettingsPage {
 			$storageProvider = 'local';
 		}
 
+		// The debug-logging toggle lives on the Logs screen, so the key is
+		// absent from this form's input: keep the stored value when absent.
+		$debugLogging = (int) ! empty( $current['debug_logging'] );
+
+		if ( isset( $input['debug_logging'] ) ) {
+			$debugLogging = empty( $input['debug_logging'] ) ? 0 : 1;
+		}
+
 		// Per-form settings (notification sender, AI purpose/priorities/
 		// unwanted/privacy, SMS recipient) live in the form schema now; the
 		// legacy option keys are intentionally dropped from the rebuilt array
 		// (hard cut — they stop being stored on the next save).
 		$settings = [
-			'debug_logging'                     => empty( $input['debug_logging'] ) ? 0 : 1,
+			'debug_logging'                     => $debugLogging,
 			'storage_provider'                  => $storageProvider,
 			'storage_block_unscanned_downloads' => empty( $input['storage_block_unscanned_downloads'] ) ? 0 : 1,
 			// Legacy stored service URL: preserved for pre-1.0 installs; the settings screen no longer asks for it.
