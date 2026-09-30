@@ -164,7 +164,8 @@ final class PaymentSettingsController {
 	}
 
 	/**
-	 * Redirect back to the settings page with a status marker.
+	 * Redirect back to the settings page with a status marker; the panel
+	 * fragment opens the payments tab so the notice is visible.
 	 *
 	 * @param string $status Status marker.
 	 */
@@ -172,7 +173,7 @@ final class PaymentSettingsController {
 		$target = add_query_arg(
 			[ 'payments' => $status ],
 			admin_url( 'admin.php?page=relevant-settings' )
-		);
+		) . '#rf-panel-payments';
 
 		// Test seam: allows integration tests to intercept the redirect.
 		$target = (string) apply_filters( 'relevant_forms_redirect', $target, 0 );

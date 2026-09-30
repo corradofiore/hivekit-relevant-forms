@@ -219,7 +219,8 @@ final class PaymentWiringFlowTest extends TestCase {
 			'relevant_payments_disconnect'
 		);
 
-		$this->assertStringContainsString( 'payments=disconnected', $url );
+		// The fragment deep-links back to the payments tab so the notice shows.
+		$this->assertStringContainsString( 'payments=disconnected#rf-panel-payments', $url );
 		$this->assertFalse( $connection->capabilityEnabled( CloudConnection::CAP_PAYMENTS ) );
 		$this->assertEmpty( $connection->payments()['connected'] ?? null );
 	}
