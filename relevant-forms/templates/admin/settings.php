@@ -49,7 +49,6 @@ use RelevantForms\Cloud\LegalLinks;
 					<?php if ( defined( 'RELEVANT_STORAGE_PROVIDER' ) ) : ?>
 						<p class="description"><?php esc_html_e( 'Defined in wp-config.php.', 'relevant-forms' ); ?></p>
 					<?php endif; ?>
-					<p class="description"><?php esc_html_e( 'Relevant Managed Secure Storage requires a connected Cloud account with the managed uploads capability; until then uploads fall back to local storage. Bytes go directly to private cloud storage and are scanned on the backend before any download.', 'relevant-forms' ); ?></p>
 				</td>
 			</tr>
 			<tr>
