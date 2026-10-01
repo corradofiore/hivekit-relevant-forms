@@ -62,9 +62,9 @@ $levelLabels = [
 				<input type="checkbox" name="debug_logging" value="1" <?php checked( $debugOn ); ?>>
 				<?php esc_html_e( 'Enable debug logging (records detailed info events)', 'relevant-forms' ); ?>
 			</label>
-			<button type="submit" class="button"><?php esc_html_e( 'Save', 'relevant-forms' ); ?></button>
 		</p>
 		<p class="description"><?php esc_html_e( 'Errors and warnings are always recorded. Debug logging additionally stores info and debug entries.', 'relevant-forms' ); ?></p>
+		<?php submit_button( __( 'Save preferences', 'relevant-forms' ) ); ?>
 	</form>
 
 	<form method="get" action="<?php echo esc_url( admin_url( 'admin.php' ) ); ?>">
