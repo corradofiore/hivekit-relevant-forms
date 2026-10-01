@@ -4,10 +4,12 @@
  *
  * @package RelevantForms
  *
- * @var array<string, string|null> $tables    Table existence checks.
- * @var string                     $dbVersion Applied schema version.
- * @var array<string, mixed>       $settings  Current settings.
- * @var array<string, string>      $providers Provider statuses.
+ * @var array<string, string|null> $tables      Table existence checks.
+ * @var string                     $dbVersion   Applied schema version.
+ * @var array<string, mixed>       $settings    Current settings.
+ * @var string                     $apiEndpoint Cloud API base URL.
+ * @var string                     $apiAction   API status test AJAX action.
+ * @var string                     $apiNonce    Nonce for the API status test.
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -59,15 +61,23 @@ if ( ! defined( 'ABSPATH' ) ) {
 		</tbody>
 	</table>
 
-	<h2><?php esc_html_e( 'Providers', 'relevant-forms' ); ?></h2>
+	<h2><?php esc_html_e( 'API status', 'relevant-forms' ); ?></h2>
+	<p class="description">
+		<?php esc_html_e( 'Run a live check against the Relevant Cloud health endpoint to verify connectivity from this site.', 'relevant-forms' ); ?>
+	</p>
 	<table class="widefat striped">
 		<tbody>
-			<?php foreach ( $providers as $providerName => $providerStatus ) : ?>
-				<tr>
-					<td><?php echo esc_html( $providerName ); ?></td>
-					<td><?php echo esc_html( $providerStatus ); ?></td>
-				</tr>
-			<?php endforeach; ?>
+			<tr>
+				<td><?php esc_html_e( 'Endpoint', 'relevant-forms' ); ?></td>
+				<td><code><?php echo esc_html( $apiEndpoint ); ?></code></td>
+			</tr>
+			<tr>
+				<td><?php esc_html_e( 'Connection test', 'relevant-forms' ); ?></td>
+				<td>
+					<button type="button" class="button" id="rf-test-api-status" data-action="<?php echo esc_attr( $apiAction ); ?>" data-nonce="<?php echo esc_attr( $apiNonce ); ?>" data-busy="<?php esc_attr_e( 'Testing…', 'relevant-forms' ); ?>" data-failed="<?php esc_attr_e( 'The API status test could not be completed.', 'relevant-forms' ); ?>"><?php esc_html_e( 'Test API connection', 'relevant-forms' ); ?></button>
+					<p class="rf-sms-message" id="rf-test-api-status-result" hidden></p>
+				</td>
+			</tr>
 		</tbody>
 	</table>
 </div>

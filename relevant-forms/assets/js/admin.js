@@ -2069,7 +2069,46 @@
 		} );
 	}
 
+	/**
+	 * Diagnostics: probe the Cloud API health endpoint and show the result
+	 * inline next to the test button.
+	 */
+	function initApiStatusTest() {
+		var button = document.getElementById( 'rf-test-api-status' );
+		var result = document.getElementById( 'rf-test-api-status-result' );
+
+		if ( ! button || ! result ) {
+			return;
+		}
+
+		button.addEventListener( 'click', function () {
+			button.disabled = true;
+			setMessage( result, button.getAttribute( 'data-busy' ) || '', 'info' );
+
+			postAdminAjax(
+				button.getAttribute( 'data-action' ) || '',
+				button.getAttribute( 'data-nonce' ) || '',
+				{}
+			)
+				.then( function ( body ) {
+					if ( body && body.success && body.data && body.data.message ) {
+						setMessage( result, body.data.message, 'ok' );
+						return;
+					}
+
+					setMessage( result, errorText( body, button.getAttribute( 'data-failed' ) || '' ), 'error' );
+				} )
+				.catch( function () {
+					setMessage( result, button.getAttribute( 'data-failed' ) || '', 'error' );
+				} )
+				.then( function () {
+					button.disabled = false;
+				} );
+		} );
+	}
+
 	initTabs();
 	initCloudKeyField();
 	initCloudKeyAutosave();
+	initApiStatusTest();
 } )();

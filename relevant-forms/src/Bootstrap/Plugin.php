@@ -11,6 +11,7 @@ namespace RelevantForms\Bootstrap;
 
 use RelevantForms\Admin\AdminMenu;
 use RelevantForms\Admin\Assets\AdminAssets;
+use RelevantForms\Admin\Controllers\ApiStatusController;
 use RelevantForms\Admin\Controllers\EntryCorrectionController;
 use RelevantForms\Admin\Controllers\EntryStatusController;
 use RelevantForms\Admin\Controllers\FormActionController;
@@ -64,6 +65,7 @@ final class Plugin {
 		RedirectTargetSearchController::register();
 		SmsVerificationController::register();
 		TestEmailController::register();
+		ApiStatusController::register();
 		PaymentReturnHandler::register();
 		PaymentEntryController::register();
 		PaymentSettingsController::register();
