@@ -101,9 +101,13 @@ final class SettingsTabsTest extends TestCase {
 		$html  = $this->renderSettings();
 		$cloud = $this->panel( $html, 'rf-panel-cloud' );
 
-		// Subscription first: cached plan plus a direct billing link.
+		// Subscription first: the sign-in identity clients should remember,
+		// the cached plan, and a billing link that pre-fills the sign-in
+		// email.
+		$this->assertStringContainsString( 'owner@example.com', $cloud );
+		$this->assertStringContainsString( '+391234567890', $cloud );
 		$this->assertStringContainsString( 'Current plan', $cloud );
-		$this->assertStringContainsString( 'href="https://cloud.example.com/billing"', $cloud );
+		$this->assertStringContainsString( 'href="https://cloud.example.com/billing?email=owner%40example.com"', $cloud );
 		$this->assertStringNotContainsString( 'rf-cloud-billing-form', $html );
 		$this->assertStringNotContainsString( 'rf-cloud-refresh-form', $html );
 
@@ -198,6 +202,16 @@ final class SettingsTabsTest extends TestCase {
 	private function connectCloud(): void {
 		update_option( 'relevant_forms_settings', [ 'cloud_api_key' => 'site-key-1' ] );
 
-		( new CloudConnection() )->connect( 'site-uuid-1', home_url(), 'Test Site', [], 'https://cloud.example.com/billing' );
+		( new CloudConnection() )->connect(
+			'site-uuid-1',
+			home_url(),
+			'Test Site',
+			[],
+			'https://cloud.example.com/billing',
+			[
+				'email' => 'owner@example.com',
+				'phone' => '+391234567890',
+			]
+		);
 	}
 }

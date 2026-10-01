@@ -63,6 +63,42 @@ it(
 );
 
 it(
+	'stores the account identity reported by the server',
+	function () {
+		$connection = new CloudConnection();
+
+		$connection->connect(
+			'site-uuid-1',
+			'https://a.example',
+			'Acme',
+			[],
+			null,
+			[
+				'email' => 'owner@example.com',
+				'phone' => '+391234567890',
+			]
+		);
+
+		expect( $connection->account() )->toBe(
+			[
+				'email' => 'owner@example.com',
+				'phone' => '+391234567890',
+			]
+		);
+
+		// Refreshes replace the cached identity.
+		$connection->updateAccount( [ 'email' => 'new@example.com' ] );
+
+		expect( $connection->account() )->toBe(
+			[
+				'email' => 'new@example.com',
+				'phone' => '',
+			]
+		);
+	}
+);
+
+it(
 	'requires account_connected before enabling capabilities',
 	function () {
 		$connection = new CloudConnection();

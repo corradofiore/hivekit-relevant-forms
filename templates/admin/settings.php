@@ -86,10 +86,28 @@ use RelevantForms\Cloud\CloudConnection;
 			?>
 
 			<?php $subscription = $connection->subscription(); ?>
+			<?php $account = $connection->account(); ?>
 			<?php if ( $cloudDisconnected ) : ?>
 				<p><?php esc_html_e( 'Connect to Relevant Cloud to subscribe or manage your plan.', 'relevant-forms' ); ?></p>
 			<?php else : ?>
 				<table class="form-table" role="presentation">
+					<?php if ( '' !== $account['email'] || '' !== $account['phone'] ) : ?>
+						<tr>
+							<th scope="row"><?php esc_html_e( 'Account', 'relevant-forms' ); ?></th>
+							<td>
+								<?php if ( '' !== $account['email'] ) : ?>
+									<code><?php echo esc_html( $account['email'] ); ?></code>
+								<?php endif; ?>
+								<?php if ( '' !== $account['email'] && '' !== $account['phone'] ) : ?>
+									&middot;
+								<?php endif; ?>
+								<?php if ( '' !== $account['phone'] ) : ?>
+									<code><?php echo esc_html( $account['phone'] ); ?></code>
+								<?php endif; ?>
+								<p class="description"><?php esc_html_e( 'The email and phone number you signed up with on Relevant Cloud.', 'relevant-forms' ); ?></p>
+							</td>
+						</tr>
+					<?php endif; ?>
 					<tr>
 						<th scope="row"><?php esc_html_e( 'Current plan', 'relevant-forms' ); ?></th>
 						<td>
@@ -117,6 +135,9 @@ use RelevantForms\Cloud\CloudConnection;
 						<td>
 							<?php $dashboardUrl = $connection->dashboardUrl(); ?>
 							<?php if ( null !== $dashboardUrl && '' !== $dashboardUrl ) : ?>
+								<?php if ( '' !== $account['email'] ) : ?>
+									<?php $dashboardUrl = add_query_arg( 'email', rawurlencode( $account['email'] ), $dashboardUrl ); ?>
+								<?php endif; ?>
 								<a href="<?php echo esc_url( $dashboardUrl ); ?>"><?php esc_html_e( 'Manage billing in the Relevant Cloud dashboard', 'relevant-forms' ); ?></a>
 							<?php else : ?>
 								<p class="description"><?php esc_html_e( 'This connection has no Relevant Cloud dashboard link yet. Reconnect with a dashboard-issued API key to manage billing.', 'relevant-forms' ); ?></p>
