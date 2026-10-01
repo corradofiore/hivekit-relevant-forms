@@ -53,6 +53,14 @@ final class LogsPageTest extends TestCase {
 		$this->assertStringContainsString( 'No log entries found.', $html );
 		$this->assertStringContainsString( 'name="debug_logging"', $html );
 		$this->assertDoesNotMatchRegularExpression( '/name="debug_logging" value="1"\s+checked/', $html );
+
+		// The save button sits below the section, standard primary style.
+		$this->assertStringContainsString( 'value="Save preferences"', $html );
+		$this->assertStringContainsString( 'button button-primary', $html );
+		$this->assertLessThan(
+			(int) strpos( $html, 'Save preferences' ),
+			(int) strpos( $html, 'Errors and warnings are always recorded' )
+		);
 	}
 
 	/**
