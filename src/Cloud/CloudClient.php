@@ -30,6 +30,24 @@ final class CloudClient {
 	) {}
 
 	/**
+	 * GET /v1/health — service reachability probe for the diagnostics
+	 * screen (no site key required).
+	 *
+	 * @return array{status: int, data: array<string, mixed>|null, error: array<string, mixed>|null}
+	 */
+	public function health(): array {
+		return $this->envelope(
+			wp_remote_get(
+				$this->baseUrl . '/health',
+				[
+					'timeout' => 10,
+					'headers' => $this->headers(),
+				]
+			)
+		);
+	}
+
+	/**
 	 * POST /v1/sites/connect — bind this site key to a site record.
 	 *
 	 * @return array<string, mixed>|null
@@ -406,15 +424,26 @@ final class CloudClient {
 	 * @return array{status: int, data: array<string, mixed>|null, error: array<string, mixed>|null}
 	 */
 	private function postEnvelope( string $path, array $payload, int $timeout ): array {
-		$response = wp_remote_post(
-			$this->baseUrl . $path,
-			[
-				'timeout' => $timeout,
-				'headers' => $this->headers(),
-				'body'    => wp_json_encode( $payload ),
-			]
+		return $this->envelope(
+			wp_remote_post(
+				$this->baseUrl . $path,
+				[
+					'timeout' => $timeout,
+					'headers' => $this->headers(),
+					'body'    => wp_json_encode( $payload ),
+				]
+			)
 		);
+	}
 
+	/**
+	 * Normalize an HTTP response into the raw {status, data, error}
+	 * envelope, logging network failures without throwing.
+	 *
+	 * @param array<string, mixed>|\WP_Error $response HTTP response.
+	 * @return array{status: int, data: array<string, mixed>|null, error: array<string, mixed>|null}
+	 */
+	private function envelope( array|\WP_Error $response ): array {
 		if ( is_wp_error( $response ) ) {
 			Logger::warning( 'Cloud API request failed', [ 'message' => $response->get_error_message() ] );
 
