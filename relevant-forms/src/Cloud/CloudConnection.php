@@ -76,8 +76,9 @@ final class CloudConnection {
 	 *
 	 * @param array<string, mixed> $capabilities Server-reported capabilities.
 	 * @param string|null          $dashboardUrl Dashboard deep link reported by the server (D8).
+	 * @param array<string, mixed> $account      Sign-in identity reported by the server (email/phone).
 	 */
-	public function connect( string $siteId, string $siteUrl, string $siteName, array $capabilities = [], ?string $dashboardUrl = null ): void {
+	public function connect( string $siteId, string $siteUrl, string $siteName, array $capabilities = [], ?string $dashboardUrl = null, array $account = [] ): void {
 		$this->save(
 			[
 				'state'         => self::STATE_ACCOUNT_CONNECTED,
@@ -90,6 +91,7 @@ final class CloudConnection {
 				'subscription'  => [],
 				'usage'         => [],
 				'dashboard_url' => $dashboardUrl,
+				'account'       => self::normalizeAccount( $account ),
 			]
 		);
 	}
@@ -281,6 +283,46 @@ final class CloudConnection {
 		}
 
 		$this->save( array_merge( $data, [ 'subscription' => $subscription ] ) );
+	}
+
+	/**
+	 * Account identity (the email / phone the client signs in with)
+	 * reported by the server; empty strings when unknown or account-less.
+	 *
+	 * @return array{email: string, phone: string}
+	 */
+	public function account(): array {
+		$data = $this->get();
+
+		return self::normalizeAccount( is_array( $data['account'] ?? null ) ? $data['account'] : [] );
+	}
+
+	/**
+	 * Refresh the account identity reported by the server.
+	 *
+	 * @param array<string, mixed> $account Identity payload.
+	 */
+	public function updateAccount( array $account ): void {
+		$data = $this->get();
+
+		if ( self::STATE_DISCONNECTED === (string) ( $data['state'] ?? self::STATE_DISCONNECTED ) ) {
+			return;
+		}
+
+		$this->save( array_merge( $data, [ 'account' => self::normalizeAccount( $account ) ] ) );
+	}
+
+	/**
+	 * Normalize a server identity payload to the stored shape.
+	 *
+	 * @param array<string, mixed> $account Raw identity payload.
+	 * @return array{email: string, phone: string}
+	 */
+	private static function normalizeAccount( array $account ): array {
+		return [
+			'email' => (string) ( $account['email'] ?? '' ),
+			'phone' => (string) ( $account['phone'] ?? '' ),
+		];
 	}
 
 	/**

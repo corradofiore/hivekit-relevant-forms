@@ -58,7 +58,8 @@ final class CloudController {
 			home_url( '/' ),
 			(string) get_bloginfo( 'name' ),
 			is_array( $data['capabilities'] ?? null ) ? $data['capabilities'] : [],
-			is_string( $data['dashboard_url'] ?? null ) ? (string) $data['dashboard_url'] : null
+			is_string( $data['dashboard_url'] ?? null ) ? (string) $data['dashboard_url'] : null,
+			is_array( $data['account'] ?? null ) ? $data['account'] : []
 		);
 		$connection->updateSubscription( is_array( $data['subscription'] ?? null ) ? $data['subscription'] : [] );
 
@@ -98,6 +99,7 @@ final class CloudController {
 
 		$connection->updateServerCapabilities( is_array( $data['capabilities'] ?? null ) ? $data['capabilities'] : [] );
 		$connection->updateSubscription( is_array( $data['subscription'] ?? null ) ? $data['subscription'] : [] );
+		$connection->updateAccount( is_array( $data['account'] ?? null ) ? $data['account'] : [] );
 
 		self::redirect( 'refreshed' );
 	}
