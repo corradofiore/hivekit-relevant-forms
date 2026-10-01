@@ -10,7 +10,6 @@ declare(strict_types=1);
 namespace RelevantForms\Admin\Pages;
 
 use RelevantForms\Admin\Controllers\ApiStatusController;
-use RelevantForms\Cloud\CloudConfig;
 
 /**
  * Environment overview and on-demand API status test.
@@ -40,9 +39,8 @@ final class DiagnosticsPage {
 		$dbVersion = (string) get_option( 'relevant_forms_db_version', '0' );
 		$settings  = (array) get_option( 'relevant_forms_settings', [] );
 
-		$apiEndpoint = CloudConfig::apiBase();
-		$apiAction   = ApiStatusController::ACTION;
-		$apiNonce    = wp_create_nonce( ApiStatusController::ACTION );
+		$apiAction = ApiStatusController::ACTION;
+		$apiNonce  = wp_create_nonce( ApiStatusController::ACTION );
 
 		require RELEVANT_FORMS_PATH . 'templates/admin/diagnostics.php';
 	}

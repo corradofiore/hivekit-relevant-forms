@@ -4,12 +4,11 @@
  *
  * @package RelevantForms
  *
- * @var array<string, string|null> $tables      Table existence checks.
- * @var string                     $dbVersion   Applied schema version.
- * @var array<string, mixed>       $settings    Current settings.
- * @var string                     $apiEndpoint Cloud API base URL.
- * @var string                     $apiAction   API status test AJAX action.
- * @var string                     $apiNonce    Nonce for the API status test.
+ * @var array<string, string|null> $tables    Table existence checks.
+ * @var string                     $dbVersion Applied schema version.
+ * @var array<string, mixed>       $settings  Current settings.
+ * @var string                     $apiAction API status test AJAX action.
+ * @var string                     $apiNonce  Nonce for the API status test.
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -67,10 +66,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 	</p>
 	<table class="widefat striped">
 		<tbody>
-			<tr>
-				<td><?php esc_html_e( 'Endpoint', 'relevant-forms' ); ?></td>
-				<td><code><?php echo esc_html( $apiEndpoint ); ?></code></td>
-			</tr>
 			<tr>
 				<td><?php esc_html_e( 'Connection test', 'relevant-forms' ); ?></td>
 				<td>
