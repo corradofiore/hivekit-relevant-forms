@@ -66,31 +66,14 @@ final class ApiStatusController {
 			);
 		}
 
-		$data    = $result['data'];
-		$app     = (string) ( $data['app'] ?? __( 'Relevant Cloud', 'relevant-forms' ) );
-		$version = (string) ( $data['version'] ?? '' );
-
-		$message = '' !== $version
-			? sprintf(
-				/* translators: 1: service name, 2: service version, 3: round-trip time in milliseconds. */
-				__( 'The API is online — %1$s %2$s responded in %3$d ms.', 'relevant-forms' ),
-				$app,
-				$version,
-				$latency
-			)
-			: sprintf(
-				/* translators: 1: service name, 2: round-trip time in milliseconds. */
-				__( 'The API is online — %1$s responded in %2$d ms.', 'relevant-forms' ),
-				$app,
-				$latency
-			);
-
 		wp_send_json_success(
 			[
-				'app'        => $app,
-				'version'    => $version,
 				'latency_ms' => $latency,
-				'message'    => $message,
+				'message'    => sprintf(
+					/* translators: %d: round-trip time in milliseconds. */
+					__( 'The API responded in %d msec.', 'relevant-forms' ),
+					$latency
+				),
 			]
 		);
 	}

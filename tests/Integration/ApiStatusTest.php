@@ -53,7 +53,9 @@ final class ApiStatusTest extends TestCase {
 		$this->assertStringContainsString( 'Test API connection', $html );
 		$this->assertStringContainsString( 'id="rf-test-api-status"', $html );
 		$this->assertStringContainsString( 'data-action="' . ApiStatusController::ACTION . '"', $html );
-		$this->assertStringContainsString( CloudConfig::apiBase(), $html );
+
+		// The endpoint URL stays hidden; only the test result is shown.
+		$this->assertStringNotContainsString( CloudConfig::apiBase(), $html );
 
 		// The old provider rows are gone.
 		$this->assertStringNotContainsString( 'AI provider', $html );
@@ -99,9 +101,12 @@ final class ApiStatusTest extends TestCase {
 
 		$this->assertTrue( $body['success'] );
 		$this->assertSame( CloudConfig::apiBase() . '/health', $requested );
-		$this->assertStringContainsString( 'Relevant Cloud', (string) $body['data']['message'] );
-		$this->assertStringContainsString( 'online', (string) $body['data']['message'] );
 		$this->assertArrayHasKey( 'latency_ms', $body['data'] );
+
+		// The message only reports the round trip; service details stay hidden.
+		$this->assertMatchesRegularExpression( '/^The API responded in \d+ msec\.$/', (string) $body['data']['message'] );
+		$this->assertArrayNotHasKey( 'app', $body['data'] );
+		$this->assertArrayNotHasKey( 'version', $body['data'] );
 	}
 
 	/**
