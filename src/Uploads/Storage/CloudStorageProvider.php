@@ -19,10 +19,11 @@ use RelevantForms\Uploads\Contracts\UploadAuthorization;
 use RelevantForms\Uploads\Contracts\UploadRequest;
 
 /**
- * Delegates storage to the backend: constrained upload authorization,
- * completion verification, scan state and signed downloads. The site
- * never holds storage credentials and bytes never traverse WordPress
- * unless an explicit local scan is requested.
+ * Delegates storage to the API: uploads are received by WordPress (the
+ * browser posts them like a local upload) and relayed server-side to the
+ * API, which writes them to both buckets; downloads stream back through
+ * the API with a tenant ownership check. The site never holds storage
+ * credentials and never talks to the buckets directly.
  */
 final class CloudStorageProvider implements FileStorageProviderInterface {
 
@@ -36,28 +37,27 @@ final class CloudStorageProvider implements FileStorageProviderInterface {
 	/**
 	 * {@inheritDoc}
 	 *
-	 * @throws \RuntimeException When the backend cannot authorize the upload.
+	 * Cloud uploads follow the same browser contract as local ones: the
+	 * browser POSTs the file to the WordPress endpoint, which then relays
+	 * the bytes to the API server-side.
 	 */
 	public function createUploadAuthorization( UploadRequest $request ): UploadAuthorization {
-		$data = $this->client()->authorizeManagedUpload(
+		$url = add_query_arg(
 			[
-				'object_key'    => $request->objectKey,
-				'filename'      => '' !== $request->filename ? $request->filename : basename( $request->objectKey ),
-				'declared_mime' => '' !== $request->contentType ? $request->contentType : 'application/octet-stream',
-				'size'          => max( 1, $request->declaredSize ),
-			]
+				'action'     => 'relevant_forms_local_upload',
+				'object_key' => rawurlencode( $request->objectKey ),
+				'form_id'    => $request->formId,
+				'max_bytes'  => $request->maxBytes,
+			],
+			admin_url( 'admin-post.php' )
 		);
 
-		if ( null === $data || ! is_string( $data['url'] ?? null ) || '' === (string) $data['url'] ) {
-			throw new \RuntimeException( 'Managed storage did not return an upload authorization.' );
-		}
-
 		return new UploadAuthorization(
-			(string) ( $data['method'] ?? 'PUT' ),
-			(string) $data['url'],
-			is_array( $data['headers'] ?? null ) ? array_map( 'strval', $data['headers'] ) : [],
-			time() + (int) ( $data['expires_in'] ?? 900 ),
-			(string) ( $data['object_key'] ?? $request->objectKey ),
+			'POST',
+			$url,
+			[ 'Content-Type' => 'multipart/form-data' ],
+			time() + $request->ttlSeconds,
+			$request->objectKey,
 		);
 	}
 
@@ -68,10 +68,10 @@ final class CloudStorageProvider implements FileStorageProviderInterface {
 	 * landed in managed storage and meters its size.
 	 */
 	public function exists( StoredObject $stored_object ): bool {
-		$data = $this->client()->completeManagedUpload( $stored_object->objectKey );
+		$data = $this->client()->managedUploadStatus( $stored_object->objectKey );
 
 		if ( null === $data ) {
-			Logger::warning( 'Managed upload completion failed', [ 'object_key' => $stored_object->objectKey ] );
+			Logger::warning( 'Managed upload lookup failed', [ 'object_key' => $stored_object->objectKey ] );
 
 			return false;
 		}
@@ -80,18 +80,46 @@ final class CloudStorageProvider implements FileStorageProviderInterface {
 	}
 
 	/**
-	 * {@inheritDoc}
+	 * Relay one received file to the API, which writes it to both buckets
+	 * and verifies the primary copy.
 	 *
-	 * @throws \RuntimeException When no signed URL is available.
+	 * @param string $objectKey    Client object key.
+	 * @param string $filename     Original filename.
+	 * @param string $declaredMime Declared MIME type.
+	 * @param string $tempPath     Local temp file with the bytes.
+	 */
+	public function storeFromPath( string $objectKey, string $filename, string $declaredMime, string $tempPath ): bool {
+		$result = $this->client()->uploadManagedFile( $objectKey, $filename, $declaredMime, $tempPath );
+
+		if ( $result['status'] < 200 || $result['status'] >= 300 ) {
+			Logger::warning(
+				'Managed upload relay rejected',
+				[
+					'object_key' => $objectKey,
+					'status'     => $result['status'],
+					'error'      => $result['error']['code'] ?? 'unknown',
+				]
+			);
+
+			return false;
+		}
+
+		return true;
+	}
+
+	/**
+	 * {@inheritDoc}
 	 */
 	public function getDownloadAuthorization( StoredObject $stored_object ): DownloadAuthorization {
-		$data = $this->client()->managedUploadStatus( $stored_object->objectKey );
-
-		$url = is_array( $data ) ? (string) ( $data['download_url'] ?? '' ) : '';
-
-		if ( '' === $url ) {
-			throw new \RuntimeException( 'Managed storage did not return a download URL.' );
-		}
+		// Downloads always pass back through the authenticated WordPress
+		// endpoint, which streams from the API; never a direct bucket URL.
+		$url = add_query_arg(
+			[
+				'action'     => 'relevant_forms_download_upload',
+				'object_key' => rawurlencode( $stored_object->objectKey ),
+			],
+			admin_url( 'admin-post.php' )
+		);
 
 		return new DownloadAuthorization( $url, time() + 300 );
 	}
@@ -111,34 +139,18 @@ final class CloudStorageProvider implements FileStorageProviderInterface {
 	 * object).
 	 */
 	public function copyToTemporaryFile( StoredObject $stored_object ): ?string {
-		try {
-			$download = $this->getDownloadAuthorization( $stored_object );
-		} catch ( \Throwable $exception ) {
-			Logger::warning(
-				'Managed download failed',
-				[
-					'object_key' => $stored_object->objectKey,
-					'exception'  => $exception->getMessage(),
-				]
-			);
-
-			return null;
-		}
-
-		$response = wp_remote_get( $download->url, [ 'timeout' => 60 ] );
-
-		if ( is_wp_error( $response ) || 200 !== (int) wp_remote_retrieve_response_code( $response ) ) {
-			return null;
-		}
-
 		$path = wp_tempnam( 'relevant-managed' );
 
 		if ( ! $path ) {
 			return null;
 		}
 
-		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- bounded temp copy for scanning.
-		if ( false === file_put_contents( $path, (string) wp_remote_retrieve_body( $response ) ) ) {
+		if ( ! $this->client()->downloadManagedContent( $stored_object->objectKey, $path ) ) {
+			Logger::warning( 'Managed download failed', [ 'object_key' => $stored_object->objectKey ] );
+
+			// phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink, WordPress.PHP.NoSilencedErrors.Discouraged -- discard a failed temp copy.
+			@unlink( $path );
+
 			return null;
 		}
 

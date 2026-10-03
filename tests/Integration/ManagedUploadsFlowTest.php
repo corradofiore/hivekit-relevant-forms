@@ -21,8 +21,9 @@ use RelevantForms\Uploads\Scanning\ScanService;
 use RelevantForms\Uploads\UploadService;
 
 /**
- * Authorize → direct-to-managed-storage → complete → backend scan → signed
- * download, with the plugin acting purely as an API client.
+ * Authorize → WordPress relay upload → API-mediated storage → backend scan →
+ * ownership-checked proxy download, with the plugin acting purely as an API
+ * client (no bytes stored on the site, no presigned URLs).
  *
  * @group integration
  */
@@ -36,12 +37,20 @@ final class ManagedUploadsFlowTest extends TestCase {
 	private array $requests = [];
 
 	/**
+	 * Stream relay calls captured from the plugin.
+	 *
+	 * @var array<int, array<string, mixed>>
+	 */
+	private array $streams = [];
+
+	/**
 	 * Configure the site and install the fake Cloud endpoints.
 	 */
 	public function setUp(): void {
 		parent::setUp();
 
 		$this->requests = [];
+		$this->streams  = [];
 
 		update_option(
 			'relevant_forms_settings',
@@ -56,6 +65,43 @@ final class ManagedUploadsFlowTest extends TestCase {
 		$connection->connect( 'site-uuid-1', 'https://a.example', 'Acme' );
 		$connection->enableCapability( CloudConnection::CAP_UPLOADS );
 
+		// Deterministic stand-in for the cURL byte relay (upload/download).
+		add_filter(
+			'relevant_forms_cloud_stream_transport',
+			function ( mixed $override, string $action, string $objectKey, string $path ): mixed {
+				$this->streams[] = [
+					'action'     => $action,
+					'object_key' => $objectKey,
+					'path'       => $path,
+				];
+
+				if ( 'upload' === $action ) {
+					return [
+						'status' => 201,
+						'data'   => [
+							'upload_id'  => 1,
+							'object_key' => $objectKey,
+							'filename'   => 'report.pdf',
+							'size_bytes' => is_file( $path ) ? (int) filesize( $path ) : 0,
+							'status'     => 'uploaded',
+						],
+						'error'  => null,
+					];
+				}
+
+				if ( 'download' === $action ) {
+					// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- test double for the relay sink.
+					file_put_contents( $path, 'PDF-BYTES' );
+
+					return true;
+				}
+
+				return $override;
+			},
+			10,
+			4
+		);
+
 		add_filter(
 			'pre_http_request',
 			function ( mixed $pre, array $args, string $url ): array {
@@ -67,41 +113,14 @@ final class ManagedUploadsFlowTest extends TestCase {
 
 				$method = strtoupper( (string) ( $args['method'] ?? 'POST' ) );
 
-				if ( str_contains( $url, '/uploads/authorize' ) ) {
-					$body = json_decode( (string) ( $args['body'] ?? '{}' ), true );
-
-					return $this->json(
-						201,
-						[
-							'upload_id'  => 1,
-							'object_key' => (string) ( $body['object_key'] ?? '' ),
-							'method'     => 'PUT',
-							'url'        => 'https://managed.example/put?X-Amz-Signature=put',
-							'headers'    => [ 'Content-Type' => (string) ( $body['declared_mime'] ?? '' ) ],
-							'expires_in' => 900,
-						]
-					);
-				}
-
-				if ( str_contains( $url, '/uploads/complete' ) ) {
-					return $this->json(
-						200,
-						[
-							'status'     => 'uploaded',
-							'size_bytes' => 2048,
-						]
-					);
-				}
-
 				if ( str_contains( $url, '/uploads/status' ) ) {
 					return $this->json(
 						200,
 						[
-							'status'       => 'clean',
-							'reference'    => 'no-virus',
-							'filename'     => 'report.pdf',
-							'size_bytes'   => 2048,
-							'download_url' => 'https://managed.example/get?X-Amz-Signature=get',
+							'status'     => 'clean',
+							'reference'  => 'no-virus',
+							'filename'   => 'report.pdf',
+							'size_bytes' => 2048,
 						]
 					);
 				}
@@ -135,7 +154,8 @@ final class ManagedUploadsFlowTest extends TestCase {
 	}
 
 	/**
-	 * The full managed lifecycle, from authorization to signed download.
+	 * The full managed lifecycle: WordPress relay upload, API-mediated
+	 * storage, backend scan, ownership-checked proxy download.
 	 */
 	public function testManagedUploadLifecycleIsDelegatedToTheCloud(): void {
 		$form    = $this->makeFileForm();
@@ -144,8 +164,9 @@ final class ManagedUploadsFlowTest extends TestCase {
 		$result = $service->authorize( $form, 'f_file', 'report.pdf', 'application/pdf', 1234 );
 
 		$this->assertArrayNotHasKey( 'error', $result );
-		$this->assertSame( 'PUT', $result['authorization']->method );
-		$this->assertStringContainsString( 'managed.example/put', $result['authorization']->url );
+		$this->assertSame( 'POST', $result['authorization']->method );
+		$this->assertStringContainsString( 'admin-post.php', $result['authorization']->url );
+		$this->assertStringContainsString( 'action=relevant_forms_local_upload', $result['authorization']->url );
 
 		$uploadId = (int) $result['upload_id'];
 		$upload   = ( new UploadRepository() )->find( $uploadId );
@@ -153,11 +174,18 @@ final class ManagedUploadsFlowTest extends TestCase {
 		$this->assertInstanceOf( Upload::class, $upload );
 		$this->assertSame( 'cloud', $upload->provider );
 
-		// Completion verifies the object through the Cloud.
-		$completed = $service->completeRemoteUpload( $uploadId, (string) $result['token'] );
+		// The WordPress relay stores the bytes through the API — no storage
+		// credentials or presigned URLs exist on the site.
+		$tempPath = wp_tempnam( 'relevant-upload' );
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- building the payload fixture.
+		file_put_contents( $tempPath, 'PDF-BYTES' );
 
-		$this->assertArrayNotHasKey( 'error', $completed );
-		$this->assertSame( UploadStatus::QUARANTINED, $completed['upload']->status );
+		$stored = $service->storeLocalUpload( $uploadId, (string) $result['token'], $tempPath, 'application/pdf' );
+
+		$this->assertArrayNotHasKey( 'error', $stored );
+		$this->assertSame( UploadStatus::QUARANTINED, $stored['upload']->status );
+		$this->assertSame( 'upload', $this->streams[0]['action'] ?? null );
+		$this->assertSame( $upload->objectKey, $this->streams[0]['object_key'] ?? null );
 
 		// Scanning is delegated: no bytes traverse WordPress (doc §28).
 		$scan = ( new ScanService() )->scanUpload( $uploadId );
@@ -183,11 +211,14 @@ final class ManagedUploadsFlowTest extends TestCase {
 		$upload = ( new UploadRepository() )->find( $uploadId );
 		$this->assertSame( UploadStatus::CLEAN, $upload->status );
 
-		// Signed downloads come from managed storage (doc §32).
+		// Downloads stay behind the WordPress proxy (doc §32): the API checks
+		// ownership, WordPress checks capability + nonce.
 		$download = $service->authorizeDownload( $uploadId );
 
 		$this->assertArrayNotHasKey( 'error', $download );
-		$this->assertStringContainsString( 'X-Amz-Signature=get', $download['download']->url );
+		$this->assertStringContainsString( 'admin-post.php', $download['download']->url );
+		$this->assertStringContainsString( 'action=relevant_forms_download_upload', $download['download']->url );
+		$this->assertStringNotContainsString( 'managed.example', $download['download']->url );
 	}
 
 	/**
@@ -202,14 +233,14 @@ final class ManagedUploadsFlowTest extends TestCase {
 
 		$this->assertArrayNotHasKey( 'error', $result );
 		$this->assertSame( 'POST', $result['authorization']->method );
+		$this->assertStringContainsString( 'action=relevant_forms_local_upload', $result['authorization']->url );
 
 		$upload = ( new UploadRepository() )->find( (int) $result['upload_id'] );
 		$this->assertSame( 'local', $upload->provider );
 
-		// No authorization request reached the Cloud.
-		foreach ( $this->requests as $request ) {
-			$this->assertStringNotContainsString( '/uploads/authorize', (string) $request['url'] );
-		}
+		// No relay or Cloud request was made without consent.
+		$this->assertSame( [], $this->streams );
+		$this->assertSame( [], $this->requests );
 	}
 
 	/**
@@ -219,32 +250,7 @@ final class ManagedUploadsFlowTest extends TestCase {
 		remove_all_filters( 'pre_http_request' );
 		add_filter(
 			'pre_http_request',
-			function ( mixed $pre, array $args, string $url ): array {
-				unset( $pre, $args );
-
-				if ( str_contains( $url, '/uploads/authorize' ) ) {
-					return $this->json(
-						201,
-						[
-							'object_key' => 'sites/x/forms/1/uploads/x.pdf',
-							'method'     => 'PUT',
-							'url'        => 'https://managed.example/put',
-							'headers'    => [],
-							'expires_in' => 900,
-						]
-					);
-				}
-
-				if ( str_contains( $url, '/uploads/complete' ) ) {
-					return $this->json(
-						200,
-						[
-							'status'     => 'uploaded',
-							'size_bytes' => 10,
-						]
-					);
-				}
-
+			function (): array {
 				return $this->json( 502, [] );
 			},
 			10,
@@ -257,7 +263,12 @@ final class ManagedUploadsFlowTest extends TestCase {
 		$result   = $service->authorize( $form, 'f_file', 'report.pdf', 'application/pdf', 10 );
 		$uploadId = (int) $result['upload_id'];
 
-		$service->completeRemoteUpload( $uploadId, (string) $result['token'] );
+		$tempPath = wp_tempnam( 'relevant-upload' );
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- building the payload fixture.
+		file_put_contents( $tempPath, 'PDF-BYTES' );
+
+		$stored = $service->storeLocalUpload( $uploadId, (string) $result['token'], $tempPath, 'application/pdf' );
+		$this->assertArrayNotHasKey( 'error', $stored );
 
 		$scan = ( new ScanService() )->scanUpload( $uploadId );
 
@@ -317,6 +328,7 @@ final class ManagedUploadsFlowTest extends TestCase {
 	 */
 	public function tearDown(): void {
 		remove_all_filters( 'pre_http_request' );
+		remove_all_filters( 'relevant_forms_cloud_stream_transport' );
 		parent::tearDown();
 	}
 }

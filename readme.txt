@@ -62,12 +62,14 @@ Important submissions should not look identical to every other email. When manag
 
 Relevant Cloud can provide managed private object storage for form uploads:
 
-1. Core requests a tightly scoped, short-lived upload authorization.
-2. The browser uploads directly to private object storage (large files never pass through your PHP).
+1. The browser posts the file to your WordPress site as usual; nothing is stored on the site.
+2. Your WordPress server relays the bytes to the Relevant Cloud API, which writes them to private
+   object storage in two regions.
 3. The file stays quarantined while validation and malware scanning run.
-4. Only clean files are released, through authenticated or short-lived signed downloads.
+4. Only clean files are released, and downloads are streamed back through the API after your
+   WordPress permission check (the service verifies the file belongs to your site).
 
-Permanent cloud credentials are never exposed to the visitor's browser.
+Storage credentials and presigned URLs are never issued to the site or the visitor's browser.
 
 = Privacy and control =
 
