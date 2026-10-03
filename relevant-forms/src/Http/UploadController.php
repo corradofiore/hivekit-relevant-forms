@@ -33,7 +33,7 @@ final class UploadController {
 	}
 
 	/**
-	 * Authorize a direct upload and return the authorization as JSON.
+	 * Authorize an upload and return the authorization as JSON.
 	 */
 	public static function authorize(): void {
 		$raw    = wp_unslash( $_POST );
@@ -157,7 +157,8 @@ final class UploadController {
 	}
 
 	/**
-	 * Authenticated download: stream local files, redirect object storage.
+	 * Authenticated download: stream local files and managed objects;
+	 * custom storage providers still redirect to their authorization URL.
 	 */
 	public static function download(): void {
 		if ( ! current_user_can( 'manage_options' ) ) {
@@ -193,7 +194,27 @@ final class UploadController {
 			exit;
 		}
 
-		// phpcs:ignore WordPress.Security.SafeRedirect.wp_redirect_wp_redirect -- presigned URL targets the configured object storage host.
+		if ( 'cloud' === $upload->provider ) {
+			$temp = ( new \RelevantForms\Uploads\Storage\CloudStorageProvider() )->copyToTemporaryFile(
+				new \RelevantForms\Uploads\Contracts\StoredObject( $upload->objectKey )
+			);
+
+			if ( null === $temp || ! is_file( $temp ) ) {
+				wp_die( esc_html__( 'This file is temporarily unavailable. Please try again later.', 'relevant-forms' ), '', [ 'response' => 502 ] );
+			}
+
+			nocache_headers();
+			header( 'Content-Type: ' . ( '' !== $upload->detectedMime ? $upload->detectedMime : 'application/octet-stream' ) );
+			header( 'Content-Disposition: attachment; filename="' . rawurlencode( $upload->originalFilename ) . '"' );
+			header( 'Content-Length: ' . (string) filesize( $temp ) );
+			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_readfile -- authenticated private download stream.
+			readfile( $temp );
+			// phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink, WordPress.PHP.NoSilencedErrors.Discouraged -- temp copy of a managed object.
+			@unlink( $temp );
+			exit;
+		}
+
+		// phpcs:ignore WordPress.Security.SafeRedirect.wp_redirect_wp_redirect -- custom storage providers return their own authorization URL.
 		wp_redirect( $result['download']->url );
 		exit;
 	}

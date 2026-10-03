@@ -21,6 +21,7 @@ use RelevantForms\Uploads\Domain\Upload;
 use RelevantForms\Uploads\Domain\UploadRepository;
 use RelevantForms\Uploads\Domain\UploadStatus;
 use RelevantForms\Uploads\Policy\UploadPolicy;
+use RelevantForms\Uploads\Storage\CloudStorageProvider;
 use RelevantForms\Uploads\Storage\LocalStorageProvider;
 use RelevantForms\Uploads\Storage\ProviderFactory;
 use RelevantForms\Uploads\Storage\StorageConfig;
@@ -182,16 +183,24 @@ final class UploadService {
 			}
 		}
 
-		$provider = new LocalStorageProvider();
+		$detectedMime = $this->validator->detectMime( $tempPath );
+		$checksum     = hash_file( 'sha256', $tempPath );
 
-		if ( ! $provider->store( $tempPath, $upload->objectKey ) ) {
+		$provider = ProviderFactory::make();
+
+		if ( $provider instanceof CloudStorageProvider ) {
+			// API-mediated managed storage: the WordPress server relays the
+			// bytes to the API, which writes them to both buckets.
+			$stored = $provider->storeFromPath( $upload->objectKey, $upload->originalFilename, $declaredMime, $tempPath );
+		} else {
+			$stored = ( new LocalStorageProvider() )->store( $tempPath, $upload->objectKey );
+		}
+
+		if ( ! $stored ) {
 			$this->repository->updateStatus( $uploadId, UploadStatus::ERROR );
 
 			return [ 'error' => __( 'Could not store the uploaded file.', 'relevant-forms' ) ];
 		}
-
-		$detectedMime = $this->validator->detectMime( $provider->absolutePath( new StoredObject( $upload->objectKey ) ) );
-		$checksum     = hash_file( 'sha256', $provider->absolutePath( new StoredObject( $upload->objectKey ) ) );
 
 		$this->repository->update(
 			$uploadId,
