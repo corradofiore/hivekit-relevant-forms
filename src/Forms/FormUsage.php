@@ -11,9 +11,10 @@ namespace RelevantForms\Forms;
 
 /**
  * Finds the posts (pages, posts, templates) whose content embeds a
- * `[relevant_form id="…"]` shortcode, powering the "Used on" column of
- * the Forms list. Only shortcode usage is discoverable; forms rendered
- * from theme templates via `relevant_forms_render()` are not detectable.
+ * `[relevant_form id="…"]` shortcode or a `relevant-forms/form-selector`
+ * block, powering the "Used on" column of the Forms list. Only shortcode and
+ * block usage is discoverable; forms rendered from theme templates via
+ * `relevant_forms_render()` are not detectable.
  */
 final class FormUsage {
 
@@ -70,24 +71,41 @@ final class FormUsage {
 	 * @return array<int, int>
 	 */
 	public static function extract( string $content ): array {
-		if ( ! has_shortcode( $content, 'relevant_form' ) ) {
-			return [];
-		}
-
-		$pattern = get_shortcode_regex( [ 'relevant_form' ] );
-
-		if ( ! preg_match_all( '/' . $pattern . '/s', $content, $matches ) ) {
+		if ( ! has_shortcode( $content, 'relevant_form' ) && ! str_contains( $content, 'wp:relevant-forms/form-selector' ) ) {
 			return [];
 		}
 
 		$ids = [];
 
-		foreach ( $matches[3] as $attributes ) {
-			$atts = shortcode_parse_atts( (string) $attributes );
-			$id   = absint( is_array( $atts ) ? ( $atts['id'] ?? 0 ) : 0 );
+		if ( has_shortcode( $content, 'relevant_form' ) ) {
+			$pattern = get_shortcode_regex( [ 'relevant_form' ] );
 
-			if ( $id > 0 ) {
-				$ids[] = $id;
+			if ( preg_match_all( '/' . $pattern . '/s', $content, $matches ) ) {
+				foreach ( $matches[3] as $attributes ) {
+					$atts = shortcode_parse_atts( (string) $attributes );
+					$id   = absint( is_array( $atts ) ? ( $atts['id'] ?? 0 ) : 0 );
+
+					if ( $id > 0 ) {
+						$ids[] = $id;
+					}
+				}
+			}
+		}
+
+		// Block editor embeds: the id travels in the block comment's JSON
+		// attributes ("formId" key) of a relevant-forms/form-selector block.
+		if ( preg_match_all( '/<!--\s*wp:relevant-forms\/form-selector(?:\s+(\{[^}]*\}))?\s*\/?-->/s', $content, $blocks ) ) {
+			foreach ( $blocks[1] as $json ) {
+				if ( '' === $json ) {
+					continue;
+				}
+
+				$atts = json_decode( $json, true );
+				$id   = absint( is_array( $atts ) ? ( $atts['formId'] ?? 0 ) : 0 );
+
+				if ( $id > 0 ) {
+					$ids[] = $id;
+				}
 			}
 		}
 
@@ -133,18 +151,21 @@ final class FormUsage {
 	private static function buildMap(): array {
 		global $wpdb;
 
-		$like = '%' . $wpdb->esc_like( '[relevant_form' ) . '%';
+		$like       = '%' . $wpdb->esc_like( '[relevant_form' ) . '%';
+		$like_block = '%' . $wpdb->esc_like( 'wp:relevant-forms/form-selector' ) . '%';
 
-		// The posts table is scanned once for the marker; per-post parsing below
-		// keeps false positives out (shortcode attribute must match a form id).
+		// The posts table is scanned once for the markers; per-post parsing below
+		// keeps false positives out (shortcode attribute / block attribute must
+		// match a form id).
 		$rows = $wpdb->get_results(
 			$wpdb->prepare(
 				'SELECT ID, post_title, post_status, post_type, post_content FROM ' . $wpdb->posts
 				. " WHERE post_status NOT IN ( 'trash', 'auto-draft', 'inherit' )"
 				. " AND post_type NOT IN ( 'revision', 'attachment', 'nav_menu_item' )"
-				. ' AND post_content LIKE %s'
+				. ' AND ( post_content LIKE %s OR post_content LIKE %s )'
 				. ' ORDER BY post_title ASC',
-				$like
+				$like,
+				$like_block
 			)
 		);
 
