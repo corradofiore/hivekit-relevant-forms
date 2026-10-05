@@ -16,6 +16,7 @@ use RelevantForms\Admin\Pages\FormEditPage;
 use RelevantForms\Admin\Pages\FormListPage;
 use RelevantForms\Admin\Pages\ImportPage;
 use RelevantForms\Admin\Pages\LogsPage;
+use RelevantForms\Admin\Pages\PaymentsPage;
 use RelevantForms\Admin\Pages\SettingsPage;
 use RelevantForms\Forms\FormRepository;
 
@@ -120,6 +121,15 @@ final class AdminMenu {
 			self::CAPABILITY,
 			'relevant-settings',
 			[ SettingsPage::class, 'render' ]
+		);
+
+		add_submenu_page(
+			'relevant-forms',
+			__( 'Accept payments', 'relevant-forms' ),
+			__( 'Accept payments', 'relevant-forms' ),
+			self::CAPABILITY,
+			'relevant-payments',
+			[ PaymentsPage::class, 'render' ]
 		);
 
 		add_submenu_page(

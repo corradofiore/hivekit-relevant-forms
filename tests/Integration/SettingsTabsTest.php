@@ -1,8 +1,9 @@
 <?php
 /**
- * Settings tabs integration tests: the settings screen splits into
- * Relevant Cloud subscription, file storage and payments panels while
- * every options field stays inside the single options form.
+ * Settings tabs integration tests: the settings screen splits into the
+ * Relevant Cloud subscription and file storage panels (the payments
+ * configuration moved to the Accept payments page) while every options
+ * field stays inside the single options form.
  *
  * @package RelevantForms
  */
@@ -31,9 +32,10 @@ final class SettingsTabsTest extends TestCase {
 	}
 
 	/**
-	 * The screen renders three tabs with the Cloud subscription first.
+	 * The screen renders two tabs with the Cloud subscription first; the
+	 * payments configuration lives on its own Accept payments page now.
 	 */
-	public function testTheScreenRendersThreeTabsWithTheCloudPanelFirst(): void {
+	public function testTheScreenRendersTwoTabsWithTheCloudPanelFirst(): void {
 		update_option( 'relevant_forms_settings', [] );
 
 		$html = $this->renderSettings();
@@ -43,20 +45,19 @@ final class SettingsTabsTest extends TestCase {
 
 		$this->assertStringContainsString( 'Relevant Cloud subscription', $html );
 		$this->assertStringContainsString( 'File storage', $html );
-		$this->assertStringContainsString( 'Payments configuration (Stripe)', $html );
 
 		$this->assertStringContainsString( 'href="#rf-panel-cloud"', $html );
 		$this->assertStringContainsString( 'href="#rf-panel-storage"', $html );
-		$this->assertStringContainsString( 'href="#rf-panel-payments"', $html );
 
 		$this->assertLessThan(
 			(int) strpos( $html, 'id="rf-panel-storage"' ),
 			(int) strpos( $html, 'id="rf-panel-cloud"' )
 		);
-		$this->assertLessThan(
-			(int) strpos( $html, 'id="rf-panel-payments"' ),
-			(int) strpos( $html, 'id="rf-panel-storage"' )
-		);
+
+		// The payments tab, panel and action forms moved to the new page.
+		$this->assertStringNotContainsString( 'rf-panel-payments', $html );
+		$this->assertStringNotContainsString( 'Payments configuration (Stripe)', $html );
+		$this->assertStringNotContainsString( 'rf-stripe-connect-form', $html );
 	}
 
 	/**
@@ -126,15 +127,14 @@ final class SettingsTabsTest extends TestCase {
 	}
 
 	/**
-	 * Storage fields stay in their own panel; the payments panel carries
-	 * the Stripe actions targeting their action forms.
+	 * The storage panel keeps its fields and Save button; nothing Stripe
+	 * related stays on the settings screen.
 	 */
-	public function testStorageAndPaymentsPanelsKeepTheirContent(): void {
+	public function testTheStoragePanelKeepsItsContent(): void {
 		$this->connectCloud();
 
-		$html     = $this->renderSettings();
-		$storage  = $this->panel( $html, 'rf-panel-storage' );
-		$payments = $this->panel( $html, 'rf-panel-payments' );
+		$html    = $this->renderSettings();
+		$storage = $this->panel( $html, 'rf-panel-storage' );
 
 		$this->assertStringContainsString( 'name="relevant_forms_settings[storage_provider]"', $storage );
 		$this->assertStringContainsString( 'name="relevant_forms_settings[storage_block_unscanned_downloads]"', $storage );
@@ -142,18 +142,9 @@ final class SettingsTabsTest extends TestCase {
 		$this->assertStringNotContainsString( 'cloud_api_key', $storage );
 		$this->assertStringNotContainsString( 'Stripe account', $storage );
 
-		$this->assertStringContainsString( 'Accept payments on your forms in no time through your own Stripe account (Stripe Connect):', $payments );
-		$this->assertStringContainsString( 'No Stripe account connected.', $payments );
-		$this->assertStringContainsString( 'Connect Stripe', $payments );
-		$this->assertStringContainsString( '<ul class="description">', $payments );
-		$this->assertStringContainsString( 'in addition to Stripe', $payments );
-		$this->assertStringContainsString( 'form="rf-stripe-connect-form"', $payments );
-		$this->assertStringContainsString( 'form="rf-stripe-refresh-form"', $payments );
-		$this->assertStringContainsString( 'id="rf-stripe-connect-form"', $html );
-		$this->assertStringContainsString( 'value="relevant_forms_payments_connect"', $html );
-
-		$this->assertStringNotContainsString( 'name="relevant_forms_settings[storage_provider]"', $payments );
-		$this->assertStringNotContainsString( 'cloud_api_key', $payments );
+		$this->assertStringNotContainsString( 'Stripe account', $html );
+		$this->assertStringNotContainsString( 'rf-stripe-connect-form', $html );
+		$this->assertStringNotContainsString( 'value="relevant_forms_payments_connect"', $html );
 	}
 
 	/**

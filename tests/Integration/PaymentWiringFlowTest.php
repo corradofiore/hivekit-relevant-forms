@@ -102,7 +102,7 @@ final class PaymentWiringFlowTest extends TestCase {
 		$this->connectCloud();
 
 		$_GET = [
-			'page'              => 'relevant-settings',
+			'page'              => 'relevant-payments',
 			'relevant_payments' => 'connected',
 		];
 
@@ -136,7 +136,7 @@ final class PaymentWiringFlowTest extends TestCase {
 		// A false positive from the backend never enables the capability.
 		$this->removeCloudFilters();
 		$_GET = [
-			'page'              => 'relevant-settings',
+			'page'              => 'relevant-payments',
 			'relevant_payments' => 'connected',
 		];
 
@@ -160,6 +160,26 @@ final class PaymentWiringFlowTest extends TestCase {
 	 */
 	public function testReturnErrorFlagSkipsTheBackend(): void {
 		$_GET = [
+			'page'              => 'relevant-payments',
+			'relevant_payments' => 'error',
+		];
+
+		$url = $this->capture(
+			static function (): void {
+				PaymentSettingsController::maybeCompleteReturn();
+			}
+		);
+
+		$this->assertStringContainsString( 'payments=error', $url );
+		$this->assertSame( [], $this->requests );
+	}
+
+	/**
+	 * A return started before the update still completes: the legacy
+	 * settings slug is accepted and the browser lands on the new page.
+	 */
+	public function testTheLegacySettingsSlugStillCompletesTheReturn(): void {
+		$_GET = [
 			'page'              => 'relevant-settings',
 			'relevant_payments' => 'error',
 		];
@@ -171,6 +191,7 @@ final class PaymentWiringFlowTest extends TestCase {
 		);
 
 		$this->assertStringContainsString( 'payments=error', $url );
+		$this->assertStringContainsString( 'page=relevant-payments', $url );
 		$this->assertSame( [], $this->requests );
 	}
 
@@ -219,8 +240,9 @@ final class PaymentWiringFlowTest extends TestCase {
 			'relevant_payments_disconnect'
 		);
 
-		// The fragment deep-links back to the payments tab so the notice shows.
-		$this->assertStringContainsString( 'payments=disconnected#rf-panel-payments', $url );
+		// The redirect lands on the Accept payments page where the notice shows.
+		$this->assertStringContainsString( 'payments=disconnected', $url );
+		$this->assertStringContainsString( 'page=relevant-payments', $url );
 		$this->assertFalse( $connection->capabilityEnabled( CloudConnection::CAP_PAYMENTS ) );
 		$this->assertEmpty( $connection->payments()['connected'] ?? null );
 	}

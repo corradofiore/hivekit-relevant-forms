@@ -96,7 +96,7 @@ final class PaymentSettingsController {
 
 	/**
 	 * Handle the browser returning from the Stripe authorization page
-	 * (`?page=relevant-settings&relevant_payments=connected|error`).
+	 * (`?page=relevant-payments&relevant_payments=connected|error`).
 	 *
 	 * The capability is enabled only when the backend confirms an active
 	 * connection, so a crafted URL can at most trigger one status read.
@@ -110,7 +110,10 @@ final class PaymentSettingsController {
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only routing check.
 		$page = isset( $_GET['page'] ) ? sanitize_key( wp_unslash( $_GET['page'] ) ) : '';
 
-		if ( 'relevant-settings' !== $page || ! current_user_can( 'manage_options' ) ) {
+		// The cloud builds the return URL against the Accept payments page;
+		// the legacy settings slug stays accepted so authorizations started
+		// before an update still complete.
+		if ( ! in_array( $page, [ 'relevant-payments', 'relevant-settings' ], true ) || ! current_user_can( 'manage_options' ) ) {
 			return;
 		}
 
@@ -164,16 +167,15 @@ final class PaymentSettingsController {
 	}
 
 	/**
-	 * Redirect back to the settings page with a status marker; the panel
-	 * fragment opens the payments tab so the notice is visible.
+	 * Redirect back to the Accept payments page with a status marker.
 	 *
 	 * @param string $status Status marker.
 	 */
 	private static function redirect( string $status ): never {
 		$target = add_query_arg(
 			[ 'payments' => $status ],
-			admin_url( 'admin.php?page=relevant-settings' )
-		) . '#rf-panel-payments';
+			admin_url( 'admin.php?page=relevant-payments' )
+		);
 
 		// Test seam: allows integration tests to intercept the redirect.
 		$target = (string) apply_filters( 'relevant_forms_redirect', $target, 0 );
