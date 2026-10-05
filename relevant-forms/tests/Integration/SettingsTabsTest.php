@@ -40,6 +40,7 @@ final class SettingsTabsTest extends TestCase {
 
 		$html = $this->renderSettings();
 
+		$this->assertStringContainsString( '<h1>Relevant Cloud</h1>', $html );
 		$this->assertStringContainsString( 'nav-tab-wrapper relevant-forms-tabs', $html );
 		$this->assertMatchesRegularExpression( '/nav-tab-active[^>]*href="#rf-panel-cloud"/', $html );
 
@@ -101,6 +102,11 @@ final class SettingsTabsTest extends TestCase {
 
 		$html  = $this->renderSettings();
 		$cloud = $this->panel( $html, 'rf-panel-cloud' );
+
+		// Regular-size intro that also states the Stripe payments
+		// subscription requirement.
+		$this->assertStringContainsString( 'relevant-forms-cloud-intro', $cloud );
+		$this->assertStringContainsString( 'Stripe payments require a Relevant Cloud subscription.', $cloud );
 
 		// Subscription first: the sign-in identity clients should remember,
 		// the cached plan, and a billing link that pre-fills the sign-in

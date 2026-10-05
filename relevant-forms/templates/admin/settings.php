@@ -23,7 +23,7 @@ use RelevantForms\Cloud\CloudConfig;
 use RelevantForms\Cloud\CloudConnection;
 ?>
 <div class="wrap">
-	<h1><?php esc_html_e( 'Relevant Forms Settings', 'relevant-forms' ); ?></h1>
+	<h1><?php esc_html_e( 'Relevant Cloud', 'relevant-forms' ); ?></h1>
 	<?php settings_errors(); ?>
 
 	<?php
@@ -56,8 +56,8 @@ use RelevantForms\Cloud\CloudConnection;
 		</nav>
 
 		<div id="rf-panel-cloud" class="relevant-forms-tabs__panel">
-			<p class="description">
-				<?php esc_html_e( 'Relevant Cloud is an optional paid managed service (semantic spam analysis, priority SMS and managed secure uploads). No external request is made until you explicitly connect this site and enable a capability.', 'relevant-forms' ); ?>
+			<p class="relevant-forms-cloud-intro">
+				<?php esc_html_e( 'Relevant Cloud is an optional paid managed service (semantic spam analysis, priority SMS and managed secure uploads). No external request is made until you explicitly connect this site and enable a capability. Stripe payments require a Relevant Cloud subscription.', 'relevant-forms' ); ?>
 			</p>
 
 			<?php
