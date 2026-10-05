@@ -61,6 +61,7 @@ final class FormEditorTabsTest extends TestCase {
 		$html = (string) ob_get_clean();
 
 		$this->assertStringContainsString( 'relevant-forms-embed-intro', $html );
+		$this->assertStringContainsString( 'class="relevant-forms-embed-intro" id="rf-embed-intro">', $html );
 		$this->assertStringContainsString( 'To embed this form on a page, use the code', $html );
 		$this->assertStringContainsString( '<code>[relevant_form id="' . $formId . '"]</code>', $html );
 
@@ -76,9 +77,11 @@ final class FormEditorTabsTest extends TestCase {
 	}
 
 	/**
-	 * A new form has no ID yet: the blurb stays hidden.
+	 * A new form has no ID yet: the blurb renders hidden with an empty code
+	 * (initFormSave reveals it and fills in the shortcode after the first
+	 * AJAX save).
 	 */
-	public function testEmbedBlurbIsHiddenForNewForms(): void {
+	public function testEmbedBlurbStaysHiddenForNewForms(): void {
 		wp_set_current_user( self::factory()->user->create( [ 'role' => 'administrator' ] ) );
 
 		unset( $_GET['form_id'] );
@@ -87,7 +90,8 @@ final class FormEditorTabsTest extends TestCase {
 		FormEditPage::render();
 		$html = (string) ob_get_clean();
 
-		$this->assertStringNotContainsString( 'relevant-forms-embed-intro', $html );
+		$this->assertMatchesRegularExpression( '/class="relevant-forms-embed-intro" id="rf-embed-intro" hidden/', $html );
+		$this->assertStringContainsString( '<code></code>', $html );
 		$this->assertStringNotContainsString( '[relevant_form id="0"]', $html );
 	}
 	/**

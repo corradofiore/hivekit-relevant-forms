@@ -1963,6 +1963,7 @@
 		var strings = settings.formSaveStrings || {};
 		var message = document.getElementById( 'rf-form-save-message' );
 		var formIdField = form.querySelector( 'input[name="form_id"]' );
+		var embedIntro = document.getElementById( 'rf-embed-intro' );
 
 		form.addEventListener( 'submit', function ( event ) {
 			event.preventDefault();
@@ -1995,6 +1996,18 @@
 
 					if ( data.form_id && formIdField ) {
 						formIdField.value = data.form_id;
+					}
+
+					if ( data.form_id && embedIntro ) {
+						// Reveal the embed blurb after the first save and show the
+						// shortcode the server would render on the next load.
+						var embedCode = embedIntro.querySelector( 'code' );
+
+						if ( embedCode ) {
+							embedCode.textContent = '[relevant_form id="' + data.form_id + '"]';
+						}
+
+						embedIntro.hidden = false;
 					}
 
 					if ( data.created && window.history && window.history.replaceState && window.URL ) {
