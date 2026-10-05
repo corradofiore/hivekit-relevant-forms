@@ -15,7 +15,7 @@ parameters:
 		analyse:
 			# Extend builder classes that only exist on sites running the builder
 				# (loaded at runtime by their integrations).
-			- src/Integrations/BeaverBuilder/FormModule.php
+			- src/Integrations/BeaverBuilder/ModuleRegistration.php
 			- src/Integrations/Bricks/FormElement.php
 			- src/Integrations/Divi/FormModule.php
 			- src/Integrations/Elementor/FormWidget.php

@@ -28,14 +28,14 @@ final class BeaverIntegration {
 	}
 
 	/**
-	 * Load the module class and register it with Beaver Builder.
+	 * Load the module registration and hand it to Beaver Builder.
 	 */
 	public static function load(): void {
-		if ( ! class_exists( '\FLBuilder' ) || ! class_exists( '\FLBuilderModule' ) ) {
+		if ( ! class_exists( '\FLBuilder' ) || ! class_exists( '\FLBuilderModuleType' ) ) {
 			return;
 		}
 
-		require_once __DIR__ . '/FormModule.php';
+		require_once __DIR__ . '/ModuleRegistration.php';
 	}
 
 	/**

@@ -79,13 +79,14 @@ final class BeaverIntegrationTest extends TestCase {
 
 	/**
 	 * Without Beaver Builder the hook is registered but loading is a no-op:
-	 * the module class stays undefined.
+	 * no Beaver Builder class is pulled in and nothing is registered.
 	 */
 	public function testTheIntegrationStaysInertWithoutBeaverBuilder(): void {
 		$this->assertNotFalse( has_action( 'init', [ BeaverIntegration::class, 'load' ] ) );
 
 		BeaverIntegration::load();
 
-		$this->assertFalse( class_exists( 'RelevantForms\Integrations\BeaverBuilder\FormModule' ) );
+		$this->assertFalse( class_exists( '\FLBuilder' ) );
+		$this->assertFalse( class_exists( '\FLBuilderModuleType' ) );
 	}
 }

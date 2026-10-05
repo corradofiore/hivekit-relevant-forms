@@ -86,6 +86,8 @@ final class FormUsageTest extends TestCase {
 		$this->assertSame( [ 7 ], FormUsage::extract( '[relevant_form  id = "7" ]' ) );
 		$this->assertSame( [ 7, 9 ], FormUsage::extract( '[relevant_form id="7"][relevant_form id="9"]' ) );
 		$this->assertSame( [ 7 ], FormUsage::extract( '[relevant_form id="7"] [relevant_form id="7"]' ) );
+		// The Divi module stores its field as form_id in the shortcode it outputs.
+		$this->assertSame( [ 7 ], FormUsage::extract( '[relevant_form form_id="7"]' ) );
 		$this->assertSame( [], FormUsage::extract( '[other_form id="7"]' ) );
 		$this->assertSame( [], FormUsage::extract( '[relevant_form]' ) );
 		$this->assertSame( [], FormUsage::extract( '[relevant_form id="0"]' ) );
@@ -121,6 +123,152 @@ final class FormUsageTest extends TestCase {
 
 		$this->assertCount( 1, $usage );
 		$this->assertSame( $page, $usage[0]['id'] );
+	}
+
+	/**
+	 * Builder layouts are parsed: Beaver Builder node lists and Bricks element
+	 * trees (nested), while unrelated metas stay silent.
+	 */
+	public function testExtractsFormIdsFromBuilderLayouts(): void {
+		// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.serialize_serialize -- Beaver Builder stores its layout data serialized.
+		$beaver = serialize(
+			[
+				(object) [
+					'node'     => 'abc01',
+					'type'     => 'module',
+					'settings' => (object) [
+						'type'    => 'relevant-form',
+						'form_id' => '4',
+					],
+				],
+				(object) [
+					'node'     => 'abc02',
+					'type'     => 'module',
+					'settings' => (object) [
+						'type'    => 'button',
+						'form_id' => '9',
+					],
+				],
+			]
+		);
+
+		$this->assertSame( [ 4 ], FormUsage::extractFromBuilderMeta( '_fl_builder_data', $beaver ) );
+		$this->assertSame( [ 4 ], FormUsage::extractFromBuilderMeta( '_fl_builder_draft', $beaver ) );
+		// WordPress double-serializes pre-serialized meta values; unwrap those too.
+		// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.serialize_serialize -- Simulating WordPress' double serialization.
+		$this->assertSame( [ 4 ], FormUsage::extractFromBuilderMeta( '_fl_builder_data', serialize( $beaver ) ) );
+
+		$bricks = (string) wp_json_encode(
+			[
+				[
+					'id'       => 'a',
+					'name'     => 'container',
+					'children' => [
+						[
+							'id'       => 'b',
+							'name'     => 'relevant-form',
+							'settings' => [ 'formId' => '6' ],
+						],
+					],
+				],
+				[
+					'id'       => 'c',
+					'name'     => 'heading',
+					'settings' => (object) [],
+				],
+			]
+		);
+
+		$this->assertSame( [ 6 ], FormUsage::extractFromBuilderMeta( '_bricks_page_content_2', $bricks ) );
+		$this->assertSame( [ 6 ], FormUsage::extractFromBuilderMeta( '_bricks_page_content', $bricks ) );
+
+		$this->assertSame( [], FormUsage::extractFromBuilderMeta( '_unrelated_meta', $beaver ) );
+		$this->assertSame( [], FormUsage::extractFromBuilderMeta( '_fl_builder_data', 'not-serialized' ) );
+		$this->assertSame( [], FormUsage::extractFromBuilderMeta( '_bricks_page_content_2', '{broken' ) );
+	}
+
+	/**
+	 * The usage map includes posts whose forms live only in a builder layout,
+	 * and de-duplicates posts that match several scans.
+	 */
+	public function testMapsBuilderLayoutsInPostMeta(): void {
+		$beaver_page = self::factory()->post->create(
+			[
+				'post_title'   => 'Beaver page',
+				'post_status'  => 'publish',
+				'post_content' => '',
+			]
+		);
+
+		// Beaver Builder stores its layout data as a plain array; WordPress serializes it.
+		update_post_meta(
+			$beaver_page,
+			'_fl_builder_data',
+			[
+				(object) [
+					'node'     => 'abc01',
+					'type'     => 'module',
+					'settings' => (object) [
+						'type'    => 'relevant-form',
+						'form_id' => '4',
+					],
+				],
+			]
+		);
+
+		$bricks_page = self::factory()->post->create(
+			[
+				'post_title'   => 'Bricks page',
+				'post_status'  => 'publish',
+				'post_content' => '[relevant_form form_id="4"]',
+			]
+		);
+
+		update_post_meta(
+			$bricks_page,
+			'_bricks_page_content_2',
+			(string) wp_json_encode(
+				[
+					[
+						'id'       => 'a',
+						'name'     => 'relevant-form',
+						'settings' => [ 'formId' => '4' ],
+					],
+				]
+			)
+		);
+
+		$usage = FormUsage::forForm( 4 );
+
+		$this->assertSame( [ $beaver_page, $bricks_page ], array_column( $usage, 'id' ) );
+	}
+
+	/**
+	 * Drafts excluded from the map: the builder meta scanner honours post
+	 * status filtering like the content scan.
+	 */
+	public function testBuilderLayoutsInTrashedPostsAreIgnored(): void {
+		$page = self::factory()->post->create( [ 'post_status' => 'publish' ] );
+
+		// Beaver Builder stores its layout data as a plain array; WordPress serializes it.
+		update_post_meta(
+			$page,
+			'_fl_builder_data',
+			[
+				(object) [
+					'node'     => 'abc01',
+					'type'     => 'module',
+					'settings' => (object) [
+						'type'    => 'relevant-form',
+						'form_id' => '4',
+					],
+				],
+			]
+		);
+
+		wp_trash_post( $page );
+
+		$this->assertSame( [], FormUsage::forForm( 4 ) );
 	}
 
 	/**
