@@ -86,6 +86,24 @@
 	}
 
 	/**
+	 * Re-run the front-end behaviours inside a freshly injected preview.
+	 * Every script of assets/js/frontend-*.js registers its boot function on
+	 * window.relevantFormsFrontend, and each boot is idempotent per element,
+	 * so re-running them is always safe.
+	 *
+	 * @param {Element} root Element containing the injected form.
+	 */
+	function initFrontend( root ) {
+		var boots = window.relevantFormsFrontend || [];
+
+		Array.prototype.forEach.call( boots, function ( boot ) {
+			if ( typeof boot === 'function' ) {
+				boot( root );
+			}
+		} );
+	}
+
+	/**
 	 * Fetch the form's front-end markup for the preview.
 	 *
 	 * @param {string} formId Selected form ID.
@@ -160,6 +178,15 @@
 		var formId = divi.moduleUtils.getAttrByMode( props.attrs.formId );
 		var hasForms = Object.keys( data.forms || {} ).length > 0;
 		var state = usePreviewFetch( formId );
+		var previewRef = useRef( null );
+
+		// Runs after every render: binds the form's behaviours once the
+		// preview markup is in the DOM (and re-binds when React replaces it).
+		useEffect( function () {
+			if ( state.html && previewRef.current ) {
+				initFrontend( previewRef.current );
+			}
+		} );
 
 		if ( ! hasForms ) {
 			return React.createElement(
@@ -196,7 +223,19 @@
 			return React.createElement( 'div', { className: 'relevant-forms-divi-notice' }, data.formMissing );
 		}
 
-		return React.createElement( RawHTML, null, state.html );
+		return React.createElement(
+			'div',
+			{
+				ref: previewRef,
+				className: 'relevant-forms-divi-preview',
+				// Keep submissions inside the builder: a real POST from the
+				// canvas would navigate the editor frame, not the live page.
+				onSubmitCapture: function ( event ) {
+					event.preventDefault();
+				}
+			},
+			React.createElement( RawHTML, null, state.html )
+		);
 	}
 
 	/**

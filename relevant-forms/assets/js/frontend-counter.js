@@ -26,18 +26,36 @@
 		}
 	}
 
-	document.querySelectorAll( '.relevant-forms-char-count[data-rf-count-for]' ).forEach( function ( counter ) {
-		var control = document.getElementById( counter.getAttribute( 'data-rf-count-for' ) );
+	/**
+	 * Bind every counter under a root.
+	 *
+	 * @param {Element} root Scope to search (document when omitted).
+	 */
+	function boot( root ) {
+		( root || document ).querySelectorAll( '.relevant-forms-char-count[data-rf-count-for]' ).forEach( function ( counter ) {
+			if ( '1' === counter.getAttribute( 'data-rf-counter-ready' ) ) {
+				return;
+			}
 
-		if ( ! control ) {
-			return;
-		}
+			var control = document.getElementById( counter.getAttribute( 'data-rf-count-for' ) );
 
-		control.addEventListener( 'input', function () {
+			if ( ! control ) {
+				return;
+			}
+
+			counter.setAttribute( 'data-rf-counter-ready', '1' );
+
+			control.addEventListener( 'input', function () {
+				update( counter, control );
+			} );
+
+			// Normalise the server-rendered count (and reveal or hide it).
 			update( counter, control );
 		} );
+	}
 
-		// Normalise the server-rendered count (and reveal or hide it).
-		update( counter, control );
-	} );
+	boot( document );
+
+	// Allow re-runs on dynamically injected markup (Divi previews).
+	( window.relevantFormsFrontend = window.relevantFormsFrontend || [] ).push( boot );
 }() );

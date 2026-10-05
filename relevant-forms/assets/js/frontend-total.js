@@ -111,21 +111,39 @@
 		totalElement.textContent = format( total, decimals, symbol );
 	}
 
-	document.querySelectorAll( 'form.relevant-forms' ).forEach( function ( form ) {
-		var totals = form.querySelectorAll( '[data-rf-payment-total]' );
+	/**
+	 * Bind every payment form under a root.
+	 *
+	 * @param {Element} root Scope to search (document when omitted).
+	 */
+	function boot( root ) {
+		( root || document ).querySelectorAll( 'form.relevant-forms' ).forEach( function ( form ) {
+			if ( '1' === form.getAttribute( 'data-rf-total-ready' ) ) {
+				return;
+			}
 
-		if ( 0 === totals.length ) {
-			return;
-		}
+			var totals = form.querySelectorAll( '[data-rf-payment-total]' );
 
-		var refresh = function () {
-			totals.forEach( function ( totalElement ) {
-				update( form, totalElement );
-			} );
-		};
+			if ( 0 === totals.length ) {
+				return;
+			}
 
-		form.addEventListener( 'input', refresh );
-		form.addEventListener( 'change', refresh );
-		refresh();
-	} );
+			form.setAttribute( 'data-rf-total-ready', '1' );
+
+			var refresh = function () {
+				totals.forEach( function ( totalElement ) {
+					update( form, totalElement );
+				} );
+			};
+
+			form.addEventListener( 'input', refresh );
+			form.addEventListener( 'change', refresh );
+			refresh();
+		} );
+	}
+
+	boot( document );
+
+	// Allow re-runs on dynamically injected markup (Divi previews).
+	( window.relevantFormsFrontend = window.relevantFormsFrontend || [] ).push( boot );
 }() );

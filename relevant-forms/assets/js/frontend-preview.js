@@ -141,8 +141,13 @@
 		} );
 	}
 
-	function boot() {
-		document.querySelectorAll( 'form.relevant-forms' ).forEach( function ( form ) {
+	/**
+	 * Bind every entry-preview box under a root.
+	 *
+	 * @param {Element} root Scope to search (document when omitted).
+	 */
+	function boot( root ) {
+		( root || document ).querySelectorAll( 'form.relevant-forms' ).forEach( function ( form ) {
 			if ( ! form.querySelector( '[data-rf-preview]' ) || '1' === form.getAttribute( 'data-rf-preview-ready' ) ) {
 				return;
 			}
@@ -174,8 +179,13 @@
 	}
 
 	if ( 'loading' === document.readyState ) {
-		document.addEventListener( 'DOMContentLoaded', boot );
+		document.addEventListener( 'DOMContentLoaded', function () {
+			boot( document );
+		} );
 	} else {
-		boot();
+		boot( document );
 	}
+
+	// Allow re-runs on dynamically injected markup (Divi previews).
+	( window.relevantFormsFrontend = window.relevantFormsFrontend || [] ).push( boot );
 }() );

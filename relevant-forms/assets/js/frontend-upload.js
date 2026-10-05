@@ -106,9 +106,20 @@
 		});
 	}
 
-	function bindFileInputs() {
-		var forms = document.querySelectorAll('.relevant-forms[data-upload-nonce]');
+	/**
+	 * Bind every file input under a root.
+	 *
+	 * @param {Element} root Scope to search (document when omitted).
+	 */
+	function bindFileInputs( root ) {
+		var forms = (root || document).querySelectorAll('.relevant-forms[data-upload-nonce]');
 		forms.forEach(function (form) {
+			if ('1' === form.getAttribute('data-rf-upload-ready')) {
+				return;
+			}
+
+			form.setAttribute('data-rf-upload-ready', '1');
+
 			var formId = form.dataset.formId;
 			// Forms post to their own page (empty action = current URL); the
 			// front-end handler serves the upload helper actions there too.
@@ -126,8 +137,13 @@
 	}
 
 	if (document.readyState === 'loading') {
-		document.addEventListener('DOMContentLoaded', bindFileInputs);
+		document.addEventListener('DOMContentLoaded', function () {
+			bindFileInputs( document );
+		});
 	} else {
-		bindFileInputs();
+		bindFileInputs( document );
 	}
+
+	// Allow re-runs on dynamically injected markup (Divi previews).
+	(window.relevantFormsFrontend = window.relevantFormsFrontend || []).push(bindFileInputs);
 })();

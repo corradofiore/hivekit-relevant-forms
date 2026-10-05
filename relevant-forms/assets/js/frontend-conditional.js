@@ -292,16 +292,34 @@
 		form.dispatchEvent( new CustomEvent( 'relevant-forms:visibility' ) );
 	}
 
-	document.querySelectorAll( 'form.relevant-forms' ).forEach( function ( form ) {
-		form.addEventListener( 'input', function () {
+	/**
+	 * Bind every form under a root.
+	 *
+	 * @param {Element} root Scope to search (document when omitted).
+	 */
+	function boot( root ) {
+		( root || document ).querySelectorAll( 'form.relevant-forms' ).forEach( function ( form ) {
+			if ( '1' === form.getAttribute( 'data-rf-conditional-ready' ) ) {
+				return;
+			}
+
+			form.setAttribute( 'data-rf-conditional-ready', '1' );
+
+			form.addEventListener( 'input', function () {
+				apply( form );
+			} );
+
+			form.addEventListener( 'change', function () {
+				apply( form );
+			} );
+
+			// Normalize the server-rendered initial state.
 			apply( form );
 		} );
+	}
 
-		form.addEventListener( 'change', function () {
-			apply( form );
-		} );
+	boot( document );
 
-		// Normalize the server-rendered initial state.
-		apply( form );
-	} );
+	// Allow re-runs on dynamically injected markup (Divi previews).
+	( window.relevantFormsFrontend = window.relevantFormsFrontend || [] ).push( boot );
 }() );
