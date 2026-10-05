@@ -11,6 +11,7 @@ declare(strict_types=1);
 
 namespace RelevantForms\Tests\Integration;
 
+use RelevantForms\Assets\FrontendAssets;
 use RelevantForms\Forms\FormRepository;
 use RelevantForms\Forms\FormSchema;
 use RelevantForms\Integrations\Divi\DiviIntegration;
@@ -36,6 +37,24 @@ final class DiviModernTest extends TestCase {
 		do_action( 'divi_module_library_modules_dependency_tree', $tree );
 
 		$this->assertSame( [], $tree->dependencies );
+	}
+
+	/**
+	 * Inside the Divi Builder the form stylesheet is enqueued even when the
+	 * page content has no form yet: the module preview is fetched separately
+	 * and injected after load, and must be styled when it arrives.
+	 */
+	public function testTheFormStylesheetIsEnqueuedInsideTheDiviBuilder(): void {
+		FrontendAssets::registerAssets();
+		wp_dequeue_style( 'relevant-forms' );
+
+		unset( $_GET['et_fb'] );
+		DiviIntegration::enqueueBuilderStyles();
+		$this->assertFalse( wp_style_is( 'relevant-forms', 'enqueued' ) );
+
+		$_GET['et_fb'] = '1';
+		DiviIntegration::enqueueBuilderStyles();
+		$this->assertTrue( wp_style_is( 'relevant-forms', 'enqueued' ) );
 	}
 
 	/**
