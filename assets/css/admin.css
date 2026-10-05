@@ -484,6 +484,10 @@ td.relevant-forms-used-on .relevant-forms-used-on__popover:target {
 	font-size: 14px;
 }
 
+.relevant-forms-embed-intro {
+	font-size: 14px;
+}
+
 /* Settings: the connection-state row keeps its connect/disconnect button
    inline after the state code. */
 
