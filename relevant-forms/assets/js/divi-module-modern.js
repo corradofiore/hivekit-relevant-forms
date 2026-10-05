@@ -176,7 +176,11 @@
 			);
 		}
 
-		if ( ! formId || state.isLoading ) {
+		if ( ! formId ) {
+			return React.createElement( 'div', { className: 'relevant-forms-divi-empty' }, data.selectForm );
+		}
+
+		if ( state.isLoading ) {
 			return React.createElement( 'div', {
 				className: 'relevant-forms-divi-loading',
 				role: 'status',
