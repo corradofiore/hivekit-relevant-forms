@@ -33,6 +33,7 @@ use RelevantForms\Http\PaymentReturnHandler;
 use RelevantForms\Http\SubmissionHandler;
 use RelevantForms\Http\UploadController;
 use RelevantForms\Http\CloudController;
+use RelevantForms\Integrations\Divi\DiviIntegration;
 use RelevantForms\Uploads\Cleanup\UploadCleanup;
 use RelevantForms\Uploads\Scanning\ScanService;
 
@@ -52,6 +53,7 @@ final class Plugin {
 		SettingsPage::register();
 		FormRenderer::register();
 		FormUsage::register();
+		DiviIntegration::register();
 		SubmissionHandler::register();
 		UploadController::register();
 		CloudController::register();

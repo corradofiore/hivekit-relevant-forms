@@ -12,6 +12,10 @@ parameters:
 			- vendor
 			- tests
 			- templates
+		analyse:
+			# Extends the Divi Builder class (ET_Builder_Module), which only exists
+			# on sites running Divi; loaded at runtime by DiviIntegration::loadModule().
+			- src/Integrations/Divi/FormModule.php
 	bootstrapFiles:
 		- vendor/php-stubs/wordpress-stubs/wordpress-stubs.php
 		- tests/phpstan-constants.php
