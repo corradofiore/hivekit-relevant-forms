@@ -39,9 +39,28 @@ final class DiviIntegration {
 		add_action( 'et_builder_ready', [ self::class, 'loadModule' ] );
 		add_action( 'divi_module_library_modules_dependency_tree', [ self::class, 'registerModernModule' ] );
 
+		// The Visual Builder renders module previews after the builder
+		// document has loaded (admin-ajax -> HTML injected into the page),
+		// so the lazy render-time enqueue can never style them: the form
+		// stylesheet has to be enqueued for the builder document itself
+		// (the same pattern WPForms uses in its Divi integration).
+		add_action( 'wp_enqueue_scripts', [ self::class, 'enqueueBuilderStyles' ], 20 );
+
 		if ( wp_doing_ajax() ) {
 			add_action( 'wp_ajax_relevant_forms_divi_preview', [ self::class, 'preview' ] );
 		}
+	}
+
+	/**
+	 * Enqueue the form stylesheet inside the Divi Builder so module previews
+	 * are styled. Runs after FrontendAssets has registered the handle.
+	 */
+	public static function enqueueBuilderStyles(): void {
+		if ( ! self::isBuilderRequest() ) {
+			return;
+		}
+
+		wp_enqueue_style( 'relevant-forms' );
 	}
 
 	/**
