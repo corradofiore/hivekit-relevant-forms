@@ -41,6 +41,18 @@ final class SettingsTabsTest extends TestCase {
 		$html = $this->renderSettings();
 
 		$this->assertStringContainsString( '<h1>Relevant Cloud</h1>', $html );
+
+		// The blurb sits above the tabs, outside the tab panels.
+		$this->assertStringContainsString( 'adding semantic spam analysis, priority SMS alerting, managed secure uploads, and Stripe payments to your forms', $html );
+		$this->assertLessThan(
+			(int) strpos( $html, 'nav-tab-wrapper' ),
+			(int) strpos( $html, 'relevant-forms-cloud-intro' )
+		);
+		$this->assertLessThan(
+			(int) strpos( $html, 'id="rf-panel-cloud"' ),
+			(int) strpos( $html, 'relevant-forms-cloud-intro' )
+		);
+
 		$this->assertStringContainsString( 'nav-tab-wrapper relevant-forms-tabs', $html );
 		$this->assertMatchesRegularExpression( '/nav-tab-active[^>]*href="#rf-panel-cloud"/', $html );
 
@@ -103,10 +115,9 @@ final class SettingsTabsTest extends TestCase {
 		$html  = $this->renderSettings();
 		$cloud = $this->panel( $html, 'rf-panel-cloud' );
 
-		// Regular-size intro that also states the Stripe payments
-		// subscription requirement.
-		$this->assertStringContainsString( 'relevant-forms-cloud-intro', $cloud );
-		$this->assertStringContainsString( 'Stripe payments require a Relevant Cloud subscription.', $cloud );
+		// The blurb moved above the tabs; the panel starts with the
+		// subscription rows.
+		$this->assertStringNotContainsString( 'relevant-forms-cloud-intro', $cloud );
 
 		// Subscription first: the sign-in identity clients should remember,
 		// the cached plan, and a billing link that pre-fills the sign-in
