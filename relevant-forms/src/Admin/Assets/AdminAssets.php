@@ -88,6 +88,11 @@ final class AdminAssets {
 					'sent'    => __( 'Test email sent to %s.', 'relevant-forms' ),
 					'failed'  => __( 'The test email could not be sent. Check the site\'s mail configuration.', 'relevant-forms' ),
 				],
+				'formSaveStrings'     => [
+					'saving' => __( 'Saving…', 'relevant-forms' ),
+					'saved'  => __( 'Form saved.', 'relevant-forms' ),
+					'failed' => __( 'The form could not be saved. Please try again.', 'relevant-forms' ),
+				],
 				'cloudKeyStrings'     => [
 					'edit'   => __( 'Edit', 'relevant-forms' ),
 					'cancel' => __( 'Cancel', 'relevant-forms' ),
