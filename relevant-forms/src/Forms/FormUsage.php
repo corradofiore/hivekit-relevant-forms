@@ -12,9 +12,9 @@ namespace RelevantForms\Forms;
 /**
  * Finds the posts (pages, posts, templates) whose content embeds a
  * `[relevant_form id="…"]` shortcode or a `relevant-forms/form-selector`
- * block, powering the "Used on" column of the Forms list. Only shortcode and
- * block usage is discoverable; forms rendered from theme templates via
- * `relevant_forms_render()` are not detectable.
+ * block, or whose builder layout (Beaver Builder, Bricks) embeds the form
+ * module, powering the "Used on" column of the Forms list. Forms rendered
+ * from theme templates via `relevant_forms_render()` are not detectable.
  */
 final class FormUsage {
 
@@ -30,6 +30,7 @@ final class FormUsage {
 		add_action( 'save_post', [ self::class, 'flush' ] );
 		add_action( 'deleted_post', [ self::class, 'flush' ] );
 		add_action( 'trashed_post', [ self::class, 'flush' ] );
+		add_action( 'fl_builder_after_save_layout', [ self::class, 'flush' ], 10, 0 );
 	}
 
 	/**
@@ -65,8 +66,10 @@ final class FormUsage {
 	}
 
 	/**
-	 * Form ids embedded in the given content (attribute order/quoting and
-	 * repeated embeds are tolerated; duplicates collapse).
+	 * Form ids embedded in the given content: shortcodes (attribute
+	 * order/quoting and repeated embeds are tolerated; the Divi module's
+	 * `form_id` attribute is honoured) and block editor embeds. Duplicates
+	 * collapse.
 	 *
 	 * @return array<int, int>
 	 */
@@ -83,7 +86,9 @@ final class FormUsage {
 			if ( preg_match_all( '/' . $pattern . '/s', $content, $matches ) ) {
 				foreach ( $matches[3] as $attributes ) {
 					$atts = shortcode_parse_atts( (string) $attributes );
-					$id   = absint( is_array( $atts ) ? ( $atts['id'] ?? 0 ) : 0 );
+					// `id` is the shortcode attribute; the Divi module stores its
+					// field as `form_id` in the shortcode it outputs.
+					$id = absint( is_array( $atts ) ? ( $atts['id'] ?? $atts['form_id'] ?? 0 ) : 0 );
 
 					if ( $id > 0 ) {
 						$ids[] = $id;
@@ -110,6 +115,122 @@ final class FormUsage {
 		}
 
 		return array_values( array_unique( $ids ) );
+	}
+
+	/**
+	 * Form ids embedded in a builder layout stored in post meta.
+	 *
+	 * Supported: Beaver Builder (`_fl_builder_data`, `_fl_builder_draft` — a
+	 * flat node list where modules carry `settings->type` and `settings->form_id`)
+	 * and Bricks (`_bricks_page_content[_2]` — a JSON element tree with
+	 * `name`/`settings.formId` and nested `children`).
+	 *
+	 * @param string $metaKey   Meta key.
+	 * @param string $metaValue Raw (usually serialized or JSON) meta value.
+	 * @return array<int, int>
+	 */
+	public static function extractFromBuilderMeta( string $metaKey, string $metaValue ): array {
+		if ( in_array( $metaKey, [ '_fl_builder_data', '_fl_builder_draft' ], true ) ) {
+			return self::extractFromBeaverLayout( $metaValue );
+		}
+
+		if ( in_array( $metaKey, [ '_bricks_page_content', '_bricks_page_content_2' ], true ) ) {
+			return self::extractFromBricksLayout( $metaValue );
+		}
+
+		return [];
+	}
+
+	/**
+	 * Beaver Builder layout data: flat node objects; module nodes carry the
+	 * module type in `settings->type`.
+	 *
+	 * @param string $metaValue Serialized layout data.
+	 * @return array<int, int>
+	 */
+	private static function extractFromBeaverLayout( string $metaValue ): array {
+		$data = maybe_unserialize( $metaValue );
+
+		// Defensively unwrap a second level: WordPress double-serializes
+		// values that were already serialized when they were saved.
+		if ( is_string( $data ) ) {
+			$data = maybe_unserialize( $data );
+		}
+
+		if ( ! is_array( $data ) ) {
+			return [];
+		}
+
+		$ids = [];
+
+		foreach ( $data as $node ) {
+			if ( ! is_object( $node ) || ! isset( $node->settings ) || ! is_object( $node->settings ) ) {
+				continue;
+			}
+
+			if ( 'relevant-form' !== ( $node->settings->type ?? '' ) ) {
+				continue;
+			}
+
+			$id = absint( $node->settings->form_id ?? 0 );
+
+			if ( $id > 0 ) {
+				$ids[] = $id;
+			}
+		}
+
+		return array_values( array_unique( $ids ) );
+	}
+
+	/**
+	 * Bricks element tree (JSON; legacy payloads may be serialized).
+	 *
+	 * @param string $metaValue JSON (or serialized) element tree.
+	 * @return array<int, int>
+	 */
+	private static function extractFromBricksLayout( string $metaValue ): array {
+		$data = json_decode( $metaValue, true );
+
+		if ( ! is_array( $data ) ) {
+			$data = maybe_unserialize( $metaValue );
+		}
+
+		if ( ! is_array( $data ) ) {
+			return [];
+		}
+
+		$ids = [];
+
+		self::collectBricksIds( $data, $ids );
+
+		return array_values( array_unique( $ids ) );
+	}
+
+	/**
+	 * Walk a Bricks element tree and collect the form ids of relevant-form
+	 * elements.
+	 *
+	 * @param array<int|string, mixed> $elements Element list.
+	 * @param array<int, int>          $ids      Collected form ids (by reference).
+	 */
+	private static function collectBricksIds( array $elements, array &$ids ): void {
+		foreach ( $elements as $element ) {
+			if ( ! is_array( $element ) ) {
+				continue;
+			}
+
+			if ( 'relevant-form' === ( $element['name'] ?? '' ) ) {
+				$id = absint( $element['settings']['formId'] ?? 0 );
+
+				if ( $id > 0 ) {
+					$ids[] = $id;
+				}
+			}
+
+			if ( isset( $element['children'] ) && is_array( $element['children'] ) ) {
+				self::collectBricksIds( $element['children'], $ids );
+			}
+		}
 	}
 
 	/**
@@ -175,6 +296,49 @@ final class FormUsage {
 			foreach ( self::extract( (string) $row->post_content ) as $formId ) {
 				$map[ $formId ][] = self::describe( $row );
 			}
+		}
+
+		// Builder layouts live in post meta (Beaver Builder, Bricks), not in
+		// the post content. The module slug is the LIKE marker for both.
+		$like_builder = '%' . $wpdb->esc_like( 'relevant-form' ) . '%';
+
+		$meta_rows = $wpdb->get_results(
+			$wpdb->prepare(
+				'SELECT p.ID, p.post_title, p.post_status, p.post_type, pm.meta_key, pm.meta_value FROM ' . $wpdb->postmeta . ' pm'
+				. ' INNER JOIN ' . $wpdb->posts . ' p ON p.ID = pm.post_id'
+				. " WHERE pm.meta_key IN ( '_fl_builder_data', '_fl_builder_draft', '_bricks_page_content', '_bricks_page_content_2' )"
+				. " AND p.post_status NOT IN ( 'trash', 'auto-draft', 'inherit' )"
+				. " AND p.post_type NOT IN ( 'revision', 'attachment', 'nav_menu_item' )"
+				. ' AND pm.meta_value LIKE %s'
+				. ' ORDER BY p.post_title ASC',
+				$like_builder
+			)
+		);
+
+		foreach ( (array) $meta_rows as $row ) {
+			foreach ( self::extractFromBuilderMeta( (string) $row->meta_key, (string) $row->meta_value ) as $formId ) {
+				$map[ $formId ][] = self::describe( $row );
+			}
+		}
+
+		// A post may match several scans (content and layout, or published +
+		// draft layout data): keep one entry per post and form, ordered by
+		// title like the scans themselves.
+		foreach ( $map as $formId => $entries ) {
+			$unique = [];
+
+			foreach ( $entries as $entry ) {
+				$unique[ $entry['id'] ] = $entry;
+			}
+
+			$unique = array_values( $unique );
+
+			usort(
+				$unique,
+				static fn ( array $a, array $b ): int => strcasecmp( $a['title'], $b['title'] )
+			);
+
+			$map[ $formId ] = $unique;
 		}
 
 		return $map;
