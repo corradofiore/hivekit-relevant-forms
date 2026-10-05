@@ -93,6 +93,37 @@ final class FormUsageTest extends TestCase {
 	}
 
 	/**
+	 * Block editor embeds are discovered alongside shortcodes.
+	 */
+	public function testExtractsBlockEditorEmbeds(): void {
+		$this->assertSame( [ 4 ], FormUsage::extract( '<!-- wp:relevant-forms/form-selector {"formId":4} /-->' ) );
+		$this->assertSame( [ 4 ], FormUsage::extract( '<!-- wp:relevant-forms/form-selector {"formId":4} --><!-- /wp:relevant-forms/form-selector -->' ) );
+		// Shortcodes are parsed first, block embeds afterwards.
+		$this->assertSame( [ 7, 4 ], FormUsage::extract( '<!-- wp:relevant-forms/form-selector {"formId":4} /--> [relevant_form id="7"]' ) );
+		$this->assertSame( [], FormUsage::extract( '<!-- wp:relevant-forms/form-selector /-->' ) );
+		$this->assertSame( [], FormUsage::extract( '<!-- wp:relevant-forms/form-selector {"formId":0} /-->' ) );
+		$this->assertSame( [], FormUsage::extract( '<!-- wp:relevant-forms/form-selector {"className":"x"} /-->' ) );
+	}
+
+	/**
+	 * The usage map picks up block editor embeds, not just shortcodes.
+	 */
+	public function testMapsBlockEditorEmbeds(): void {
+		$page = self::factory()->post->create(
+			[
+				'post_title'   => 'Block page',
+				'post_status'  => 'publish',
+				'post_content' => '<!-- wp:relevant-forms/form-selector {"formId":4} /-->',
+			]
+		);
+
+		$usage = FormUsage::forForm( 4 );
+
+		$this->assertCount( 1, $usage );
+		$this->assertSame( $page, $usage[0]['id'] );
+	}
+
+	/**
 	 * forForm() returns one form's pages only; unknown ids are empty.
 	 */
 	public function testForFormReturnsOnlyThatFormsPages(): void {

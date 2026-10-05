@@ -147,13 +147,13 @@ No. External semantic classification must be explicitly configured and enabled b
 
 No. Relevant Pro, if offered, is a separate add-on distributed outside WordPress.org. This plugin does not automatically download or install it.
 
-= Does Relevant Forms work with Divi? =
+= Which page builders are supported? =
 
-Yes. With the Divi Builder active, a native "Relevant Form" module appears in
-the builder's Insert Module dialog — pick your form from a dropdown and it
-renders exactly like the shortcode. On any builder (or in the classic editor),
-you can also paste the [relevant_form id="123"] shortcode into a Code or Text
-module.
+Relevant Forms ships native integrations for the block editor (a "Relevant
+Form" block), Elementor (a "Relevant Form" widget), Divi (a "Relevant Form"
+module) and WPBakery (a "Relevant Form" element) — each lets you pick your
+form from a dropdown and renders it exactly like the shortcode. On any other
+builder, paste [relevant_form id="123"] into a Code, Text or HTML element.
 
 = Can I migrate from WPForms? =
 

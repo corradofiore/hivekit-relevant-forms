@@ -15,7 +15,7 @@ declare(strict_types=1);
 namespace RelevantForms\Integrations\Divi;
 
 use RelevantForms\Forms\FormRenderer;
-use RelevantForms\Forms\FormRepository;
+use RelevantForms\Integrations\Support\FormChoices;
 
 /**
  * Hooks the Divi module into the builder and provides the data it needs.
@@ -73,27 +73,7 @@ final class DiviIntegration {
 	 * @return array<int|string, string> Form ID => label.
 	 */
 	public static function formChoices(): array {
-		$choices = [];
-
-		foreach ( ( new FormRepository() )->all() as $form ) {
-			if ( 'archived' === $form->status ) {
-				continue;
-			}
-
-			$label = $form->name;
-
-			if ( 'published' !== $form->status ) {
-				$label .= ' (' . __( 'draft', 'relevant-forms' ) . ')';
-			}
-
-			$choices[ (int) $form->id ] = $label;
-		}
-
-		if ( [] === $choices ) {
-			return [ '' => __( 'No forms yet — create one under Relevant Forms.', 'relevant-forms' ) ];
-		}
-
-		return $choices;
+		return FormChoices::all();
 	}
 
 	/**
