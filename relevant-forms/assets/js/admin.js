@@ -1965,8 +1965,56 @@
 		var formIdField = form.querySelector( 'input[name="form_id"]' );
 		var embedIntro = document.getElementById( 'rf-embed-intro' );
 
+		/**
+		 * Drop the save confirmation of a previous save.
+		 */
+		function removeSaveNotice() {
+			var existing = document.getElementById( 'rf-form-save-notice' );
+
+			if ( existing && existing.parentNode ) {
+				existing.parentNode.removeChild( existing );
+			}
+		}
+
+		/**
+		 * Show the save confirmation as a WordPress admin notice — the same
+		 * markup the classic submit renders after its reload. Core adds the
+		 * dismiss button (and its behaviour) when 'wp-notice-added' fires.
+		 *
+		 * @param {string} text Confirmation text.
+		 */
+		function showSaveNotice( text ) {
+			var header = document.querySelector( '.wp-header-end' ) || document.querySelector( '.wrap > h1' );
+			var notice = document.createElement( 'div' );
+			var paragraph = document.createElement( 'p' );
+
+			removeSaveNotice();
+
+			notice.id = 'rf-form-save-notice';
+			notice.className = 'notice notice-success is-dismissible';
+			notice.appendChild( paragraph );
+
+			if ( header ) {
+				header.parentNode.insertBefore( notice, header.nextSibling );
+			} else {
+				form.parentNode.insertBefore( notice, form );
+			}
+
+			paragraph.textContent = text;
+
+			if ( window.jQuery ) {
+				window.jQuery( document ).trigger( 'wp-notice-added' );
+			}
+
+			if ( window.wp && window.wp.a11y && window.wp.a11y.speak ) {
+				window.wp.a11y.speak( text, 'polite' );
+			}
+		}
+
 		form.addEventListener( 'submit', function ( event ) {
 			event.preventDefault();
+
+			removeSaveNotice();
 
 			if ( message ) {
 				setMessage( message, strings.saving || '', 'info' );
@@ -1991,7 +2039,11 @@
 					if ( data.warning ) {
 						setMessage( message, data.warning, 'error' );
 					} else {
-						setMessage( message, data.message || strings.saved || '', 'ok' );
+						if ( message ) {
+							setMessage( message, '', '' );
+						}
+
+						showSaveNotice( data.message || strings.saved || '' );
 					}
 
 					if ( data.form_id && formIdField ) {

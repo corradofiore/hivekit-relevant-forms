@@ -41,7 +41,7 @@ $rf_save_label = $isEditing ? __( 'Save Form', 'relevant-forms' ) : __( 'Create 
 		</div>
 	<?php endif; ?>
 
-	<?php /* AJAX save feedback (the classic submit shows the notice above instead). */ ?>
+	<?php /* In-flight and error feedback for the AJAX save; a successful save reveals a native notice injected by initFormSave(). */ ?>
 	<p class="rf-sms-message" id="rf-form-save-message" role="status" aria-live="polite" hidden></p>
 
 	<?php
