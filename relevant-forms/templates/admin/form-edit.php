@@ -203,15 +203,18 @@ $rf_save_label = $isEditing ? __( 'Save Form', 'relevant-forms' ) : __( 'Create 
 					<p class="description"><?php esc_html_e( 'Used together with the sender name; leave both empty to use the WordPress default.', 'relevant-forms' ); ?></p>
 				</td>
 			</tr>
-			<tr>
-				<th scope="row"><?php esc_html_e( 'Send test email', 'relevant-forms' ); ?></th>
-				<td>
-					<textarea class="relevant-forms-textarea" id="relevant-test-email-to" rows="2" placeholder="<?php esc_attr_e( 'one address per line', 'relevant-forms' ); ?>"></textarea>
-					<button type="button" class="button" id="rf-send-test-email"><?php esc_html_e( 'Send test email', 'relevant-forms' ); ?></button>
-					<p class="rf-sms-message" id="rf-test-email-message" role="status" aria-live="polite" hidden></p>
-					<p class="description"><?php esc_html_e( 'Sends one test message with this form\'s sender settings. Leave the addresses empty to send it to the site administrators; paste an external address (e.g. from a deliverability testing service) to check where emails land.', 'relevant-forms' ); ?></p>
-				</td>
-			</tr>
+			<?php /* Hidden until the form exists: the backend renders the test from the saved form. */ ?>
+			<?php if ( $form->id > 0 ) : ?>
+				<tr>
+					<th scope="row"><?php esc_html_e( 'Send test email', 'relevant-forms' ); ?></th>
+					<td>
+						<textarea class="relevant-forms-textarea" id="relevant-test-email-to" rows="2" placeholder="<?php esc_attr_e( 'one address per line', 'relevant-forms' ); ?>"></textarea>
+						<button type="button" class="button" id="rf-send-test-email"><?php esc_html_e( 'Send test email', 'relevant-forms' ); ?></button>
+						<p class="rf-sms-message" id="rf-test-email-message" role="status" aria-live="polite" hidden></p>
+						<p class="description"><?php esc_html_e( 'Sends one test message with this form\'s sender settings. Leave the addresses empty to send it to the site administrators; paste an external address (e.g. from a deliverability testing service) to check where emails land.', 'relevant-forms' ); ?></p>
+					</td>
+				</tr>
+			<?php endif; ?>
 		</table>
 
 		<?php

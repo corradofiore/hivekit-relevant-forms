@@ -10,6 +10,7 @@ declare(strict_types=1);
 namespace RelevantForms\Tests\Integration;
 
 use RelevantForms\Admin\Controllers\TestEmailController;
+use RelevantForms\Admin\Pages\FormEditPage;
 use RelevantForms\Forms\Form;
 use RelevantForms\Forms\FormRepository;
 use RelevantForms\Forms\FormSchema;
@@ -109,6 +110,37 @@ final class TestEmailFlowTest extends TestCase {
 
 		$this->assertFalse( $body['success'] );
 		$this->assertSame( 'send_failed', $body['data']['code'] );
+	}
+
+	/**
+	 * The test-email controls render only once the form exists: the backend
+	 * renders the test message from the saved form.
+	 */
+	public function testTheTestEmailControlsAreHiddenUntilTheFormExists(): void {
+		wp_set_current_user( self::factory()->user->create( [ 'role' => 'administrator' ] ) );
+
+		$form = $this->makeForm();
+
+		$_GET['form_id'] = $form->id;
+
+		ob_start();
+		FormEditPage::render();
+		$html = (string) ob_get_clean();
+
+		$this->assertStringContainsString( 'id="rf-send-test-email"', $html );
+		$this->assertStringContainsString( 'id="relevant-test-email-to"', $html );
+
+		// A new form has not been created yet: no test-email row at all.
+		unset( $_GET['form_id'] );
+
+		ob_start();
+		FormEditPage::render();
+		$new_html = (string) ob_get_clean();
+
+		$this->assertStringContainsString( '<h1>Add New Form</h1>', $new_html );
+		$this->assertStringNotContainsString( 'Send test email', $new_html );
+		$this->assertStringNotContainsString( 'rf-send-test-email', $new_html );
+		$this->assertStringNotContainsString( 'relevant-test-email-to', $new_html );
 	}
 
 	/**
