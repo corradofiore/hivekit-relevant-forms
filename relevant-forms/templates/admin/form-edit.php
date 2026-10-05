@@ -51,9 +51,9 @@ $rf_save_label = $isEditing ? __( 'Save Form', 'relevant-forms' ) : __( 'Create 
 				<?php
 				echo wp_kses_post(
 					sprintf(
-						/* translators: %s: link to the payments settings. */
+						/* translators: %s: link to the Accept payments screen. */
 						__( 'This form has payment fields. %s to start accepting payments — until then new submissions stay pending.', 'relevant-forms' ),
-						'<a href="' . esc_url( admin_url( 'admin.php?page=relevant-settings' ) ) . '">' . esc_html__( 'Connect a Stripe account in Settings', 'relevant-forms' ) . '</a>'
+						'<a href="' . esc_url( admin_url( 'admin.php?page=relevant-payments' ) ) . '">' . esc_html__( 'Connect a Stripe account', 'relevant-forms' ) . '</a>'
 					)
 				);
 				?>

@@ -135,6 +135,26 @@ final class AdminMenuTest extends TestCase {
 	}
 
 	/**
+	 * The Accept payments page sits right after Settings.
+	 */
+	public function testThePaymentsPageIsRegisteredAfterSettings(): void {
+		wp_set_current_user( self::factory()->user->create( [ 'role' => 'administrator' ] ) );
+
+		AdminMenu::register();
+		AdminMenu::build();
+
+		$slugs = $this->submenuSlugs();
+
+		$this->assertContains( 'relevant-payments', $slugs );
+
+		$settings = array_search( 'relevant-settings', $slugs, true );
+		$payments = array_search( 'relevant-payments', $slugs, true );
+
+		$this->assertNotFalse( $payments );
+		$this->assertGreaterThan( (int) $settings, (int) $payments );
+	}
+
+	/**
 	 * Slugs of the Relevant Forms submenu items.
 	 *
 	 * @return list<string>
