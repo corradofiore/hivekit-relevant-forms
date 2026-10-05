@@ -43,6 +43,53 @@ final class FormEditorTabsTest extends TestCase {
 			(int) strpos( $html, 'id="rf-panel-settings"' )
 		);
 	}
+
+	/**
+	 * The editor shows the form's embed shortcode (same code as the list
+	 * table) in a blurb above the tabs.
+	 */
+	public function testEmbedBlurbShowsTheFormsShortcodeBeforeTheTabs(): void {
+		wp_set_current_user( self::factory()->user->create( [ 'role' => 'administrator' ] ) );
+
+		$repository = new FormRepository();
+		$formId     = $repository->create( 'Embeddable', FormSchema::empty( 'Embeddable' ), 'published' );
+
+		$_GET['form_id'] = $formId;
+
+		ob_start();
+		FormEditPage::render();
+		$html = (string) ob_get_clean();
+
+		$this->assertStringContainsString( 'relevant-forms-embed-intro', $html );
+		$this->assertStringContainsString( 'To embed this form on a page, use the code', $html );
+		$this->assertStringContainsString( '<code>[relevant_form id="' . $formId . '"]</code>', $html );
+
+		// Above the tabs, right before the save form.
+		$this->assertLessThan(
+			(int) strpos( $html, 'nav-tab-wrapper relevant-forms-tabs' ),
+			(int) strpos( $html, 'relevant-forms-embed-intro' )
+		);
+		$this->assertLessThan(
+			(int) strpos( $html, '<form method="post"' ),
+			(int) strpos( $html, 'relevant-forms-embed-intro' )
+		);
+	}
+
+	/**
+	 * A new form has no ID yet: the blurb stays hidden.
+	 */
+	public function testEmbedBlurbIsHiddenForNewForms(): void {
+		wp_set_current_user( self::factory()->user->create( [ 'role' => 'administrator' ] ) );
+
+		unset( $_GET['form_id'] );
+
+		ob_start();
+		FormEditPage::render();
+		$html = (string) ob_get_clean();
+
+		$this->assertStringNotContainsString( 'relevant-forms-embed-intro', $html );
+		$this->assertStringNotContainsString( '[relevant_form id="0"]', $html );
+	}
 	/**
 	 * Both tab panels stay inside the save form so every section is
 	 * submitted regardless of which tab is visible.

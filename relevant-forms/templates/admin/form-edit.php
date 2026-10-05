@@ -64,6 +64,21 @@ $rf_save_label = $isEditing ? __( 'Save Form', 'relevant-forms' ) : __( 'Create 
 		</div>
 	<?php endif; ?>
 
+	<?php if ( $form->id > 0 ) : ?>
+		<?php /* Same embed code as the Forms list table. */ ?>
+		<p class="relevant-forms-embed-intro">
+			<?php
+			echo wp_kses_post(
+				sprintf(
+					/* translators: %s: the form's embed shortcode, e.g. [relevant_form id="123"]. */
+					__( 'To embed this form on a page, use the code %s.', 'relevant-forms' ),
+					'<code>[relevant_form id="' . esc_html( (string) $form->id ) . '"]</code>'
+				)
+			);
+			?>
+		</p>
+	<?php endif; ?>
+
 	<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" id="rf-form-editor-form">
 		<input type="hidden" name="action" value="relevant_forms_save_form">
 		<input type="hidden" name="form_id" value="<?php echo esc_attr( (string) $form->id ); ?>">
