@@ -307,7 +307,14 @@
 	/**
 	 * The module metadata shared with module.json (name, attributes and the
 	 * module library category).
+	 *
+	 * Design groups like Background, Border, Box Shadow, Filters and Text
+	 * are redirected to the form's input fields through `styleProps`, so the
+	 * native Divi controls style the fields instead of the module wrapper.
 	 */
+	var fieldsSelector = '{{selector}} .relevant-forms-field :is(input, select, textarea):not([type=checkbox]):not([type=radio])';
+	var fieldsSelectorPlaceholder = fieldsSelector + '::placeholder';
+
 	var metadata = {
 		name: MODULE_NAME,
 		d4Shortcode: 'relevant_form',
@@ -321,10 +328,42 @@
 				selector: '{{selector}}',
 				default: {},
 				defaultPrintedStyle: {},
+				styleProps: {
+					selectors: {
+						desktop: {
+							value: fieldsSelector + ', ' + fieldsSelectorPlaceholder + ', ' + fieldsSelector + '::-webkit-input-placeholder'
+						}
+					},
+					background: { selector: fieldsSelector },
+					border: { selector: fieldsSelector },
+					boxShadow: { selector: fieldsSelector, important: true },
+					filters: { selector: fieldsSelector },
+					font: { selector: fieldsSelector + ', ' + fieldsSelectorPlaceholder },
+					animation: { selector: '{{selector}}' },
+					sizing: { selector: '{{selector}}' },
+					spacing: {
+						selector: '{{selector}}',
+						propertySelectors: {
+							desktop: {
+								value: {
+									padding: fieldsSelector
+								}
+							}
+						}
+					},
+					transform: { selector: '{{selector}}' },
+					transition: { selector: '{{selector}}' },
+					position: { selector: '{{selector}}' }
+				},
 				settings: {
 					advanced: { htmlAttributes: {} },
 					decoration: {
 						animation: {},
+						background: {},
+						border: {},
+						boxShadow: {},
+						filters: {},
+						font: {},
 						sizing: {},
 						spacing: {},
 						transform: {},
