@@ -33,6 +33,8 @@ use RelevantForms\Http\PaymentReturnHandler;
 use RelevantForms\Http\SubmissionHandler;
 use RelevantForms\Http\UploadController;
 use RelevantForms\Http\CloudController;
+use RelevantForms\Integrations\BeaverBuilder\BeaverIntegration;
+use RelevantForms\Integrations\Bricks\BricksIntegration;
 use RelevantForms\Integrations\Divi\DiviIntegration;
 use RelevantForms\Integrations\Elementor\ElementorIntegration;
 use RelevantForms\Integrations\Gutenberg\GutenbergIntegration;
@@ -56,6 +58,8 @@ final class Plugin {
 		SettingsPage::register();
 		FormRenderer::register();
 		FormUsage::register();
+		BeaverIntegration::register();
+		BricksIntegration::register();
 		DiviIntegration::register();
 		ElementorIntegration::register();
 		GutenbergIntegration::register();
