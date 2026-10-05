@@ -225,13 +225,31 @@
 		show( start, false );
 	}
 
-	function boot() {
-		document.querySelectorAll( '.relevant-forms[data-rf-page-step]' ).forEach( init );
+	/**
+	 * Bind every multi-page form under a root.
+	 *
+	 * @param {Element} root Scope to search (document when omitted).
+	 */
+	function boot( root ) {
+		( root || document ).querySelectorAll( '.relevant-forms[data-rf-page-step]' ).forEach( function ( form ) {
+			if ( '1' === form.getAttribute( 'data-rf-pages-ready' ) ) {
+				return;
+			}
+
+			form.setAttribute( 'data-rf-pages-ready', '1' );
+
+			init( form );
+		} );
 	}
 
 	if ( 'loading' === document.readyState ) {
-		document.addEventListener( 'DOMContentLoaded', boot );
+		document.addEventListener( 'DOMContentLoaded', function () {
+			boot( document );
+		} );
 	} else {
-		boot();
+		boot( document );
 	}
+
+	// Allow re-runs on dynamically injected markup (Divi previews).
+	( window.relevantFormsFrontend = window.relevantFormsFrontend || [] ).push( boot );
 }() );

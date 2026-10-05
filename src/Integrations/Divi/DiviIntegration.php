@@ -41,10 +41,10 @@ final class DiviIntegration {
 
 		// The Visual Builder renders module previews after the builder
 		// document has loaded (admin-ajax -> HTML injected into the page),
-		// so the lazy render-time enqueue can never style them: the form
-		// stylesheet has to be enqueued for the builder document itself
-		// (the same pattern WPForms uses in its Divi integration).
-		add_action( 'wp_enqueue_scripts', [ self::class, 'enqueueBuilderStyles' ], 20 );
+		// so a render-time enqueue can never reach them: the preview assets
+		// have to be enqueued for the builder document itself (the same
+		// pattern WPForms uses in its Divi integration).
+		add_action( 'wp_enqueue_scripts', [ self::class, 'enqueueBuilderPreviewAssets' ], 20 );
 
 		if ( wp_doing_ajax() ) {
 			add_action( 'wp_ajax_relevant_forms_divi_preview', [ self::class, 'preview' ] );
@@ -52,15 +52,31 @@ final class DiviIntegration {
 	}
 
 	/**
-	 * Enqueue the form stylesheet inside the Divi Builder so module previews
-	 * are styled. Runs after FrontendAssets has registered the handle.
+	 * Enqueue the front-end assets inside the Divi Builder so module previews
+	 * are styled AND interactive. Runs after FrontendAssets has registered
+	 * the handles. Which behaviours a form needs is only known server-side
+	 * at render time, so the builder document loads them all — every boot is
+	 * idempotent and re-runs on the injected preview markup.
 	 */
-	public static function enqueueBuilderStyles(): void {
+	public static function enqueueBuilderPreviewAssets(): void {
 		if ( ! self::isBuilderRequest() ) {
 			return;
 		}
 
 		wp_enqueue_style( 'relevant-forms' );
+
+		foreach (
+			[
+				'relevant-forms-upload',
+				'relevant-forms-counter',
+				'relevant-forms-conditional',
+				'relevant-forms-total',
+				'relevant-forms-pages',
+				'relevant-forms-preview',
+			] as $handle
+		) {
+			wp_enqueue_script( $handle );
+		}
 	}
 
 	/**

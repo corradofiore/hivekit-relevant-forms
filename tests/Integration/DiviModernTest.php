@@ -40,21 +40,27 @@ final class DiviModernTest extends TestCase {
 	}
 
 	/**
-	 * Inside the Divi Builder the form stylesheet is enqueued even when the
+	 * Inside the Divi Builder the preview assets are enqueued even when the
 	 * page content has no form yet: the module preview is fetched separately
-	 * and injected after load, and must be styled when it arrives.
+	 * and injected after load, and must be styled and interactive (every
+	 * front-end behaviour ships, whether the form needs it or not).
 	 */
-	public function testTheFormStylesheetIsEnqueuedInsideTheDiviBuilder(): void {
+	public function testTheBuilderDocumentLoadsThePreviewAssets(): void {
 		FrontendAssets::registerAssets();
 		wp_dequeue_style( 'relevant-forms' );
+		wp_dequeue_script( 'relevant-forms-total' );
+		wp_dequeue_script( 'relevant-forms-pages' );
 
 		unset( $_GET['et_fb'] );
-		DiviIntegration::enqueueBuilderStyles();
+		DiviIntegration::enqueueBuilderPreviewAssets();
 		$this->assertFalse( wp_style_is( 'relevant-forms', 'enqueued' ) );
+		$this->assertFalse( wp_script_is( 'relevant-forms-total', 'enqueued' ) );
 
 		$_GET['et_fb'] = '1';
-		DiviIntegration::enqueueBuilderStyles();
+		DiviIntegration::enqueueBuilderPreviewAssets();
 		$this->assertTrue( wp_style_is( 'relevant-forms', 'enqueued' ) );
+		$this->assertTrue( wp_script_is( 'relevant-forms-total', 'enqueued' ) );
+		$this->assertTrue( wp_script_is( 'relevant-forms-pages', 'enqueued' ) );
 	}
 
 	/**
