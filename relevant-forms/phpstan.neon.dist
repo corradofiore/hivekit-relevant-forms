@@ -18,6 +18,7 @@ parameters:
 			- src/Integrations/BeaverBuilder/ModuleRegistration.php
 			- src/Integrations/Bricks/FormElement.php
 			- src/Integrations/Divi/FormModule.php
+			- src/Integrations/Divi/ModernModule.php
 			- src/Integrations/Elementor/FormWidget.php
 	bootstrapFiles:
 		- vendor/php-stubs/wordpress-stubs/wordpress-stubs.php
