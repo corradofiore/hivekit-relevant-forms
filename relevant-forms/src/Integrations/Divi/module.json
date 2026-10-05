@@ -11,12 +11,65 @@
 			"selector": "{{selector}}",
 			"default": {},
 			"defaultPrintedStyle": {},
+			"styleProps": {
+				"selectors": {
+					"desktop": {
+						"value": "{{selector}} .relevant-forms-field :is(input, select, textarea):not([type=checkbox]):not([type=radio]), {{selector}} .relevant-forms-field :is(input, select, textarea):not([type=checkbox]):not([type=radio])::placeholder, {{selector}} .relevant-forms-field :is(input, select, textarea):not([type=checkbox]):not([type=radio])::-webkit-input-placeholder"
+					}
+				},
+				"background": {
+					"selector": "{{selector}} .relevant-forms-field :is(input, select, textarea):not([type=checkbox]):not([type=radio])"
+				},
+				"border": {
+					"selector": "{{selector}} .relevant-forms-field :is(input, select, textarea):not([type=checkbox]):not([type=radio])"
+				},
+				"boxShadow": {
+					"selector": "{{selector}} .relevant-forms-field :is(input, select, textarea):not([type=checkbox]):not([type=radio])",
+					"important": true
+				},
+				"filters": {
+					"selector": "{{selector}} .relevant-forms-field :is(input, select, textarea):not([type=checkbox]):not([type=radio])"
+				},
+				"font": {
+					"selector": "{{selector}} .relevant-forms-field :is(input, select, textarea):not([type=checkbox]):not([type=radio])"
+				},
+				"animation": {
+					"selector": "{{selector}}"
+				},
+				"sizing": {
+					"selector": "{{selector}}"
+				},
+				"spacing": {
+					"selector": "{{selector}}",
+					"propertySelectors": {
+						"desktop": {
+							"value": {
+								"padding": "{{selector}} .relevant-forms-field :is(input, select, textarea):not([type=checkbox]):not([type=radio])"
+							}
+						}
+					}
+				},
+				"transform": {
+					"selector": "{{selector}}"
+				},
+				"transition": {
+					"selector": "{{selector}}"
+				},
+				"position": {
+					"selector": "{{selector}}"
+				}
+			},
 			"settings": {
 				"advanced": {
 					"htmlAttributes": {}
 				},
 				"decoration": {
 					"animation": {},
+					"background": {},
+					"border": {},
+					"boxShadow": {},
+					"filters": {},
+					"font": {},
 					"sizing": {},
 					"spacing": {},
 					"transform": {},

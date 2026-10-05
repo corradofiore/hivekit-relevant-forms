@@ -186,6 +186,72 @@ final class DiviModernTest extends TestCase {
 	}
 
 	/**
+	 * The Divi design controls style the form's input fields, not the module
+	 * wrapper: the decoration groups Background, Border, Box Shadow, Filters
+	 * and Font redirect their CSS to the fields through `styleProps`, and the
+	 * Spacing group redirects padding specifically. Both files that feed the
+	 * style pipeline — module.json on the server and the Visual Builder
+	 * metadata registered from divi-module-modern.js — must declare the
+	 * redirects, or the front end and the builder would disagree.
+	 */
+	public function testTheDesignControlsStyleTheFormFieldsThroughStyleProps(): void {
+		$directory = RELEVANT_FORMS_PATH . 'src/Integrations/Divi/';
+		$module    = wp_json_file_decode( $directory . 'module.json', [ 'associative' => true ] );
+		$outline   = wp_json_file_decode( $directory . 'conversion-outline.json', [ 'associative' => true ] );
+
+		$this->assertIsArray( $module );
+		$this->assertIsArray( $outline );
+
+		// The field selector both files must agree on.
+		$fields = '.relevant-forms-field :is(input, select, textarea):not([type=checkbox]):not([type=radio])';
+
+		$module_attr = $module['attributes']['module'];
+		$style_props = $module_attr['styleProps'];
+		$decoration  = $module_attr['settings']['decoration'];
+
+		foreach ( [ 'background', 'border', 'boxShadow', 'filters', 'font' ] as $group ) {
+			$this->assertArrayHasKey( $group, $style_props, "module.json styleProps must declare the {$group} redirect." );
+			$this->assertStringContainsString(
+				$fields,
+				$style_props[ $group ]['selector'],
+				"module.json styleProps.{$group} must target the form fields."
+			);
+			$this->assertArrayHasKey( $group, $decoration, "module.json decoration must expose the {$group} design group." );
+		}
+
+		$this->assertTrue( $style_props['boxShadow']['important'] );
+		$this->assertStringContainsString(
+			$fields,
+			$style_props['spacing']['propertySelectors']['desktop']['value']['padding'],
+			'module.json spacing must redirect padding to the form fields.'
+		);
+		$this->assertStringContainsString(
+			$fields,
+			$style_props['selectors']['desktop']['value'],
+			'module.json must declare the expanded fields selector list.'
+		);
+
+		// The conversion outline maps the legacy advanced groups onto the
+		// same Divi 5 decoration groups for converted Divi 4 content.
+		$this->assertSame( 'module.decoration.background', $outline['advanced']['background'] );
+		$this->assertSame( 'module.decoration.border', $outline['advanced']['border'] );
+		$this->assertSame( 'module.decoration.boxShadow', $outline['advanced']['box_shadow']['default'] );
+		$this->assertSame( 'module.decoration.filters', $outline['advanced']['filters']['default'] );
+		$this->assertSame( 'module.decoration.font', $outline['advanced']['fonts']['module'] );
+
+		// The Visual Builder registers its own metadata from the script; it
+		// must redirect the same groups or the builder preview would style
+		// the wrapper while the front end styles the fields.
+		$script = file_get_contents( RELEVANT_FORMS_PATH . 'assets/js/divi-module-modern.js' );
+
+		$this->assertIsString( $script );
+		$this->assertStringContainsString( $fields, $script );
+		$this->assertStringContainsString( 'styleProps', $script );
+		$this->assertStringContainsString( 'boxShadow', $script );
+		$this->assertStringContainsString( 'propertySelectors', $script );
+	}
+
+	/**
 	 * POST to the Visual Builder preview endpoint with a valid nonce.
 	 *
 	 * @param int $formId Form ID to preview.

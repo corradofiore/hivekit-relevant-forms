@@ -1,12 +1,25 @@
 {
 	"advanced": {
 		"animation": "animation",
+		"background": "module.decoration.background",
+		"border": "module.decoration.border",
+		"borders": "module.decoration.border",
+		"box_shadow": {
+			"default": "module.decoration.boxShadow"
+		},
+		"filters": {
+			"default": "module.decoration.filters"
+		},
+		"fonts": {
+			"module": "module.decoration.font"
+		},
 		"disabled_on": "disabledOn",
 		"module": "module",
 		"overflow": "overflow",
 		"position_fields": "position",
 		"scroll": "scroll",
 		"sticky": "sticky",
+		"text": "module.advanced.text",
 		"text_shadow": {
 			"default": "text.textShadow"
 		},

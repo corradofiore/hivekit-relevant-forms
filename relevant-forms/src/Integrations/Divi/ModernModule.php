@@ -200,7 +200,7 @@ final class ModernModule implements \ET\Builder\Framework\DependencyManagement\I
 		\ET\Builder\VisualBuilder\Assets\PackageBuildManager::register_package_build(
 			[
 				'name'    => 'relevant-forms-divi',
-				'version' => RELEVANT_FORMS_VERSION,
+				'version' => \RelevantForms\Support\AssetVersion::get( 'assets/js/divi-module-modern.js' ),
 				'script'  => [
 					'src'                => RELEVANT_FORMS_URL . 'assets/js/divi-module-modern.js',
 					'deps'               => [ 'react', 'jquery', 'divi-module-library', 'wp-hooks', 'divi-rest' ],
