@@ -39,6 +39,17 @@ final class FormModule extends \ET_Builder_Module {
 	public $vb_support = 'on';
 
 	/**
+	 * Module icon shown in the module picker.
+	 *
+	 * Declared because the builder framework reads it as a public property
+	 * but does not define it (PHP 8.2+ would emit a dynamic-property
+	 * deprecation for the assignment in init()).
+	 *
+	 * @var string
+	 */
+	public $icon = '';
+
+	/**
 	 * Module credits (info tooltip in the settings panel).
 	 *
 	 * @var array<string, string>

@@ -241,6 +241,7 @@ final class ModernModule implements \ET\Builder\Framework\DependencyManagement\I
 			'noForms'       => __( 'No forms yet — create one in the Relevant Forms admin first.', 'relevant-forms' ),
 			'openAdmin'     => __( 'Open Relevant Forms', 'relevant-forms' ),
 			'noFormsUrl'    => admin_url( 'admin.php?page=relevant-forms' ),
+			'selectForm'    => __( 'Select a form in the Form Settings panel to preview it here.', 'relevant-forms' ),
 			'loading'       => __( 'Loading form preview…', 'relevant-forms' ),
 			'loadFailed'    => __( 'The form preview could not be loaded.', 'relevant-forms' ),
 			'formMissing'   => __( 'This form is not available: it may be unpublished or deleted.', 'relevant-forms' ),
