@@ -94,6 +94,24 @@ final class FormEditorTabsTest extends TestCase {
 		$this->assertStringContainsString( '<code></code>', $html );
 		$this->assertStringNotContainsString( '[relevant_form id="0"]', $html );
 	}
+
+	/**
+	 * The AJAX save feedback paragraph renders hidden: initFormSave() uses it
+	 * for the in-flight and error states and renders the success confirmation
+	 * as a native dismissible admin notice instead (on success it clears the
+	 * paragraph and injects the notice after the page heading).
+	 */
+	public function testSaveFeedbackParagraphRendersHidden(): void {
+		wp_set_current_user( self::factory()->user->create( [ 'role' => 'administrator' ] ) );
+
+		$html = $this->renderEditor();
+
+		$this->assertMatchesRegularExpression(
+			'/class="rf-sms-message" id="rf-form-save-message" role="status" aria-live="polite" hidden/',
+			$html
+		);
+	}
+
 	/**
 	 * Both tab panels stay inside the save form so every section is
 	 * submitted regardless of which tab is visible.
