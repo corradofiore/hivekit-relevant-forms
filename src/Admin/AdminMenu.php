@@ -116,8 +116,8 @@ final class AdminMenu {
 
 		add_submenu_page(
 			'relevant-forms',
-			__( 'Settings', 'relevant-forms' ),
-			__( 'Settings', 'relevant-forms' ),
+			__( 'Relevant Cloud', 'relevant-forms' ),
+			__( 'Relevant Cloud', 'relevant-forms' ),
 			self::CAPABILITY,
 			'relevant-settings',
 			[ SettingsPage::class, 'render' ]

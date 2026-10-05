@@ -119,7 +119,7 @@ Subprocessors (including Stripe): [INSERT RELEVANT SUBPROCESSORS URL]
 3. Create a form under **Relevant Forms → Forms**, or import supported forms from WPForms under **Relevant Forms → Import**.
 4. Embed a form with the `[relevant_form id="123"]` shortcode or the `relevant_forms_render( 123 )` template function.
 5. Submit a test entry and verify local storage and email behavior.
-6. Optionally, connect Relevant Cloud from **Relevant Forms → Settings** to enable semantic classification, managed SMS alerts or managed secure uploads, then configure each form's sender, AI guidance and alert recipient in the form editor.
+6. Optionally, connect Relevant Cloud from **Relevant Forms → Relevant Cloud** to enable semantic classification, managed SMS alerts or managed secure uploads, then configure each form's sender, AI guidance and alert recipient in the form editor.
 
 == Frequently Asked Questions ==
 
