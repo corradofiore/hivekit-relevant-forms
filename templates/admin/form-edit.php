@@ -41,6 +41,9 @@ $rf_save_label = $isEditing ? __( 'Save Form', 'relevant-forms' ) : __( 'Create 
 		</div>
 	<?php endif; ?>
 
+	<?php /* AJAX save feedback (the classic submit shows the notice above instead). */ ?>
+	<p class="rf-sms-message" id="rf-form-save-message" role="status" aria-live="polite" hidden></p>
+
 	<?php
 	$rf_has_payment_fields = \RelevantForms\Payments\PaymentTotals::hasPaymentFields( $form->schema->fields() );
 	$rf_payments_ready     = ( new \RelevantForms\Payments\CloudPaymentsGateway() )->isAvailable();
@@ -61,7 +64,7 @@ $rf_save_label = $isEditing ? __( 'Save Form', 'relevant-forms' ) : __( 'Create 
 		</div>
 	<?php endif; ?>
 
-	<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+	<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" id="rf-form-editor-form">
 		<input type="hidden" name="action" value="relevant_forms_save_form">
 		<input type="hidden" name="form_id" value="<?php echo esc_attr( (string) $form->id ); ?>">
 		<?php wp_nonce_field( 'relevant_form_save' ); ?>

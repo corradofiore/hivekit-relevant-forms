@@ -1,6 +1,6 @@
 <?php
 /**
- * Form save controller (admin-post action).
+ * Form save controller (admin-post + admin-ajax actions).
  *
  * @package RelevantForms
  */
@@ -16,6 +16,7 @@ use RelevantForms\Forms\FormRepository;
 use RelevantForms\Forms\FormSchema;
 use RelevantForms\Forms\Visibility\VisibilityRules;
 use RelevantForms\Payments\Money;
+use RelevantForms\Support\Ajax;
 use RelevantForms\Support\Logger;
 use RelevantForms\Support\TextList;
 
@@ -25,14 +26,15 @@ use RelevantForms\Support\TextList;
 final class FormSaveController {
 
 	/**
-	 * Register the admin-post action.
+	 * Register the admin-post and admin-ajax actions.
 	 */
 	public static function register(): void {
 		add_action( 'admin_post_relevant_forms_save_form', [ self::class, 'handle' ] );
+		add_action( 'wp_ajax_relevant_forms_save_form', [ self::class, 'handleAjax' ] );
 	}
 
 	/**
-	 * Handle the save request.
+	 * Handle the classic (no-JS) save request.
 	 */
 	public static function handle(): void {
 		if ( ! current_user_can( 'manage_options' ) ) {
@@ -41,6 +43,65 @@ final class FormSaveController {
 
 		check_admin_referer( 'relevant_form_save' );
 
+		$result = self::save();
+
+		if ( $result['errors'] !== [] ) {
+			$editUrl = admin_url( 'admin.php?page=relevant-form-edit' . ( $result['id'] > 0 ? '&form_id=' . $result['id'] : '' ) );
+
+			wp_die(
+				'<h1>' . esc_html__( 'The form could not be saved.', 'relevant-forms' ) . '</h1>'
+				. '<ul><li>' . implode( '</li><li>', array_map( 'esc_html', $result['errors'] ) ) . '</li></ul>'
+				. '<p><a href="' . esc_url( $editUrl ) . '">&larr; ' . esc_html__( 'Go back', 'relevant-forms' ) . '</a></p>',
+				esc_html__( 'Form invalid', 'relevant-forms' ),
+				[ 'response' => 400 ]
+			);
+		}
+
+		wp_safe_redirect(
+			admin_url(
+				'admin.php?page=relevant-form-edit&form_id=' . $result['id'] . '&saved=1'
+				. ( '' !== $result['sms_error'] ? '&sms_error=' . rawurlencode( $result['sms_error'] ) : '' )
+			)
+		);
+		exit;
+	}
+
+	/**
+	 * Handle the AJAX save request: same payload, JSON envelope, no reload —
+	 * the editor keeps the tab the user is working on.
+	 */
+	public static function handleAjax(): void {
+		Ajax::ensureManager( __( 'You do not have permission to perform this action.', 'relevant-forms' ) );
+
+		check_ajax_referer( 'relevant_form_save' );
+
+		$result = self::save();
+
+		if ( $result['errors'] !== [] ) {
+			Ajax::fail( 'invalid_form', implode( ' ', $result['errors'] ), 400 );
+		}
+
+		wp_send_json_success(
+			[
+				'form_id' => $result['id'],
+				'created' => $result['created'],
+				'message' => $result['created']
+					? __( 'Form created.', 'relevant-forms' )
+					: __( 'Form saved.', 'relevant-forms' ),
+				'warning' => 'unverified_phone' === $result['sms_error']
+					? __( 'The phone number was not saved: verify it with the 6-digit code first, then save again.', 'relevant-forms' )
+					: '',
+			]
+		);
+	}
+
+	/**
+	 * Persist the posted editor payload (shared by both entry points).
+	 *
+	 * @return array{errors: list<string>, id: int, created: bool, sms_error: string}
+	 */
+	private static function save(): array {
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Both callers verify the 'relevant_form_save' nonce first.
 		$raw = wp_unslash( $_POST );
 
 		$formId = isset( $raw['form_id'] ) ? absint( $raw['form_id'] ) : 0;
@@ -137,16 +198,17 @@ final class FormSaveController {
 		$errors = array_merge( $errors, $schema->validate() );
 
 		if ( $errors !== [] ) {
-			wp_die(
-				'<h1>' . esc_html__( 'The form could not be saved.', 'relevant-forms' ) . '</h1>'
-				. '<ul><li>' . implode( '</li><li>', array_map( 'esc_html', $errors ) ) . '</li></ul>'
-				. '<p><a href="' . esc_url( admin_url( 'admin.php?page=relevant-form-edit' . ( $formId > 0 ? '&form_id=' . $formId : '' ) ) ) . '">&larr; ' . esc_html__( 'Go back', 'relevant-forms' ) . '</a></p>',
-				esc_html__( 'Form invalid', 'relevant-forms' ),
-				[ 'response' => 400 ]
-			);
+			return [
+				'errors'    => $errors,
+				'id'        => $formId,
+				'created'   => false,
+				'sms_error' => '',
+			];
 		}
 
-		if ( $formId > 0 ) {
+		$created = ! ( $formId > 0 );
+
+		if ( ! $created ) {
 			$repository->update( $formId, $name, $schema, $status );
 		} else {
 			$formId = $repository->create( $name, $schema, $status );
@@ -175,13 +237,12 @@ final class FormSaveController {
 			Logger::info( 'Priority SMS consent enabled from the form editor', [ 'form_id' => $formId ] );
 		}
 
-		wp_safe_redirect(
-			admin_url(
-				'admin.php?page=relevant-form-edit&form_id=' . $formId . '&saved=1'
-				. ( '' !== $smsError ? '&sms_error=' . rawurlencode( $smsError ) : '' )
-			)
-		);
-		exit;
+		return [
+			'errors'    => [],
+			'id'        => $formId,
+			'created'   => $created,
+			'sms_error' => $smsError,
+		];
 	}
 
 	/**

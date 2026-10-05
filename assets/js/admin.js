@@ -1948,6 +1948,69 @@
 	}
 
 	/**
+	 * Form editor: save through admin-ajax so the page — and the tab the
+	 * user is working on — is never reloaded. The classic admin-post submit
+	 * stays the no-JS fallback.
+	 */
+	function initFormSave() {
+		var form = document.getElementById( 'rf-form-editor-form' );
+
+		if ( ! form || ! window.fetch ) {
+			return;
+		}
+
+		var settings = window.relevantFormsAdmin || {};
+		var strings = settings.formSaveStrings || {};
+		var message = document.getElementById( 'rf-form-save-message' );
+		var formIdField = form.querySelector( 'input[name="form_id"]' );
+
+		form.addEventListener( 'submit', function ( event ) {
+			event.preventDefault();
+
+			if ( message ) {
+				setMessage( message, strings.saving || '', 'info' );
+			}
+
+			window.fetch( settings.ajaxUrl, {
+				method: 'POST',
+				credentials: 'same-origin',
+				body: new window.FormData( form )
+			} )
+				.then( function ( response ) {
+					return response.json();
+				} )
+				.then( function ( result ) {
+					if ( ! result || ! result.success ) {
+						setMessage( message, errorText( result, strings.failed ), 'error' );
+						return;
+					}
+
+					var data = result.data || {};
+
+					if ( data.warning ) {
+						setMessage( message, data.warning, 'error' );
+					} else {
+						setMessage( message, data.message || strings.saved || '', 'ok' );
+					}
+
+					if ( data.form_id && formIdField ) {
+						formIdField.value = data.form_id;
+					}
+
+					if ( data.created && window.history && window.history.replaceState && window.URL ) {
+						// Continue editing in place after the first save.
+						var url = new window.URL( window.location.href );
+						url.searchParams.set( 'form_id', data.form_id );
+						window.history.replaceState( {}, '', url.toString() );
+					}
+				} )
+				.catch( function () {
+					setMessage( message, strings.failed || '', 'error' );
+				} );
+		} );
+	}
+
+	/**
 	 * Toggle the form editor tabs (settings / fields).
 	 *
 	 * Both panels stay in the DOM so no input is ever dropped from a save
@@ -2111,4 +2174,5 @@
 	initCloudKeyField();
 	initCloudKeyAutosave();
 	initApiStatusTest();
+	initFormSave();
 } )();
