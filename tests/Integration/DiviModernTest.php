@@ -242,7 +242,7 @@ final class DiviModernTest extends TestCase {
 		// The Visual Builder registers its own metadata from the script; it
 		// must redirect the same groups or the builder preview would style
 		// the wrapper while the front end styles the fields.
-		$script = file_get_contents( RELEVANT_FORMS_PATH . 'assets/js/divi-module-modern.js' );
+		$script = file_get_contents( RELEVANT_FORMS_PATH . 'assets/js/divi-module-modern.js' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Reading a local file, not a remote URL.
 
 		$this->assertIsString( $script );
 		$this->assertStringContainsString( $fields, $script );
