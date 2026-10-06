@@ -14,6 +14,8 @@ use RelevantForms\Forms\FormRenderer;
 use RelevantForms\Forms\FormRepository;
 use RelevantForms\Forms\FormSchema;
 use RelevantForms\Integrations\BeaverBuilder\BeaverIntegration;
+use RelevantForms\Integrations\BeaverBuilder\ModuleStyles;
+use RelevantForms\Integrations\Support\FieldSelectors;
 
 /**
  * {@inheritdoc}
@@ -88,5 +90,141 @@ final class BeaverIntegrationTest extends TestCase {
 
 		$this->assertFalse( class_exists( '\FLBuilder' ) );
 		$this->assertFalse( class_exists( '\FLBuilderModuleType' ) );
+	}
+
+	/**
+	 * The Style tab offers the field styling controls: colors, border,
+	 * rounded corners, padding and font size.
+	 */
+	public function testTheStyleTabOffersTheFieldStylingControls(): void {
+		$tab = ModuleStyles::styleTab();
+
+		$this->assertSame( 'Style', $tab['title'] );
+		$this->assertArrayHasKey( 'field_styles', $tab['sections'] );
+		$this->assertSame( 'Field styles', $tab['sections']['field_styles']['title'] );
+
+		$fields = array_keys( $tab['sections']['field_styles']['fields'] );
+
+		$this->assertSame(
+			[
+				'field_bg_color',
+				'field_text_color',
+				'field_placeholder_color',
+				'field_border_width',
+				'field_border_style',
+				'field_border_color',
+				'field_radius',
+				'field_padding',
+				'field_font_size',
+			],
+			$fields
+		);
+	}
+
+	/**
+	 * With style values set the module output is a scoped `<style>` block
+	 * targeting the form's input fields (not the module wrapper) plus the
+	 * wrapped form markup.
+	 */
+	public function testTheModuleRendersScopedFieldStyles(): void {
+		$formId = $this->createFormWithOneTextField();
+
+		$html = ModuleStyles::render(
+			(object) [
+				'form_id'                 => $formId,
+				'field_bg_color'          => '#f5f5f5',
+				'field_text_color'        => '#222222',
+				'field_placeholder_color' => 'rgba(34, 34, 34, 0.6)',
+				'field_border_width'      => '2',
+				'field_border_color'      => '#333333',
+				'field_radius'            => '16',
+				'field_radius_unit'       => 'px',
+				'field_padding_top'       => '8',
+				'field_padding_right'     => '10',
+				'field_padding_bottom'    => '8',
+				'field_padding_left'      => '10',
+				'field_padding_unit'      => 'px',
+				'field_font_size'         => '15',
+				'field_font_size_unit'    => 'px',
+			]
+		);
+
+		// A deterministic per-instance scope wraps the form.
+		$this->assertMatchesRegularExpression( '/<div class="rf-bb-[0-9a-f]{12}">/', $html );
+		$this->assertStringContainsString( 'relevant-forms-field', $html );
+
+		// The CSS targets the input fields, not the wrapper.
+		$this->assertStringContainsString( '<style>', $html );
+		$this->assertStringContainsString( '.rf-bb-', $html );
+		$this->assertStringContainsString( FieldSelectors::FIELDS, $html );
+		$this->assertStringContainsString( 'background-color:#f5f5f5;', $html );
+		$this->assertStringContainsString( 'color:#222222;', $html );
+		$this->assertStringContainsString( 'border-width:2px;border-style:solid;border-color:#333333;', $html );
+		$this->assertStringContainsString( 'border-radius:16px;', $html );
+		$this->assertStringContainsString( 'padding:8px 10px 8px 10px;', $html );
+		$this->assertStringContainsString( 'font-size:15px;', $html );
+		$this->assertStringContainsString( FieldSelectors::FIELDS_PLACEHOLDER, $html );
+		$this->assertStringContainsString( 'color:rgba(34, 34, 34, 0.6);', $html );
+	}
+
+	/**
+	 * Without any style value the module still renders the form — just no
+	 * `<style>` block.
+	 */
+	public function testTheStyleBlockIsOmittedWithoutStyleValues(): void {
+		$formId = $this->createFormWithOneTextField();
+
+		$html = ModuleStyles::render( (object) [ 'form_id' => $formId ] );
+
+		$this->assertStringNotContainsString( '<style>', $html );
+		$this->assertMatchesRegularExpression( '/<div class="rf-bb-[0-9a-f]{12}">/', $html );
+		$this->assertStringContainsString( 'relevant-forms-field', $html );
+	}
+
+	/**
+	 * Color values that could break out of the declaration are dropped; the
+	 * form still renders.
+	 */
+	public function testHostileColorValuesAreDropped(): void {
+		$formId = $this->createFormWithOneTextField();
+
+		$html = ModuleStyles::render(
+			(object) [
+				'form_id'        => $formId,
+				'field_bg_color' => 'red;} .evil{color:blue',
+			]
+		);
+
+		$this->assertStringNotContainsString( '<style>', $html );
+		$this->assertStringNotContainsString( '.evil', $html );
+		$this->assertStringContainsString( 'relevant-forms-field', $html );
+	}
+
+	/**
+	 * No published form selected: no wrapper, no styles, no markup.
+	 */
+	public function testTheModuleRendersNothingWithoutAPublishedForm(): void {
+		$this->assertSame( '', ModuleStyles::render( (object) [ 'form_id' => 0 ] ) );
+		$this->assertSame( '', ModuleStyles::render( (object) [] ) );
+	}
+
+	/**
+	 * Create a published form with one text field for render tests.
+	 *
+	 * @return int Form ID.
+	 */
+	private function createFormWithOneTextField(): int {
+		$repository = new FormRepository();
+		$schema     = FormSchema::empty( 'Contact' )->withFields(
+			[
+				[
+					'id'    => 'f_name',
+					'type'  => 'text',
+					'label' => 'Name',
+				],
+			]
+		);
+
+		return $repository->create( 'Contact', $schema, 'published' );
 	}
 }

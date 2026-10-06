@@ -96,4 +96,24 @@ final class ElementorIntegrationTest extends TestCase {
 
 		$this->assertFalse( class_exists( 'RelevantForms\Integrations\Elementor\FormWidget' ) );
 	}
+
+	/**
+	 * The widget declares a Style tab section whose controls target the
+	 * form's input fields through the shared selector (the widget class can
+	 * only be loaded with Elementor present, so this is a static guard).
+	 */
+	public function testTheWidgetDeclaresFieldStyleControls(): void {
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Reading a local file, not a remote URL.
+		$file = file_get_contents( RELEVANT_FORMS_PATH . 'src/Integrations/Elementor/FormWidget.php' );
+
+		$this->assertIsString( $file );
+		$this->assertStringContainsString( "'Field styles'", $file );
+		$this->assertStringContainsString( 'FieldSelectors::FIELDS', $file );
+		$this->assertStringContainsString( 'Group_Control_Border', $file );
+		$this->assertStringContainsString( 'Group_Control_Typography', $file );
+		$this->assertStringContainsString( 'Group_Control_Box_Shadow', $file );
+		$this->assertStringContainsString( 'field_padding', $file );
+		$this->assertStringContainsString( 'field_radius', $file );
+		$this->assertStringContainsString( '{{WRAPPER}}', $file );
+	}
 }
