@@ -51,7 +51,9 @@ final class ShortcodeRenderTest extends TestCase {
 	/**
 	 * The front-end buttons adopt the theme's button styling through
 	 * WordPress's `wp-element-button` class: the submit button in both
-	 * layouts and the multi-page wizard's Back/Next buttons.
+	 * layouts and the multi-page wizard's Back/Next buttons. The stylesheet
+	 * also carries a zero-specificity baseline for contexts that strip
+	 * WordPress's Global Styles (e.g. the Divi 5 builder preview).
 	 */
 	public function testTheFrontEndButtonsAdoptTheThemeButtonStyling(): void {
 		$repository = new FormRepository();
@@ -110,6 +112,15 @@ final class ShortcodeRenderTest extends TestCase {
 		$this->assertIsString( $js );
 		$this->assertStringContainsString( "'relevant-forms-page-back wp-element-button'", $js );
 		$this->assertStringContainsString( "'relevant-forms-page-next wp-element-button'", $js );
+
+		// The stylesheet carries the zero-specificity fallback, so a context
+		// without WordPress's Global Styles still shows a styled button.
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Reading a local file, not a remote URL.
+		$css = file_get_contents( RELEVANT_FORMS_PATH . 'assets/css/frontend.css' );
+
+		$this->assertIsString( $css );
+		$this->assertStringContainsString( ':where(.relevant-forms) :where(.wp-element-button)', $css );
+		$this->assertStringContainsString( 'background-color: #32373c;', $css );
 	}
 
 	/**
