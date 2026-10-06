@@ -89,6 +89,7 @@ final class FormWidget extends \Elementor\Widget_Base {
 		$this->end_controls_section();
 
 		$this->register_field_style_controls();
+		$this->register_button_style_controls();
 	}
 
 	/**
@@ -186,6 +187,72 @@ final class FormWidget extends \Elementor\Widget_Base {
 			[
 				'name'     => 'field_box_shadow',
 				'selector' => $fields,
+			]
+		);
+
+		$this->end_controls_section();
+	}
+
+	/**
+	 * Style section: dedicated controls for the form's buttons — the submit
+	 * button and the multi-page wizard's Back/Next buttons. When set they
+	 * override the theme's button styling; when empty no CSS is emitted and
+	 * the buttons keep the theme's own styling.
+	 */
+	private function register_button_style_controls(): void {
+		$buttons = '{{WRAPPER}} ' . FieldSelectors::BUTTONS;
+
+		$this->start_controls_section(
+			'relevant_form_button_style',
+			[
+				'label' => esc_html__( 'Button styles', 'relevant-forms' ),
+				'tab'   => \Elementor\Controls_Manager::TAB_STYLE,
+			]
+		);
+
+		$this->add_control(
+			'button_bg_color',
+			[
+				'label'     => esc_html__( 'Background', 'relevant-forms' ),
+				'type'      => \Elementor\Controls_Manager::COLOR,
+				'selectors' => [
+					$buttons => 'background-color: {{VALUE}};',
+				],
+			]
+		);
+
+		$this->add_control(
+			'button_text_color',
+			[
+				'label'     => esc_html__( 'Text color', 'relevant-forms' ),
+				'type'      => \Elementor\Controls_Manager::COLOR,
+				'selectors' => [
+					$buttons => 'color: {{VALUE}};',
+				],
+			]
+		);
+
+		$this->add_responsive_control(
+			'button_radius',
+			[
+				'label'      => esc_html__( 'Rounded corners', 'relevant-forms' ),
+				'type'       => \Elementor\Controls_Manager::DIMENSIONS,
+				'size_units' => [ 'px', '%' ],
+				'selectors'  => [
+					$buttons => 'border-radius: {{TOP}}{{UNIT}} {{RIGHT}}{{UNIT}} {{BOTTOM}}{{UNIT}} {{LEFT}}{{UNIT}};',
+				],
+			]
+		);
+
+		$this->add_responsive_control(
+			'button_padding',
+			[
+				'label'      => esc_html__( 'Padding', 'relevant-forms' ),
+				'type'       => \Elementor\Controls_Manager::DIMENSIONS,
+				'size_units' => [ 'px', 'em', 'rem', '%' ],
+				'selectors'  => [
+					$buttons => 'padding: {{TOP}}{{UNIT}} {{RIGHT}}{{UNIT}} {{BOTTOM}}{{UNIT}} {{LEFT}}{{UNIT}};',
+				],
 			]
 		);
 

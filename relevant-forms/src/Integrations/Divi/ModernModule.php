@@ -15,6 +15,7 @@ declare(strict_types=1);
 namespace RelevantForms\Integrations\Divi;
 
 use RelevantForms\Forms\FormRenderer;
+use RelevantForms\Integrations\Support\ButtonStyleCss;
 
 // Defence in depth: the autoloader may reach this file on sites without Divi 5.
 if ( ! interface_exists( '\ET\Builder\Framework\DependencyManagement\Interfaces\DependencyInterface' ) ) {
@@ -81,6 +82,8 @@ final class ModernModule implements \ET\Builder\Framework\DependencyManagement\I
 			return '';
 		}
 
+		$form_html = ButtonStyleCss::scopedHtml( $form_html, self::buttonValues( $parsed_attrs ), 'rf-divi-' );
+
 		$module_inner = sprintf(
 			'<div class="et_pb_module_inner">%s</div>',
 			$form_html
@@ -102,6 +105,30 @@ final class ModernModule implements \ET\Builder\Framework\DependencyManagement\I
 				'children'            => $elements->style_components( [ 'attrName' => 'module' ] ) . $module_inner,
 			]
 		);
+	}
+
+	/**
+	 * The button style values from the module attributes. The builder stores
+	 * every attribute mode-wrapped (the same shape as formId), so the
+	 * desktop value is read here.
+	 *
+	 * @param array<string, mixed> $attrs Module attributes.
+	 * @return array<string, string> Values for ButtonStyleCss.
+	 */
+	public static function buttonValues( array $attrs ): array {
+		$values = [];
+
+		foreach ( [
+			'background' => 'buttonBg',
+			'text'       => 'buttonText',
+			'radius'     => 'buttonRadius',
+			'padding'    => 'buttonPadding',
+		] as $key => $attr ) {
+			$value          = $attrs[ $attr ]['desktop']['value'] ?? '';
+			$values[ $key ] = is_scalar( $value ) ? (string) $value : '';
+		}
+
+		return $values;
 	}
 
 	/**
@@ -230,21 +257,30 @@ final class ModernModule implements \ET\Builder\Framework\DependencyManagement\I
 		}
 
 		return [
-			'ajaxUrl'       => admin_url( 'admin-ajax.php' ),
-			'nonce'         => wp_create_nonce( 'relevant_forms_divi_builder' ),
-			'forms'         => $forms,
-			'settingsGroup' => [ 'label' => __( 'Form Settings', 'relevant-forms' ) ],
-			'formId'        => [
+			'ajaxUrl'        => admin_url( 'admin-ajax.php' ),
+			'nonce'          => wp_create_nonce( 'relevant_forms_divi_builder' ),
+			'forms'          => $forms,
+			'settingsGroup'  => [ 'label' => __( 'Form Settings', 'relevant-forms' ) ],
+			'formId'         => [
 				'label'       => __( 'Form', 'relevant-forms' ),
 				'placeholder' => __( 'Select a form', 'relevant-forms' ),
 			],
-			'noForms'       => __( 'No forms yet — create one in the Relevant Forms admin first.', 'relevant-forms' ),
-			'openAdmin'     => __( 'Open Relevant Forms', 'relevant-forms' ),
-			'noFormsUrl'    => admin_url( 'admin.php?page=relevant-forms' ),
-			'selectForm'    => __( 'Select a form in the Form Settings panel to preview it here.', 'relevant-forms' ),
-			'loading'       => __( 'Loading form preview…', 'relevant-forms' ),
-			'loadFailed'    => __( 'The form preview could not be loaded.', 'relevant-forms' ),
-			'formMissing'   => __( 'This form is not available: it may be unpublished or deleted.', 'relevant-forms' ),
+			'buttonSettings' => [
+				'label'              => __( 'Button styles', 'relevant-forms' ),
+				'background'         => __( 'Background', 'relevant-forms' ),
+				'text'               => __( 'Text color', 'relevant-forms' ),
+				'radius'             => __( 'Rounded corners', 'relevant-forms' ),
+				'radiusPlaceholder'  => __( 'e.g. 8px', 'relevant-forms' ),
+				'padding'            => __( 'Padding', 'relevant-forms' ),
+				'paddingPlaceholder' => __( 'e.g. 12px 24px', 'relevant-forms' ),
+			],
+			'noForms'        => __( 'No forms yet — create one in the Relevant Forms admin first.', 'relevant-forms' ),
+			'openAdmin'      => __( 'Open Relevant Forms', 'relevant-forms' ),
+			'noFormsUrl'     => admin_url( 'admin.php?page=relevant-forms' ),
+			'selectForm'     => __( 'Select a form in the Form Settings panel to preview it here.', 'relevant-forms' ),
+			'loading'        => __( 'Loading form preview…', 'relevant-forms' ),
+			'loadFailed'     => __( 'The form preview could not be loaded.', 'relevant-forms' ),
+			'formMissing'    => __( 'This form is not available: it may be unpublished or deleted.', 'relevant-forms' ),
 		];
 	}
 }

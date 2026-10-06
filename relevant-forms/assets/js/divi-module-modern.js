@@ -104,16 +104,32 @@
 	}
 
 	/**
-	 * Fetch the form's front-end markup for the preview.
+	 * Resolve one module attribute to a plain string ('' when unset).
 	 *
-	 * @param {string} formId Selected form ID.
+	 * @param {Object} attr Raw mode-wrapped attribute.
+	 * @return {string} Resolved value.
+	 */
+	function modeValue( attr ) {
+		var resolved = divi.moduleUtils.getAttrByMode( attr );
+
+		return ( 'string' === typeof resolved || 'number' === typeof resolved ) ? String( resolved ) : '';
+	}
+
+	/**
+	 * Fetch the form's front-end markup for the preview. Re-fetches when the
+	 * form or any button style value changes, so the canvas always shows
+	 * what the front end would render.
+	 *
+	 * @param {string} formId  Selected form ID.
+	 * @param {Object} buttons Button style values (background, text, radius, padding).
 	 * @return {Object} { isLoading, html, failed }.
 	 */
-	function usePreviewFetch( formId ) {
+	function usePreviewFetch( formId, buttons ) {
 		var state = useState( { isLoading: false, html: '', failed: false } );
 		var current = state[ 0 ];
 		var setState = state[ 1 ];
 		var controller = useRef( null );
+		var buttonsKey = JSON.stringify( buttons );
 
 		useEffect( function () {
 			if ( ! formId ) {
@@ -135,6 +151,7 @@
 			body.append( 'action', 'relevant_forms_divi_preview' );
 			body.append( 'nonce', data.nonce );
 			body.append( 'form_id', formId );
+			body.append( 'buttons', buttonsKey );
 
 			window
 				.fetch( data.ajaxUrl, {
@@ -162,7 +179,7 @@
 			return function () {
 				active.abort();
 			};
-		}, [ formId ] );
+		}, [ formId, buttonsKey ] );
 
 		return current;
 	}
@@ -177,7 +194,13 @@
 	function Preview( props ) {
 		var formId = divi.moduleUtils.getAttrByMode( props.attrs.formId );
 		var hasForms = Object.keys( data.forms || {} ).length > 0;
-		var state = usePreviewFetch( formId );
+		var buttonValues = {
+			background: modeValue( props.attrs.buttonBg ),
+			text: modeValue( props.attrs.buttonText ),
+			radius: modeValue( props.attrs.buttonRadius ),
+			padding: modeValue( props.attrs.buttonPadding )
+		};
+		var state = usePreviewFetch( formId, buttonValues );
 		var previewRef = useRef( null );
 
 		// Runs after every render: binds the form's behaviours once the
@@ -284,22 +307,53 @@
 	}
 
 	/**
-	 * Settings panel content: a "Form Settings" group with the form picker.
+	 * Settings panel content: a "Form Settings" group with the form picker
+	 * and a "Button styles" group with the button overrides.
 	 *
 	 * @param {Object} props Settings props from the module library.
 	 * @return {Object} Settings element.
 	 */
 	function Settings( props ) {
+		var labels = data.buttonSettings || {};
+
 		return React.createElement(
-			divi.module.GroupContainer,
-			extend( {}, props, { id: 'formSettings', title: data.settingsGroup.label } ),
+			React.Fragment,
+			null,
 			React.createElement(
-				divi.module.FieldContainer,
-				extend( {}, props, { attrName: 'formId', label: data.formId.label } ),
-				React.createElement( divi.fieldLibrary.Select, {
-					options: data.forms || {},
-					emptyLabel: data.formId.placeholder
-				} )
+				divi.module.GroupContainer,
+				extend( {}, props, { id: 'formSettings', title: data.settingsGroup.label } ),
+				React.createElement(
+					divi.module.FieldContainer,
+					extend( {}, props, { attrName: 'formId', label: data.formId.label } ),
+					React.createElement( divi.fieldLibrary.Select, {
+						options: data.forms || {},
+						emptyLabel: data.formId.placeholder
+					} )
+				)
+			),
+			React.createElement(
+				divi.module.GroupContainer,
+				extend( {}, props, { id: 'buttonSettings', title: labels.label } ),
+				React.createElement(
+					divi.module.FieldContainer,
+					extend( {}, props, { attrName: 'buttonBg', label: labels.background } ),
+					React.createElement( divi.fieldLibrary.ColorPicker, {} )
+				),
+				React.createElement(
+					divi.module.FieldContainer,
+					extend( {}, props, { attrName: 'buttonText', label: labels.text } ),
+					React.createElement( divi.fieldLibrary.ColorPicker, {} )
+				),
+				React.createElement(
+					divi.module.FieldContainer,
+					extend( {}, props, { attrName: 'buttonRadius', label: labels.radius } ),
+					React.createElement( divi.fieldLibrary.Text, { placeholder: labels.radiusPlaceholder } )
+				),
+				React.createElement(
+					divi.module.FieldContainer,
+					extend( {}, props, { attrName: 'buttonPadding', label: labels.padding } ),
+					React.createElement( divi.fieldLibrary.Text, { placeholder: labels.paddingPlaceholder } )
+				)
 			)
 		);
 	}
@@ -375,7 +429,11 @@
 					}
 				}
 			},
-			formId: { type: 'string', default: '0' }
+			formId:        { type: 'string', default: '0' },
+			buttonBg:      { type: 'string', default: '' },
+			buttonText:    { type: 'string', default: '' },
+			buttonRadius:  { type: 'string', default: '' },
+			buttonPadding: { type: 'string', default: '' }
 		},
 		customCssFields: {},
 		settings: { design: 'auto', advanced: 'auto' }

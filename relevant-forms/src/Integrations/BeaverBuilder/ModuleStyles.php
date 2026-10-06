@@ -17,6 +17,7 @@ declare(strict_types=1);
 
 namespace RelevantForms\Integrations\BeaverBuilder;
 
+use RelevantForms\Integrations\Support\ButtonStyleCss;
 use RelevantForms\Integrations\Support\FieldSelectors;
 
 /**
@@ -43,9 +44,13 @@ final class ModuleStyles {
 		return [
 			'title'    => esc_html__( 'Style', 'relevant-forms' ),
 			'sections' => [
-				'field_styles' => [
+				'field_styles'  => [
 					'title'  => esc_html__( 'Field styles', 'relevant-forms' ),
 					'fields' => self::fields(),
+				],
+				'button_styles' => [
+					'title'  => esc_html__( 'Button styles', 'relevant-forms' ),
+					'fields' => self::buttonFields(),
 				],
 			],
 		];
@@ -154,6 +159,46 @@ final class ModuleStyles {
 	}
 
 	/**
+	 * All settings fields for the "Button styles" section.
+	 *
+	 * @return array<string, array<string, mixed>> Settings fields.
+	 */
+	private static function buttonFields(): array {
+		$refresh = [ 'preview' => [ 'type' => 'refresh' ] ];
+
+		return [
+			'button_bg_color'   => $refresh + [
+				'type'        => 'color',
+				'label'       => esc_html__( 'Background', 'relevant-forms' ),
+				'default'     => '',
+				'show_reset'  => true,
+				'show_alpha'  => true,
+				'connections' => [ 'color' ],
+			],
+			'button_text_color' => $refresh + [
+				'type'        => 'color',
+				'label'       => esc_html__( 'Text color', 'relevant-forms' ),
+				'default'     => '',
+				'show_reset'  => true,
+				'show_alpha'  => true,
+				'connections' => [ 'color' ],
+			],
+			'button_radius'     => $refresh + [
+				'type'    => 'unit',
+				'label'   => esc_html__( 'Rounded corners', 'relevant-forms' ),
+				'default' => '',
+				'units'   => self::RADIUS_UNITS,
+			],
+			'button_padding'    => $refresh + [
+				'type'    => 'dimension',
+				'label'   => esc_html__( 'Padding', 'relevant-forms' ),
+				'default' => '',
+				'units'   => self::TEXT_UNITS,
+			],
+		];
+	}
+
+	/**
 	 * Build the scoped CSS for one module instance.
 	 *
 	 * @param array<string, mixed> $values Module settings as an array.
@@ -193,7 +238,7 @@ final class ModuleStyles {
 			$declarations[] = 'border-radius:' . $radius . ';';
 		}
 
-		$padding = self::padding( $values );
+		$padding = self::padding( $values, 'field_padding' );
 		if ( '' !== $padding ) {
 			$declarations[] = 'padding:' . $padding . ';';
 		}
@@ -212,6 +257,16 @@ final class ModuleStyles {
 			$css .= $scope . ' ' . FieldSelectors::FIELDS_PLACEHOLDER . '{color:' . $placeholder . ';}';
 		}
 
+		$css .= ButtonStyleCss::css(
+			$scope . ' ' . FieldSelectors::BUTTONS,
+			[
+				'background' => self::color( $values, 'button_bg_color' ),
+				'text'       => self::color( $values, 'button_text_color' ),
+				'radius'     => self::length( $values, 'button_radius', 'px', self::RADIUS_UNITS ),
+				'padding'    => self::padding( $values, 'button_padding' ),
+			]
+		);
+
 		return $css;
 	}
 
@@ -220,18 +275,18 @@ final class ModuleStyles {
 	 * become zero so a partially filled control still produces valid CSS.
 	 *
 	 * @param array<string, mixed> $values Module settings as an array.
+	 * @param string               $key    Control name (sides stored at "{$key}_top", …).
 	 * @return string Padding shorthand ('' when no side is set).
 	 */
-	private static function padding( array $values ): string {
+	private static function padding( array $values, string $key ): string {
 		$sides = [];
 		$any   = false;
 
 		foreach ( [ 'top', 'right', 'bottom', 'left' ] as $side ) {
-			$key   = 'field_padding_' . $side;
-			$value = trim( (string) ( $values[ $key ] ?? '' ) );
+			$value = trim( (string) ( $values[ $key . '_' . $side ] ?? '' ) );
 
 			if ( '' !== $value && is_numeric( $value ) ) {
-				$sides[] = $value . self::unit( $values, 'field_padding', 'px', self::TEXT_UNITS );
+				$sides[] = $value . self::unit( $values, $key, 'px', self::TEXT_UNITS );
 				$any     = true;
 				continue;
 			}
