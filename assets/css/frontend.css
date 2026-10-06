@@ -100,10 +100,32 @@
 
 /*
  * Buttons adopt the theme's button styling through WordPress's
- * `wp-element-button` class (the theme.json button element style, with the
- * core fallback every site gets). Only layout and cursor are set here so
- * themes keep control of the visual styling.
+ * `wp-element-button` class. WordPress prints the default button element
+ * styles (theme.json `styles.elements.button`) as Global Styles on the
+ * front end, and themes override them with their own.
+ *
+ * The rule below restores that core fallback look in contexts that strip
+ * WordPress's Global Styles entirely — the Divi 5 Visual Builder preview
+ * does, which left the buttons looking like bare browser controls there.
+ * It is wrapped in `:where()` so it carries ZERO specificity: every theme
+ * and Global Styles rule always wins, and it only ever applies where
+ * nothing else styles the button at all.
  */
+:where(.relevant-forms) :where(.wp-element-button) {
+	background-color: #32373c;
+	border-width: 0;
+	color: #fff;
+	font-family: inherit;
+	font-size: inherit;
+	font-style: inherit;
+	font-weight: inherit;
+	letter-spacing: inherit;
+	line-height: inherit;
+	padding: calc(0.667em + 2px) calc(1.333em + 2px);
+	text-decoration: none;
+	text-transform: inherit;
+}
+
 .relevant-forms-submit,
 .relevant-forms-page-back,
 .relevant-forms-page-next {
