@@ -36,6 +36,19 @@
 	max-width: calc( 100% / 3 );
 }
 
+/*
+ * Block editor embeds: the editor's Color and Typography panels write
+ * inherited styles (color, font-size) onto the block wrapper. Form controls
+ * do not inherit either property by default, so bridge them here — scoped
+ * to the block so shortcode embeds keep their previous look. The field
+ * wrapper class lifts the selector above plain `input[type=…]` theme rules
+ * (e.g. Divi's) that tie on specificity and win on order.
+ */
+.wp-block-relevant-forms-form-selector .relevant-forms-field :is(input, select, textarea) {
+	color: inherit;
+	font-size: inherit;
+}
+
 .relevant-forms-help {
 	color: #555;
 	font-size: 0.9em;
