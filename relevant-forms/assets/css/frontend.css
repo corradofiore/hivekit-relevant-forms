@@ -98,8 +98,23 @@
 	margin-left: 0.25rem;
 }
 
-.relevant-forms-submit {
+/*
+ * Buttons adopt the theme's button styling through WordPress's
+ * `wp-element-button` class (the theme.json button element style, with the
+ * core fallback every site gets). Only layout and cursor are set here so
+ * themes keep control of the visual styling.
+ */
+.relevant-forms-submit,
+.relevant-forms-page-back,
+.relevant-forms-page-next {
 	cursor: pointer;
+}
+
+.relevant-forms-page-nav {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.5rem;
+	margin-top: 1rem;
 }
 
 /* Honeypot: visually hidden but present in the DOM. */

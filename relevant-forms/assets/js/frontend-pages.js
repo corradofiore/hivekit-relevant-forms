@@ -103,7 +103,7 @@
 			if ( index > 0 ) {
 				var back = document.createElement( 'button' );
 				back.type = 'button';
-				back.className = 'relevant-forms-page-back';
+				back.className = 'relevant-forms-page-back wp-element-button';
 				back.textContent = prevLabel;
 				back.addEventListener( 'click', function () {
 					show( current - 1, true );
@@ -114,7 +114,7 @@
 			if ( index < pages.length - 1 ) {
 				var next = document.createElement( 'button' );
 				next.type = 'button';
-				next.className = 'relevant-forms-page-next';
+				next.className = 'relevant-forms-page-next wp-element-button';
 				next.textContent = nextLabel;
 				next.addEventListener( 'click', function () {
 					if ( validatePage( activePages( pages )[ current ] ) ) {

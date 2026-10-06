@@ -49,6 +49,70 @@ final class ShortcodeRenderTest extends TestCase {
 	}
 
 	/**
+	 * The front-end buttons adopt the theme's button styling through
+	 * WordPress's `wp-element-button` class: the submit button in both
+	 * layouts and the multi-page wizard's Back/Next buttons.
+	 */
+	public function testTheFrontEndButtonsAdoptTheThemeButtonStyling(): void {
+		$repository = new FormRepository();
+
+		$single = $repository->create(
+			'Button Single',
+			FormSchema::empty( 'Button Single' )->withFields(
+				[
+					[
+						'id'    => 'f_name',
+						'type'  => 'text',
+						'label' => 'Name',
+					],
+				]
+			),
+			'published'
+		);
+
+		$html = do_shortcode( '[relevant_form id="' . $single . '"]' );
+
+		$this->assertStringContainsString( 'class="relevant-forms-submit wp-element-button"', $html );
+
+		$multi = $repository->create(
+			'Button Multi',
+			FormSchema::empty( 'Button Multi' )->withFields(
+				[
+					[
+						'id'    => 'f_name',
+						'type'  => 'text',
+						'label' => 'Name',
+					],
+					[
+						'id'    => 'f_break',
+						'type'  => 'pagebreak',
+						'label' => '',
+					],
+					[
+						'id'    => 'f_email',
+						'type'  => 'email',
+						'label' => 'Email',
+					],
+				]
+			),
+			'published'
+		);
+
+		$html = do_shortcode( '[relevant_form id="' . $multi . '"]' );
+
+		$this->assertStringContainsString( 'data-rf-submit-row', $html );
+		$this->assertStringContainsString( 'class="relevant-forms-submit wp-element-button"', $html );
+
+		// The wizard's Back/Next buttons are created by the pagination script.
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Reading a local file, not a remote URL.
+		$js = file_get_contents( RELEVANT_FORMS_PATH . 'assets/js/frontend-pages.js' );
+
+		$this->assertIsString( $js );
+		$this->assertStringContainsString( "'relevant-forms-page-back wp-element-button'", $js );
+		$this->assertStringContainsString( "'relevant-forms-page-next wp-element-button'", $js );
+	}
+
+	/**
 	 * Limited paragraph fields carry a realtime character counter and load
 	 * its script; without a limit the counter stays hidden and is skipped.
 	 */
