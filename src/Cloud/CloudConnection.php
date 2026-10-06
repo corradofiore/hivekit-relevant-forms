@@ -286,6 +286,63 @@ final class CloudConnection {
 	}
 
 	/**
+	 * Human label of the subscription discount (e.g. "20% off",
+	 * "20% off for 3 month(s)", "USD 10.00 off") reported by the server;
+	 * null when no discount is active.
+	 */
+	public function discountLabel(): ?string {
+		$discount = $this->subscription()['discount'] ?? null;
+
+		if ( ! is_array( $discount ) ) {
+			return null;
+		}
+
+		$coupon = is_array( $discount['coupon'] ?? null ) ? $discount['coupon'] : [];
+
+		if ( ! empty( $coupon['percent_off'] ) ) {
+			$percent = rtrim( rtrim( number_format( (float) $coupon['percent_off'], 2, '.', '' ), '0' ), '.' );
+			$label   = $percent . '% off';
+		} elseif ( ! empty( $coupon['amount_off'] ) ) {
+			$label = strtoupper( (string) ( $coupon['currency'] ?? '' ) ) . ' ' . number_format( ( (int) $coupon['amount_off'] ) / 100, 2 ) . ' off';
+		} else {
+			return null;
+		}
+
+		if ( 'repeating' === ( $coupon['duration'] ?? '' ) && ! empty( $coupon['duration_in_months'] ) ) {
+			$label .= ' ' . sprintf(
+				/* translators: %d: number of covered months */
+				__( 'for %d month(s)', 'relevant-forms' ),
+				(int) $coupon['duration_in_months']
+			);
+		}
+
+		return $label;
+	}
+
+	/**
+	 * Whether the site has operator-issued complimentary access.
+	 */
+	public function isComplimentary(): bool {
+		$complimentary = $this->subscription()['complimentary'] ?? null;
+
+		return is_array( $complimentary ) && ! empty( $complimentary['active'] );
+	}
+
+	/**
+	 * Complimentary access end date as reported by the server; null when
+	 * the access is permanent or not complimentary.
+	 */
+	public function complimentaryUntil(): ?string {
+		$complimentary = $this->subscription()['complimentary'] ?? null;
+
+		if ( ! is_array( $complimentary ) || empty( $complimentary['active'] ) || empty( $complimentary['until'] ) ) {
+			return null;
+		}
+
+		return (string) $complimentary['until'];
+	}
+
+	/**
 	 * Account identity (the email / phone the client signs in with)
 	 * reported by the server; empty strings when unknown or account-less.
 	 *

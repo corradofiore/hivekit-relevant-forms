@@ -205,6 +205,61 @@ final class SettingsTabsTest extends TestCase {
 	}
 
 	/**
+	 * Discounts and complimentary access surface on the Current plan row:
+	 * an active coupon gets its own description line, and complimentary
+	 * access replaces the plan/status pair (with the end date when set).
+	 */
+	public function testTheCurrentPlanRowShowsDiscountsAndComplimentaryAccess(): void {
+		$this->connectCloud();
+
+		$connection = new CloudConnection();
+
+		$connection->updateSubscription(
+			[
+				'plan'          => 'cloud',
+				'status'        => 'active',
+				'active'        => true,
+				'discount'      => [
+					'coupon'         => [
+						'id'                 => 'coupon_1',
+						'percent_off'        => 20,
+						'duration'           => 'repeating',
+						'duration_in_months' => 3,
+					],
+					'promotion_code' => [ 'code' => 'LAUNCH20' ],
+				],
+				'complimentary' => [
+					'active' => false,
+					'until'  => null,
+				],
+			]
+		);
+
+		$cloud = $this->panel( $this->renderSettings(), 'rf-panel-cloud' );
+
+		$this->assertStringContainsString( 'Discount applied: 20% off for 3 month(s).', $cloud );
+
+		$connection->updateSubscription(
+			[
+				'plan'          => 'complimentary',
+				'status'        => 'complimentary',
+				'active'        => false,
+				'discount'      => null,
+				'complimentary' => [
+					'active' => true,
+					'until'  => '2027-01-15T00:00:00+00:00',
+				],
+			]
+		);
+
+		$cloud = $this->panel( $this->renderSettings(), 'rf-panel-cloud' );
+
+		$this->assertStringContainsString( 'Free (complimentary)', $cloud );
+		$this->assertStringContainsString( 'Complimentary access until 2027-01-15T00:00:00+00:00.', $cloud );
+		$this->assertStringNotContainsString( 'Discount applied:', $cloud );
+	}
+
+	/**
 	 * Bind the site so the Cloud is connected (state ≠ disconnected).
 	 */
 	private function connectCloud(): void {
