@@ -209,6 +209,74 @@ final class BeaverIntegrationTest extends TestCase {
 	}
 
 	/**
+	 * The Style tab's "Button styles" section offers the button controls:
+	 * colors, rounded corners and padding.
+	 */
+	public function testTheStyleTabOffersTheButtonStylingControls(): void {
+		$tab = ModuleStyles::styleTab();
+
+		$this->assertArrayHasKey( 'button_styles', $tab['sections'] );
+		$this->assertSame( 'Button styles', $tab['sections']['button_styles']['title'] );
+
+		$this->assertSame(
+			[ 'button_bg_color', 'button_text_color', 'button_radius', 'button_padding' ],
+			array_keys( $tab['sections']['button_styles']['fields'] )
+		);
+	}
+
+	/**
+	 * Button style values are emitted as one scoped rule targeting the
+	 * form's buttons (`.relevant-forms .wp-element-button`), and they render
+	 * without any field style being set.
+	 */
+	public function testTheModuleRendersScopedButtonStyles(): void {
+		$formId = $this->createFormWithOneTextField();
+
+		$html = ModuleStyles::render(
+			(object) [
+				'form_id'               => $formId,
+				'button_bg_color'       => '#112233',
+				'button_text_color'     => 'rgba(255, 255, 255, 0.9)',
+				'button_radius'         => '8',
+				'button_radius_unit'    => 'px',
+				'button_padding_top'    => '12',
+				'button_padding_right'  => '24',
+				'button_padding_bottom' => '12',
+				'button_padding_left'   => '24',
+				'button_padding_unit'   => 'px',
+			]
+		);
+
+		$this->assertMatchesRegularExpression( '/\.rf-bb-[0-9a-f]{12} \.relevant-forms \.wp-element-button\{/', $html );
+		$this->assertStringContainsString( 'background-color:#112233;', $html );
+		$this->assertStringContainsString( 'color:rgba(255, 255, 255, 0.9);', $html );
+		$this->assertStringContainsString( 'border-radius:8px;', $html );
+		$this->assertStringContainsString( 'padding:12px 24px 12px 24px;', $html );
+		$this->assertStringContainsString( 'relevant-forms-field', $html );
+	}
+
+	/**
+	 * Hostile button values are dropped exactly like the field ones: the
+	 * valid radius still renders, the injection does not.
+	 */
+	public function testHostileButtonValuesAreDropped(): void {
+		$formId = $this->createFormWithOneTextField();
+
+		$html = ModuleStyles::render(
+			(object) [
+				'form_id'            => $formId,
+				'button_bg_color'    => 'red;} .evil{color:blue',
+				'button_radius'      => '8',
+				'button_radius_unit' => 'px',
+			]
+		);
+
+		$this->assertStringContainsString( 'border-radius:8px;', $html );
+		$this->assertStringNotContainsString( 'background-color:', $html );
+		$this->assertStringNotContainsString( '.evil', $html );
+	}
+
+	/**
 	 * Create a published form with one text field for render tests.
 	 *
 	 * @return int Form ID.

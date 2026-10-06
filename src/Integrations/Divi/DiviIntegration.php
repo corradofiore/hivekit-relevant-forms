@@ -18,6 +18,7 @@ declare(strict_types=1);
 namespace RelevantForms\Integrations\Divi;
 
 use RelevantForms\Forms\FormRenderer;
+use RelevantForms\Integrations\Support\ButtonStyleCss;
 use RelevantForms\Integrations\Support\FormChoices;
 
 /**
@@ -168,8 +169,37 @@ final class DiviIntegration {
 		}
 
 		$form_id = absint( $_POST['form_id'] ?? 0 );
+		$html    = self::renderForm( $form_id );
 
-		wp_send_json_success( self::renderForm( $form_id ) );
+		if ( '' !== $html ) {
+			// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- JSON payload; every value is validated by ButtonStyleCss before output.
+			$raw_buttons = isset( $_POST['buttons'] ) && is_string( $_POST['buttons'] ) ? wp_unslash( $_POST['buttons'] ) : '';
+
+			$html = ButtonStyleCss::scopedHtml( $html, self::previewButtonValues( $raw_buttons ), 'rf-divi-' );
+		}
+
+		wp_send_json_success( $html );
+	}
+
+	/**
+	 * The button style values posted by the Visual Builder preview
+	 * component as JSON. Unknown shapes resolve to empty strings, so a
+	 * tampered payload simply previews an unstyled module.
+	 *
+	 * @param string $raw JSON payload ('' when the component sent none).
+	 * @return array<string, string> Values for ButtonStyleCss.
+	 */
+	private static function previewButtonValues( string $raw ): array {
+		$data = '' === $raw ? null : json_decode( $raw, true );
+
+		$values = [];
+
+		foreach ( [ 'background', 'text', 'radius', 'padding' ] as $key ) {
+			$value          = is_array( $data ) ? ( $data[ $key ] ?? '' ) : '';
+			$values[ $key ] = is_scalar( $value ) ? (string) $value : '';
+		}
+
+		return $values;
 	}
 
 	/**

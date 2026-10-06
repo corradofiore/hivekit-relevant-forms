@@ -29,4 +29,12 @@ final class FieldSelectors {
 	 * The placeholder text of the text-like input fields.
 	 */
 	public const FIELDS_PLACEHOLDER = self::FIELDS . '::placeholder';
+
+	/**
+	 * The form's buttons: the submit button plus the multi-page wizard's
+	 * Back/Next buttons. They all carry WordPress's `wp-element-button`
+	 * class, so the builder button controls target that class scoped to
+	 * the form — buttons outside the form are never affected.
+	 */
+	public const BUTTONS = '.relevant-forms .wp-element-button';
 }

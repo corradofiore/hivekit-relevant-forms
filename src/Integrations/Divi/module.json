@@ -84,6 +84,22 @@
 		"formId": {
 			"type": "string",
 			"default": "0"
+		},
+		"buttonBg": {
+			"type": "string",
+			"default": ""
+		},
+		"buttonText": {
+			"type": "string",
+			"default": ""
+		},
+		"buttonRadius": {
+			"type": "string",
+			"default": ""
+		},
+		"buttonPadding": {
+			"type": "string",
+			"default": ""
 		}
 	},
 	"customCssFields": {},

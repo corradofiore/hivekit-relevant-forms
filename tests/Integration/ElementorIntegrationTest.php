@@ -116,4 +116,24 @@ final class ElementorIntegrationTest extends TestCase {
 		$this->assertStringContainsString( 'field_radius', $file );
 		$this->assertStringContainsString( '{{WRAPPER}}', $file );
 	}
+
+	/**
+	 * The widget declares a "Button styles" section whose controls target
+	 * the form's buttons through the shared selector (static guard — the
+	 * widget class can only be loaded with Elementor present).
+	 */
+	public function testTheWidgetDeclaresButtonStyleControls(): void {
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Reading a local file, not a remote URL.
+		$file = file_get_contents( RELEVANT_FORMS_PATH . 'src/Integrations/Elementor/FormWidget.php' );
+
+		$this->assertIsString( $file );
+		$this->assertStringContainsString( "'Button styles'", $file );
+		$this->assertStringContainsString( 'FieldSelectors::BUTTONS', $file );
+		$this->assertStringContainsString( 'relevant_form_button_style', $file );
+		$this->assertStringContainsString( 'register_button_style_controls', $file );
+		$this->assertStringContainsString( 'button_bg_color', $file );
+		$this->assertStringContainsString( 'button_text_color', $file );
+		$this->assertStringContainsString( 'button_radius', $file );
+		$this->assertStringContainsString( 'button_padding', $file );
+	}
 }

@@ -181,6 +181,11 @@ final class DiviModernTest extends TestCase {
 		$this->assertSame( 'module', $module['category'] );
 		$this->assertSame( '0', $module['attributes']['formId']['default'] );
 
+		foreach ( [ 'buttonBg', 'buttonText', 'buttonRadius', 'buttonPadding' ] as $attribute ) {
+			$this->assertArrayHasKey( $attribute, $module['attributes'] );
+			$this->assertSame( '', $module['attributes'][ $attribute ]['default'] );
+		}
+
 		$this->assertIsArray( $outline );
 		$this->assertSame( 'formId.*', $outline['module']['form_id'] );
 	}
@@ -249,17 +254,124 @@ final class DiviModernTest extends TestCase {
 		$this->assertStringContainsString( 'styleProps', $script );
 		$this->assertStringContainsString( 'boxShadow', $script );
 		$this->assertStringContainsString( 'propertySelectors', $script );
+
+		// The button controls are declared in both metadata sources too.
+		foreach ( [ 'buttonBg', 'buttonText', 'buttonRadius', 'buttonPadding', 'buttonSettings' ] as $marker ) {
+			$this->assertStringContainsString( $marker, $script );
+		}
+	}
+
+	/**
+	 * The preview endpoint applies the button styles posted by the builder
+	 * component: the same scoped rule the front end renders, so the canvas
+	 * and the live page agree.
+	 */
+	public function testThePreviewEndpointAppliesThePostedButtonStyles(): void {
+		wp_set_current_user( self::factory()->user->create( [ 'role' => 'administrator' ] ) );
+
+		$formId = ( new FormRepository() )->create( 'Contact', FormSchema::empty( 'Contact' ), 'published' );
+
+		$response = $this->dispatchPreview(
+			$formId,
+			[
+				'background' => '#112233',
+				'text'       => '',
+				'radius'     => '8px',
+				'padding'    => '12px 24px',
+			]
+		);
+
+		$this->assertTrue( $response['success'] );
+		$this->assertMatchesRegularExpression(
+			'/^<style>\.rf-divi-[0-9a-f]{12} \.relevant-forms \.wp-element-button\{background-color:#112233;border-radius:8px;padding:12px 24px;\}<\/style><div class="rf-divi-[0-9a-f]{12}">/',
+			$response['data']
+		);
+		$this->assertStringContainsString( '<form class="relevant-forms"', $response['data'] );
+	}
+
+	/**
+	 * The preview drops hostile or unknown payload values; without any
+	 * button payload the preview is the untouched form (no stylesheet, no
+	 * wrapper).
+	 */
+	public function testThePreviewEndpointDropsHostileButtonValues(): void {
+		wp_set_current_user( self::factory()->user->create( [ 'role' => 'administrator' ] ) );
+
+		$formId = ( new FormRepository() )->create( 'Contact', FormSchema::empty( 'Contact' ), 'published' );
+
+		$clean = $this->dispatchPreview( $formId );
+
+		$this->assertTrue( $clean['success'] );
+		$this->assertStringNotContainsString( '<style>', $clean['data'] );
+		$this->assertStringNotContainsString( 'rf-divi-', $clean['data'] );
+
+		$response = $this->dispatchPreview(
+			$formId,
+			[
+				'background' => 'red;} .evil{color:blue',
+				'radius'     => '8',
+			]
+		);
+
+		$this->assertStringContainsString( 'border-radius:8px;', $response['data'] );
+		$this->assertStringNotContainsString( 'background-color:', $response['data'] );
+		$this->assertStringNotContainsString( '.evil', $response['data'] );
+	}
+
+	/**
+	 * The module reads the button values from the mode-wrapped builder
+	 * attributes (the same shape as formId); junk shapes resolve to empty
+	 * strings.
+	 */
+	public function testTheModuleExtractsTheButtonValuesFromTheWrappedAttributes(): void {
+		require_once __DIR__ . '/Support/DiviDependencyInterface.php';
+
+		$this->assertTrue( class_exists( ModernModule::class ) );
+
+		$this->assertSame(
+			[
+				'background' => '#112233',
+				'text'       => '123',
+				'radius'     => '8px',
+				'padding'    => '',
+			],
+			ModernModule::buttonValues(
+				[
+					'buttonBg'      => [ 'desktop' => [ 'value' => '#112233' ] ],
+					'buttonText'    => [ 'desktop' => [ 'value' => 123 ] ],
+					'buttonRadius'  => [ 'desktop' => [ 'value' => '8px' ] ],
+					'buttonPadding' => [ 'desktop' => [ 'value' => [ 'nope' ] ] ],
+				]
+			)
+		);
+
+		$this->assertSame(
+			[
+				'background' => '',
+				'text'       => '',
+				'radius'     => '',
+				'padding'    => '',
+			],
+			ModernModule::buttonValues( [] )
+		);
 	}
 
 	/**
 	 * POST to the Visual Builder preview endpoint with a valid nonce.
 	 *
-	 * @param int $formId Form ID to preview.
+	 * @param int                  $formId  Form ID to preview.
+	 * @param array<string, mixed> $buttons Button style payload ('' values when empty).
 	 * @return array<string, mixed> Decoded response body.
 	 */
-	private function dispatchPreview( int $formId ): array {
+	private function dispatchPreview( int $formId, array $buttons = [] ): array {
 		$_POST['form_id']  = $formId;
 		$_REQUEST['nonce'] = wp_create_nonce( 'relevant_forms_divi_builder' );
+
+		if ( [] !== $buttons ) {
+			$_POST['buttons'] = (string) wp_json_encode( $buttons );
+		} else {
+			unset( $_POST['buttons'] );
+		}
 
 		return AjaxRequests::dispatch( [ DiviIntegration::class, 'preview' ] );
 	}

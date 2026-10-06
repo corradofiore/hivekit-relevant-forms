@@ -141,4 +141,66 @@ final class GutenbergIntegrationTest extends TestCase {
 			do_blocks( '<!-- wp:relevant-forms/form-selector {"formId":999999} /-->' )
 		);
 	}
+
+	/**
+	 * The "Button styles" controls override the theme's button styling for
+	 * this embed: the values render as a scoped stylesheet around the form,
+	 * with a deterministic class.
+	 */
+	public function testTheBlockRendersTheButtonStyleOverrides(): void {
+		$repository = new FormRepository();
+		$formId     = $repository->create( 'Contact', FormSchema::empty( 'Contact' ), 'published' );
+
+		$markup = do_blocks(
+			'<!-- wp:relevant-forms/form-selector {"formId":' . $formId . ',"buttonBgColor":"#112233","buttonTextColor":"#ffffff","buttonRadius":"8px","buttonPadding":{"top":"12px","right":"24px","bottom":"12px","left":"24px"}} /-->'
+		);
+
+		$this->assertMatchesRegularExpression( '/<style>\.rf-gb-[0-9a-f]{12} \.relevant-forms \.wp-element-button\{/', $markup );
+		$this->assertStringContainsString( 'background-color:#112233;', $markup );
+		$this->assertStringContainsString( 'color:#ffffff;', $markup );
+		$this->assertStringContainsString( 'border-radius:8px;', $markup );
+		$this->assertStringContainsString( 'padding:12px 24px 12px 24px;', $markup );
+		$this->assertMatchesRegularExpression( '/<div class="rf-gb-[0-9a-f]{12}">/', $markup );
+		$this->assertStringContainsString( '<form class="relevant-forms"', $markup );
+
+		// Partially set padding sides fill with zero so the shorthand stays
+		// valid.
+		$partial = do_blocks(
+			'<!-- wp:relevant-forms/form-selector {"formId":' . $formId . ',"buttonPadding":{"top":"12px"}} /-->'
+		);
+
+		$this->assertStringContainsString( 'padding:12px 0 0 0;', $partial );
+	}
+
+	/**
+	 * Without any button value the block renders the shortcode-identical
+	 * markup: no stylesheet, no extra wrapper.
+	 */
+	public function testTheButtonStyleOverridesAreSkippedWithoutValues(): void {
+		$repository = new FormRepository();
+		$formId     = $repository->create( 'Contact', FormSchema::empty( 'Contact' ), 'published' );
+
+		$markup = do_blocks( '<!-- wp:relevant-forms/form-selector {"formId":' . $formId . '} /-->' );
+
+		$this->assertStringNotContainsString( '<style>', $markup );
+		$this->assertStringNotContainsString( 'rf-gb-', $markup );
+		$this->assertStringContainsString( '<form class="relevant-forms"', $markup );
+	}
+
+	/**
+	 * Hostile button attribute values are dropped; valid values in the same
+	 * form still render.
+	 */
+	public function testHostileButtonAttributeValuesAreDropped(): void {
+		$repository = new FormRepository();
+		$formId     = $repository->create( 'Contact', FormSchema::empty( 'Contact' ), 'published' );
+
+		$markup = do_blocks(
+			'<!-- wp:relevant-forms/form-selector {"formId":' . $formId . ',"buttonBgColor":"red;} .evil{color:blue","buttonRadius":"8"} /-->'
+		);
+
+		$this->assertStringContainsString( 'border-radius:8px;', $markup );
+		$this->assertStringNotContainsString( 'background-color:', $markup );
+		$this->assertStringNotContainsString( '.evil', $markup );
+	}
 }

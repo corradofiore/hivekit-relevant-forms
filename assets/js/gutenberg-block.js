@@ -1,12 +1,12 @@
 /**
- * "Relevant Form" block: pick a form and preview it. The front end is
- * server-rendered through the same code path as the shortcode, so the block
- * itself has no save output.
+ * "Relevant Form" block: pick a form, style its buttons, and preview it.
+ * The front end is server-rendered through the same code path as the
+ * shortcode, so the block itself has no save output.
  *
  * Plain ES5 UI (no build step), mirroring how the plugin ships its other
  * admin scripts.
  */
-( function ( blocks, element, components, serverSideRender ) {
+( function ( blocks, element, components, blockEditor, serverSideRender ) {
 	'use strict';
 
 	var el       = element.createElement;
@@ -30,6 +30,13 @@
 	var ServerSideRender = ( serverSideRender && ( serverSideRender.default || serverSideRender ) )
 		|| ( components && components.ServerSideRender );
 
+	var paddingUnits = [
+		{ value: 'px', label: 'px' },
+		{ value: 'em', label: 'em' },
+		{ value: 'rem', label: 'rem' },
+		{ value: '%', label: '%' }
+	];
+
 	blocks.registerBlockType( 'relevant-forms/form-selector', {
 		edit: function ( props ) {
 			if ( ! hasForms ) {
@@ -40,7 +47,59 @@
 				);
 			}
 
+			// The button controls override the theme's button styling for
+			// this embed only; when cleared, the buttons keep the theme's
+			// own styling. The ServerSideRender preview below re-renders
+			// the moment a value changes.
+			var inspector = el(
+				blockEditor.InspectorControls,
+				{ key: 'button-styles' },
+				el(
+					components.PanelBody,
+					{ title: 'Button styles', initialOpen: false },
+					el( components.PanelColorSettings, {
+						key: 'colors',
+						title: 'Colors',
+						colors: [],
+						colorSettings: [
+							{
+								value: props.attributes.buttonBgColor,
+								onChange: function ( value ) {
+									props.setAttributes( { buttonBgColor: value || '' } );
+								},
+								label: 'Background'
+							},
+							{
+								value: props.attributes.buttonTextColor,
+								onChange: function ( value ) {
+									props.setAttributes( { buttonTextColor: value || '' } );
+								},
+								label: 'Text color'
+							}
+						]
+					} ),
+					el( components.UnitControl, {
+						key: 'radius',
+						label: 'Rounded corners',
+						value: props.attributes.buttonRadius,
+						onChange: function ( value ) {
+							props.setAttributes( { buttonRadius: value || '' } );
+						}
+					} ),
+					el( components.BoxControl, {
+						key: 'padding',
+						label: 'Padding',
+						values: Object.assign( {}, props.attributes.buttonPadding ),
+						units: paddingUnits,
+						onChange: function ( value ) {
+							props.setAttributes( { buttonPadding: value } );
+						}
+					} )
+				)
+			);
+
 			var children = [
+				inspector,
 				el( components.SelectControl, {
 					key: 'selector',
 					label: 'Form',
@@ -68,4 +127,4 @@
 			return null;
 		}
 	} );
-} )( window.wp.blocks, window.wp.element, window.wp.components, window.wp.serverSideRender );
+} )( window.wp.blocks, window.wp.element, window.wp.components, window.wp.blockEditor, window.wp.serverSideRender );
