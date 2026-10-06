@@ -37,6 +37,7 @@
 		"free_form": "css.*.freeForm"
 	},
 	"module": {
-		"form_id": "formId.*"
+		"form_id": "formId.*",
+		"id": "formId.*"
 	}
 }

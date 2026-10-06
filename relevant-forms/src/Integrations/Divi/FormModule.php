@@ -100,3 +100,31 @@ final class FormModule extends \ET_Builder_Module {
 }
 
 new FormModule();
+
+/**
+ * Map the shortcode's `id` attribute onto the module's `form_id` field.
+ *
+ * The plugin's documented shortcode is `[relevant_form id="…"]`, but a
+ * legacy Divi module only keeps the attributes it declares — and this
+ * module declares `form_id`. When Divi's backwards-compatibility renderer
+ * handles the shortcode, the `id` attribute would be dropped and the module
+ * would render nothing.
+ */
+add_filter(
+	'et_pb_module_shortcode_attributes',
+	static function ( $props, $attrs, $render_slug ) {
+		if ( 'relevant_form' !== $render_slug ) {
+			return $props;
+		}
+
+		$form_id = (string) ( $props['form_id'] ?? '' );
+
+		if ( ( '' === $form_id || '0' === $form_id ) && isset( $attrs['id'] ) ) {
+			$props['form_id'] = $attrs['id'];
+		}
+
+		return $props;
+	},
+	10,
+	3
+);

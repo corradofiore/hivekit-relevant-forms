@@ -232,15 +232,9 @@
 	 */
 	function boot( root ) {
 		( root || document ).querySelectorAll( '.relevant-forms[data-rf-page-step]' ).forEach( function ( form ) {
-			if ( '1' === form.getAttribute( 'data-rf-pages-ready' ) ) {
-				return;
-			}
-
-			form.setAttribute( 'data-rf-pages-ready', '1' );
-
-			init( form );
-		} );
-	}
+				// init() owns the ready flag: it only marks a form as
+				// initialised once it has actually taken it over.			init( form );
+		} );	}
 
 	if ( 'loading' === document.readyState ) {
 		document.addEventListener( 'DOMContentLoaded', function () {
