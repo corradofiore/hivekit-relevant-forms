@@ -83,19 +83,53 @@ final class GutenbergIntegration {
 				'style'           => 'relevant-forms',
 				'render_callback' => [ self::class, 'renderBlock' ],
 				'supports'        => [
-					'html'      => false,
-					'className' => false,
+					'html'       => false,
+					'color'      => [
+						'text'       => true,
+						'background' => true,
+						'gradients'  => false,
+					],
+					'typography' => [
+						'fontSize' => true,
+					],
+					'spacing'    => [
+						'padding' => true,
+						'margin'  => true,
+					],
+					// The server-side border support reads the legacy key (core
+					// dynamic blocks such as `core/archives` declare it the same way).
+					'__experimentalBorder' => [
+						'color'  => true,
+						'radius' => true,
+						'style'  => true,
+						'width'  => true,
+					],
 				],
 			]
 		);
 	}
 
 	/**
-	 * Front-end output: identical to the [relevant_form] shortcode.
+	 * Front-end output: the form through the same code path as the
+	 * shortcode, wrapped in the standard block wrapper so the editor's
+	 * style panels (colors, typography, spacing, border — declared as
+	 * block supports) reach the front end. Text color and font size are
+	 * inherited by the form controls through the stylesheet bridge scoped
+	 * to the block wrapper class.
 	 *
 	 * @param array<string, mixed> $attributes Block attributes.
 	 */
 	public static function renderBlock( array $attributes = [] ): string {
-		return FormRenderer::render( absint( $attributes['formId'] ?? 0 ) );
+		$html = FormRenderer::render( absint( $attributes['formId'] ?? 0 ) );
+
+		if ( '' === $html ) {
+			return '';
+		}
+
+		return sprintf(
+			'<div %1$s>%2$s</div>',
+			get_block_wrapper_attributes( [ 'class' => 'relevant-forms-embed' ] ),
+			$html
+		);
 	}
 }

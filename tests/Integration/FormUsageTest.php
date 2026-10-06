@@ -105,6 +105,15 @@ final class FormUsageTest extends TestCase {
 		$this->assertSame( [], FormUsage::extract( '<!-- wp:relevant-forms/form-selector /-->' ) );
 		$this->assertSame( [], FormUsage::extract( '<!-- wp:relevant-forms/form-selector {"formId":0} /-->' ) );
 		$this->assertSame( [], FormUsage::extract( '<!-- wp:relevant-forms/form-selector {"className":"x"} /-->' ) );
+		// Block supports save nested style objects alongside the id.
+		$this->assertSame(
+			[ 4 ],
+			FormUsage::extract( '<!-- wp:relevant-forms/form-selector {"formId":4,"style":{"color":{"text":"#ffffff"},"border":{"radius":"8px"},"spacing":{"padding":{"top":"1rem"}}}} /-->' )
+		);
+		$this->assertSame(
+			[ 9 ],
+			FormUsage::extract( '<!-- wp:relevant-forms/form-selector {"style":{"color":{"text":"#000"}},"formId":9,"className":"x"} /-->' )
+		);
 	}
 
 	/**

@@ -99,7 +99,10 @@ final class FormUsage {
 
 		// Block editor embeds: the id travels in the block comment's JSON
 		// attributes ("formId" key) of a relevant-forms/form-selector block.
-		if ( preg_match_all( '/<!--\s*wp:relevant-forms\/form-selector(?:\s+(\{[^}]*\}))?\s*\/?-->/s', $content, $blocks ) ) {
+		// The attributes JSON may be nested (style/border/spacing from block
+		// supports), so match up to the comment's closing marker instead of
+		// the first closing brace.
+		if ( preg_match_all( '/<!--\s*wp:relevant-forms\/form-selector(?:\s+(\{.*?\}))?\s*\/?-->/s', $content, $blocks ) ) {
 			foreach ( $blocks[1] as $json ) {
 				if ( '' === $json ) {
 					continue;
