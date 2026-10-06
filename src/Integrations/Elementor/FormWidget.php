@@ -12,6 +12,8 @@ declare(strict_types=1);
 
 namespace RelevantForms\Integrations\Elementor;
 
+use RelevantForms\Integrations\Support\FieldSelectors;
+
 // Defence in depth: the autoloader may reach this file on sites without Elementor.
 if ( ! class_exists( '\Elementor\Widget_Base' ) ) {
 	return;
@@ -63,7 +65,7 @@ final class FormWidget extends \Elementor\Widget_Base {
 	}
 
 	/**
-	 * Widget controls: pick the form to embed.
+	 * Widget controls: pick the form to embed, then style its fields.
 	 */
 	protected function register_controls(): void {
 		$this->start_controls_section(
@@ -81,6 +83,109 @@ final class FormWidget extends \Elementor\Widget_Base {
 				'options'     => ElementorIntegration::formOptions(),
 				'default'     => '',
 				'description' => esc_html__( 'Only published forms are rendered on the front end.', 'relevant-forms' ),
+			]
+		);
+
+		$this->end_controls_section();
+
+		$this->register_field_style_controls();
+	}
+
+	/**
+	 * Style section: the controls target the form's input fields (not the
+	 * widget wrapper), mirroring the design groups offered by the Divi and
+	 * Beaver Builder integrations. Elementor writes the CSS from the
+	 * `selectors` maps — no stylesheet of ours is involved.
+	 */
+	private function register_field_style_controls(): void {
+		$fields = '{{WRAPPER}} ' . FieldSelectors::FIELDS;
+
+		$this->start_controls_section(
+			'relevant_form_field_style',
+			[
+				'label' => esc_html__( 'Field styles', 'relevant-forms' ),
+				'tab'   => \Elementor\Controls_Manager::TAB_STYLE,
+			]
+		);
+
+		$this->add_group_control(
+			\Elementor\Group_Control_Typography::get_type(),
+			[
+				'name'     => 'field_typography',
+				'selector' => $fields,
+			]
+		);
+
+		$this->add_control(
+			'field_text_color',
+			[
+				'label'     => esc_html__( 'Field text color', 'relevant-forms' ),
+				'type'      => \Elementor\Controls_Manager::COLOR,
+				'selectors' => [
+					$fields => 'color: {{VALUE}};',
+				],
+			]
+		);
+
+		$this->add_control(
+			'field_placeholder_color',
+			[
+				'label'     => esc_html__( 'Placeholder color', 'relevant-forms' ),
+				'type'      => \Elementor\Controls_Manager::COLOR,
+				'selectors' => [
+					$fields . '::placeholder' => 'color: {{VALUE}};',
+				],
+			]
+		);
+
+		$this->add_control(
+			'field_bg_color',
+			[
+				'label'     => esc_html__( 'Field background', 'relevant-forms' ),
+				'type'      => \Elementor\Controls_Manager::COLOR,
+				'selectors' => [
+					$fields => 'background-color: {{VALUE}};',
+				],
+			]
+		);
+
+		$this->add_group_control(
+			\Elementor\Group_Control_Border::get_type(),
+			[
+				'name'     => 'field_border',
+				'selector' => $fields,
+			]
+		);
+
+		$this->add_responsive_control(
+			'field_radius',
+			[
+				'label'      => esc_html__( 'Rounded corners', 'relevant-forms' ),
+				'type'       => \Elementor\Controls_Manager::DIMENSIONS,
+				'size_units' => [ 'px', '%' ],
+				'selectors'  => [
+					$fields => 'border-radius: {{TOP}}{{UNIT}} {{RIGHT}}{{UNIT}} {{BOTTOM}}{{UNIT}} {{LEFT}}{{UNIT}};',
+				],
+			]
+		);
+
+		$this->add_responsive_control(
+			'field_padding',
+			[
+				'label'      => esc_html__( 'Padding', 'relevant-forms' ),
+				'type'       => \Elementor\Controls_Manager::DIMENSIONS,
+				'size_units' => [ 'px', 'em', 'rem', '%' ],
+				'selectors'  => [
+					$fields => 'padding: {{TOP}}{{UNIT}} {{RIGHT}}{{UNIT}} {{BOTTOM}}{{UNIT}} {{LEFT}}{{UNIT}};',
+				],
+			]
+		);
+
+		$this->add_group_control(
+			\Elementor\Group_Control_Box_Shadow::get_type(),
+			[
+				'name'     => 'field_box_shadow',
+				'selector' => $fields,
 			]
 		);
 

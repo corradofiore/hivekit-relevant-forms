@@ -26,7 +26,7 @@ if ( ! class_exists( '\FLBuilderModuleType' ) ) {
 		'description' => esc_html__( 'Embed a form built with Relevant Forms.', 'relevant-forms' ),
 		'category'    => esc_html__( 'Relevant Forms', 'relevant-forms' ),
 		'form'        => [
-			'form' => [
+			'form'  => [
 				'title'    => esc_html__( 'Form', 'relevant-forms' ),
 				'sections' => [
 					'form' => [
@@ -43,9 +43,10 @@ if ( ! class_exists( '\FLBuilderModuleType' ) ) {
 					],
 				],
 			],
+			'style' => ModuleStyles::styleTab(),
 		],
 		'render'      => static function ( $settings ): string {
-			return BeaverIntegration::renderForm( (int) ( $settings->form_id ?? 0 ) );
+			return ModuleStyles::render( $settings );
 		},
 	]
 );
