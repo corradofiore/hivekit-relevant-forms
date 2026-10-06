@@ -255,7 +255,8 @@ final class SettingsTabsTest extends TestCase {
 		$cloud = $this->panel( $this->renderSettings(), 'rf-panel-cloud' );
 
 		$this->assertStringContainsString( 'Free (complimentary)', $cloud );
-		$this->assertStringContainsString( 'Complimentary access until 2027-01-15T00:00:00+00:00.', $cloud );
+		$this->assertStringContainsString( 'Complimentary access until 2027-01-15.', $cloud );
+		$this->assertStringNotContainsString( '2027-01-15T00:00:00', $cloud );
 		$this->assertStringNotContainsString( 'Discount applied:', $cloud );
 	}
 

@@ -106,13 +106,13 @@ use RelevantForms\Cloud\CloudConnection;
 								<code><?php esc_html_e( 'unknown — reconnect with a dashboard-issued API key', 'relevant-forms' ); ?></code>
 							<?php elseif ( $connection->isComplimentary() ) : ?>
 								<code><?php esc_html_e( 'Free (complimentary)', 'relevant-forms' ); ?></code>
-								<?php if ( null !== $connection->complimentaryUntil() ) : ?>
+								<?php if ( null !== $connection->complimentaryUntilDate() ) : ?>
 									<p class="description">
 										<?php
 										printf(
-											/* translators: %s: complimentary access end date */
+											/* translators: %s: complimentary access end date (YYYY-MM-DD) */
 											esc_html__( 'Complimentary access until %s.', 'relevant-forms' ),
-											esc_html( (string) $connection->complimentaryUntil() )
+											esc_html( (string) $connection->complimentaryUntilDate() )
 										);
 										?>
 									</p>
