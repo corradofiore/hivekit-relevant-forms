@@ -231,3 +231,64 @@ it(
 		expect( $connection->dashboardUrl() )->toBeNull();
 	}
 );
+
+it(
+	'formats the complimentary end date for display (YYYY-MM-DD)',
+	function () {
+		$connection = new CloudConnection();
+
+		$connection->connect( 'site-uuid-1', 'https://a.example', 'Acme' );
+		$connection->updateSubscription(
+			[
+				'complimentary' => [
+					'active' => true,
+					'until'  => '2027-01-15T00:00:00+00:00',
+				],
+			]
+		);
+
+		// Raw value stays ISO 8601 for machines; the display helper is a date.
+		expect( $connection->complimentaryUntil() )->toBe( '2027-01-15T00:00:00+00:00' );
+		expect( $connection->complimentaryUntilDate() )->toBe( '2027-01-15' );
+	}
+);
+
+it(
+	'reports no complimentary end date when access is permanent or not granted',
+	function () {
+		$connection = new CloudConnection();
+
+		expect( $connection->complimentaryUntilDate() )->toBeNull();
+
+		$connection->connect( 'site-uuid-1', 'https://a.example', 'Acme' );
+		$connection->updateSubscription(
+			[
+				'complimentary' => [
+					'active' => true,
+				],
+			]
+		);
+
+		expect( $connection->complimentaryUntil() )->toBeNull();
+		expect( $connection->complimentaryUntilDate() )->toBeNull();
+	}
+);
+
+it(
+	'passes an unparsable complimentary end date through unchanged',
+	function () {
+		$connection = new CloudConnection();
+
+		$connection->connect( 'site-uuid-1', 'https://a.example', 'Acme' );
+		$connection->updateSubscription(
+			[
+				'complimentary' => [
+					'active' => true,
+					'until'  => 'not-a-date',
+				],
+			]
+		);
+
+		expect( $connection->complimentaryUntilDate() )->toBe( 'not-a-date' );
+	}
+);

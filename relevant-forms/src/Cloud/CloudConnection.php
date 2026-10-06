@@ -343,6 +343,27 @@ final class CloudConnection {
 	}
 
 	/**
+	 * Complimentary access end date for display (YYYY-MM-DD); null when
+	 * the access is permanent or not complimentary. The date is the UTC
+	 * day granted by the backend, so it matches what the operator picked.
+	 */
+	public function complimentaryUntilDate(): ?string {
+		$until = $this->complimentaryUntil();
+
+		if ( null === $until ) {
+			return null;
+		}
+
+		$timestamp = strtotime( $until );
+
+		if ( false === $timestamp ) {
+			return $until;
+		}
+
+		return gmdate( 'Y-m-d', $timestamp );
+	}
+
+	/**
 	 * Account identity (the email / phone the client signs in with)
 	 * reported by the server; empty strings when unknown or account-less.
 	 *
