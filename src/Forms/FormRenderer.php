@@ -179,7 +179,7 @@ final class FormRenderer {
 			}
 
 			$output[] = sprintf(
-				'<button type="submit" class="relevant-forms-submit">%s</button>',
+				'<button type="submit" class="relevant-forms-submit wp-element-button">%s</button>',
 				esc_html__( 'Submit', 'relevant-forms' )
 			);
 		} else {
@@ -225,7 +225,7 @@ final class FormRenderer {
 
 			$output[] = '<div class="relevant-forms-submit-row" data-rf-submit-row>';
 			$output[] = sprintf(
-				'<button type="submit" class="relevant-forms-submit">%s</button>',
+				'<button type="submit" class="relevant-forms-submit wp-element-button">%s</button>',
 				esc_html__( 'Submit', 'relevant-forms' )
 			);
 			$output[] = '</div>';
