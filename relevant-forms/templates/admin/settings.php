@@ -104,6 +104,19 @@ use RelevantForms\Cloud\CloudConnection;
 						<td>
 							<?php if ( [] === $subscription ) : ?>
 								<code><?php esc_html_e( 'unknown — reconnect with a dashboard-issued API key', 'relevant-forms' ); ?></code>
+							<?php elseif ( $connection->isComplimentary() ) : ?>
+								<code><?php esc_html_e( 'Free (complimentary)', 'relevant-forms' ); ?></code>
+								<?php if ( null !== $connection->complimentaryUntil() ) : ?>
+									<p class="description">
+										<?php
+										printf(
+											/* translators: %s: complimentary access end date */
+											esc_html__( 'Complimentary access until %s.', 'relevant-forms' ),
+											esc_html( (string) $connection->complimentaryUntil() )
+										);
+										?>
+									</p>
+								<?php endif; ?>
 							<?php else : ?>
 								<code><?php echo esc_html( (string) ( $subscription['plan'] ?? 'none' ) ); ?></code>
 								&middot; <code><?php echo esc_html( (string) ( $subscription['status'] ?? 'unknown' ) ); ?></code>
@@ -118,6 +131,18 @@ use RelevantForms\Cloud\CloudConnection;
 										?>
 									</p>
 								<?php endif; ?>
+							<?php endif; ?>
+							<?php $discountLabel = $connection->discountLabel(); ?>
+							<?php if ( null !== $discountLabel ) : ?>
+								<p class="description">
+									<?php
+									printf(
+										/* translators: %s: discount label, e.g. "20% off" */
+										esc_html__( 'Discount applied: %s.', 'relevant-forms' ),
+										esc_html( $discountLabel )
+									);
+									?>
+								</p>
 							<?php endif; ?>
 						</td>
 					</tr>
