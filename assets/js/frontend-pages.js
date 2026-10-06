@@ -232,9 +232,11 @@
 	 */
 	function boot( root ) {
 		( root || document ).querySelectorAll( '.relevant-forms[data-rf-page-step]' ).forEach( function ( form ) {
-				// init() owns the ready flag: it only marks a form as
-				// initialised once it has actually taken it over.			init( form );
-		} );	}
+			// init() owns the ready flag: it only marks a form as
+			// initialised once it has actually taken it over.
+			init( form );
+		} );
+	}
 
 	if ( 'loading' === document.readyState ) {
 		document.addEventListener( 'DOMContentLoaded', function () {
