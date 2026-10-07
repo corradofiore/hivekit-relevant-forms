@@ -314,17 +314,38 @@
 			return;
 		}
 
-		var timer = null;
+		var timer   = null;
+		var stopped = false;
 
 		function saveNow() {
 			timer = null;
 
-			var key     = draftKey( form );
+			if ( stopped ) {
+				return;
+			}
+
+			var key    = draftKey( form );
+			var values = readValues( form );
+
+			// Nothing typed: never store an empty draft (leaving the page
+			// must not create one) and drop a stale one.
+			var hasValue = Object.keys( values ).some( function ( name ) {
+				var value = values[ name ];
+
+				return Array.isArray( value ) ? value.length > 0 : String( value ).trim() !== '';
+			} );
+
+			if ( ! hasValue ) {
+				clearDraft( form );
+
+				return;
+			}
+
 			var payload = {
 				v: 1,
 				savedAt: Date.now(),
 				page: currentPage( form ),
-				values: readValues( form )
+				values: values
 			};
 
 			try {
@@ -349,6 +370,15 @@
 			timer = window.setTimeout( saveNow, 600 );
 		}
 
+		// A save scheduled moments before submitting (or discarding) must not
+		// resurrect the draft after it has been cleared.
+		function cancel() {
+			if ( timer ) {
+				window.clearTimeout( timer );
+				timer = null;
+			}
+		}
+
 		form.addEventListener( 'input', schedule );
 		form.addEventListener( 'change', schedule );
 		form.addEventListener( 'click', function ( event ) {
@@ -362,11 +392,19 @@
 			}
 		} );
 		window.addEventListener( 'pagehide', saveNow );
+		// Submitting ends the draft for this page view: the pending timer and
+		// the unload flush must not resurrect it on the confirmation screen.
 		form.addEventListener( 'submit', function () {
+			stopped = true;
+			cancel();
 			clearDraft( form );
 		} );
 
 		form.rfSaveDraft = saveNow;
+		form.rfDiscardDraft = function () {
+			cancel();
+			clearDraft( form );
+		};
 	}
 
 	/**
@@ -589,7 +627,13 @@
 		if ( discard ) {
 			discard.addEventListener( 'click', function () {
 				clearValues( form );
-				clearDraft( form );
+
+				if ( form.rfDiscardDraft ) {
+					form.rfDiscardDraft();
+				} else {
+					clearDraft( form );
+				}
+
 				form.removeAttribute( 'data-rf-resume-token' );
 
 				var tokenField = form.querySelector( 'input[name="_relevant_resume_token"]' );
