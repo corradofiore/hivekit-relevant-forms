@@ -30,6 +30,7 @@ use RelevantForms\Forms\FormRenderer;
 use RelevantForms\Forms\FormUsage;
 use RelevantForms\Http\CloudBillingController;
 use RelevantForms\Http\PaymentReturnHandler;
+use RelevantForms\Http\SaveResumeController;
 use RelevantForms\Http\SubmissionHandler;
 use RelevantForms\Http\UploadController;
 use RelevantForms\Http\CloudController;
@@ -66,6 +67,7 @@ final class Plugin {
 		WPBakeryIntegration::register();
 		SubmissionHandler::register();
 		UploadController::register();
+		SaveResumeController::register();
 		CloudController::register();
 		CloudBillingController::register();
 		FormSaveController::register();
