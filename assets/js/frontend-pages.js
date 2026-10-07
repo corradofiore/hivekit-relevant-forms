@@ -210,8 +210,14 @@
 		form.addEventListener( 'change', refresh );
 
 		// After a failed submission round-trip, reopen the page that holds the
-		// first validation error.
+		// first validation error. Save and Resume links reopen the saved page.
 		var start = 0;
+		var initialPage = parseInt( form.getAttribute( 'data-rf-initial-page' ) || '0', 10 );
+
+		if ( initialPage > 1 ) {
+			start = Math.min( initialPage - 1, activePages( pages ).length - 1 );
+		}
+
 		var error = form.querySelector( '.relevant-forms-error' );
 
 		if ( error ) {

@@ -11,8 +11,10 @@ declare(strict_types=1);
 
 namespace RelevantForms\Tests\Integration;
 
+use RelevantForms\Assets\FrontendAssets;
 use RelevantForms\Entries\Entry;
 use RelevantForms\Entries\EntryRepository;
+use RelevantForms\Forms\FormRenderer;
 use RelevantForms\Forms\FormRepository;
 use RelevantForms\Forms\FormSchema;
 use RelevantForms\Http\SaveResumeController;
@@ -73,7 +75,8 @@ final class SaveResumeTest extends TestCase {
 		$this->assertNotNull( $entry->resumeEmailSentAt );
 
 		$this->assertCount( 1, $this->sent_mail );
-		$this->assertSame( [ 'save-one@example.test' ], (array) $this->sent_mail[0]['to'] );		$this->assertStringContainsString( 'Quote request', (string) $this->sent_mail[0]['subject'] );
+		$this->assertSame( [ 'save-one@example.test' ], (array) $this->sent_mail[0]['to'] );
+		$this->assertStringContainsString( 'Quote request', (string) $this->sent_mail[0]['subject'] );
 		$this->assertStringContainsString(
 			'relevant_resume=' . $response['data']['token'],
 			(string) $this->sent_mail[0]['message']
@@ -334,6 +337,129 @@ final class SaveResumeTest extends TestCase {
 	}
 
 	/**
+	 * Enabled forms render the button row, the per-form nonce and the
+	 * browser-draft configuration — and enqueue the script.
+	 */
+	public function testEnabledFormsRenderTheSaveAndResumeControls(): void {
+		FrontendAssets::registerAssets();
+
+		$formId = $this->resumableForm();
+
+		$html = FormRenderer::render( $formId );
+
+		$this->assertStringContainsString( 'data-rf-save-resume-nonce=', $html );
+		$this->assertStringContainsString( 'data-rf-drafts="1"', $html );
+		$this->assertStringContainsString( 'data-rf-resume-expiry="30"', $html );
+		$this->assertStringContainsString( 'data-rf-save-resume-row hidden', $html );
+		$this->assertStringContainsString( 'Save and Resume', $html );
+		$this->assertTrue( wp_script_is( 'relevant-forms-save-resume', 'enqueued' ) );
+	}
+
+	/**
+	 * Browser drafts can be switched off per form.
+	 */
+	public function testBrowserDraftsCanBeDisabledPerForm(): void {
+		$formId = $this->resumableForm( [], [ 'drafts_in_browser' => false ] );
+
+		$html = FormRenderer::render( $formId );
+
+		$this->assertStringContainsString( 'data-rf-drafts="0"', $html );
+	}
+
+	/**
+	 * Forms without the toggle render nothing of the feature.
+	 */
+	public function testDisabledFormsDoNotRenderTheControls(): void {
+		FrontendAssets::registerAssets();
+		wp_dequeue_script( 'relevant-forms-save-resume' );
+
+		$formId = ( new FormRepository() )->create(
+			'Plain',
+			FormSchema::empty( 'Plain' )->withFields( [ $this->nameField() ] ),
+			'published'
+		);
+
+		$html = FormRenderer::render( $formId );
+
+		$this->assertStringNotContainsString( 'data-rf-save-resume-nonce', $html );
+		$this->assertStringNotContainsString( 'data-rf-save-resume-row', $html );
+		$this->assertFalse( wp_script_is( 'relevant-forms-save-resume', 'enqueued' ) );
+	}
+
+	/**
+	 * A valid resume link restores the saved values, the token and the
+	 * wizard page, and shows the welcome-back notice.
+	 */
+	public function testAValidResumeLinkRestoresTheSavedValues(): void {
+		$this->captureMail();
+
+		$formId = $this->resumableForm(
+			[
+				[
+					'id'    => 'f_break',
+					'type'  => 'pagebreak',
+					'label' => 'More',
+				],
+				[
+					'id'    => 'f_note',
+					'type'  => 'text',
+					'label' => 'Note',
+				],
+			]
+		);
+
+		$save = $this->dispatch(
+			$formId,
+			[
+				'save_resume_email'     => 'save-eleven@example.test',
+				'save_resume_page'      => 2,
+				'relevant_field_f_name' => 'Ada Lovelace',
+			]
+		);
+
+		unset( $_POST );
+
+		$_GET['relevant_resume'] = $save['data']['token'];
+		$_GET['relevant_form']   = $formId;
+
+		$html = FormRenderer::render( $formId );
+
+		$this->assertStringContainsString( 'value="Ada Lovelace"', $html );
+		$this->assertStringContainsString( 'data-rf-resume-token="' . $save['data']['token'] . '"', $html );
+		$this->assertStringContainsString( 'data-rf-initial-page="2"', $html );
+		$this->assertStringContainsString( 'we restored the progress you saved on', $html );
+	}
+
+	/**
+	 * Unknown or expired tokens show the friendly warning without prefill.
+	 */
+	public function testUnknownResumeTokensShowTheWarning(): void {
+		$formId = $this->resumableForm();
+
+		$_GET['relevant_resume'] = str_repeat( 'a', 64 );
+		$_GET['relevant_form']   = $formId;
+
+		$html = FormRenderer::render( $formId );
+
+		$this->assertStringContainsString( 'This resume link is no longer valid', $html );
+		$this->assertStringNotContainsString( 'data-rf-resume-token', $html );
+	}
+
+	/**
+	 * A resume link for another form on the same page is ignored.
+	 */
+	public function testResumeLinksOnlyApplyToTheirOwnForm(): void {
+		$formId = $this->resumableForm();
+
+		$_GET['relevant_resume'] = str_repeat( 'b', 64 );
+		$_GET['relevant_form']   = $formId + 999;
+
+		$html = FormRenderer::render( $formId );
+
+		$this->assertStringNotContainsString( 'This resume link is no longer valid', $html );
+	}
+
+	/**
 	 * POST to the Save and Resume endpoint.
 	 *
 	 * @param int                  $formId  Form ID.
@@ -391,7 +517,7 @@ final class SaveResumeTest extends TestCase {
 	 * Tear down.
 	 */
 	public function tearDown(): void {
-		unset( $_POST );
+		unset( $_POST, $_GET['relevant_resume'], $_GET['relevant_form'] );
 
 		parent::tearDown();
 	}
