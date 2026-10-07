@@ -31,21 +31,34 @@ final class FieldSelectors {
 	public const FIELDS_PLACEHOLDER = self::FIELDS . '::placeholder';
 
 	/**
-	 * The visitor-facing text OUTSIDE the controls: field labels, radio and
-	 * checkbox option labels, help text and the display headings. The form's
-	 * "Text styles" controls target exactly these elements, while the
-	 * "Field styles" controls keep targeting the controls themselves.
+	 * Field labels — the field name above the control, plus the display
+	 * headings that read like it (section titles, content headings, page
+	 * titles, the entry-preview heading and its row labels).
 	 *
-	 * One `:is()` compound selector holds the whole list, so the top level has
-	 * no comma: the builder APIs take a single selector per control
-	 * (Elementor) and the instance scope class is prepended to it as-is.
-	 * `:is()` adopts the specificity of its strongest argument, so the rule
-	 * still beats the stylesheet's own label styles.
+	 * The three text groups below are styled independently by the builder
+	 * "Text styles" panels: a radio option must not have to look like the
+	 * field name above it.
 	 *
-	 * Deliberately excluded: error messages (they stay legible in the site's
-	 * error tone) and authored content blocks (their own HTML decides).
+	 * Each selector is a single compound selector: the list lives inside one
+	 * `:is()`, so the top level has no comma (the builder APIs take one
+	 * selector per control and the instance scope class is prepended as-is).
+	 * `:is()` adopts the specificity of its strongest argument, so the rules
+	 * still beat the stylesheet's own label styles.
 	 */
-	public const TEXT = '.relevant-forms :is(.relevant-forms-field > label, .relevant-forms-choice label, .relevant-forms-help, .relevant-forms-section-title, .relevant-forms-content-title, .relevant-forms-page-title, .relevant-forms-page-indicator, .relevant-forms-preview-heading, .relevant-forms-preview-label, .relevant-forms-preview-empty)';
+	public const LABELS = '.relevant-forms :is(.relevant-forms-field > label, .relevant-forms-section-title, .relevant-forms-content-title, .relevant-forms-page-title, .relevant-forms-preview-heading, .relevant-forms-preview-label)';
+
+	/**
+	 * Captions: the supporting text under a field (help text), the wizard's
+	 * step indicator and the entry-preview's empty state. Deliberately
+	 * excluded: error messages (they keep the site's error tone) and authored
+	 * content blocks (their own HTML decides).
+	 */
+	public const CAPTIONS = '.relevant-forms :is(.relevant-forms-help, .relevant-forms-page-indicator, .relevant-forms-preview-empty)';
+
+	/**
+	 * Option labels: the text beside each radio, checkbox and consent box.
+	 */
+	public const OPTIONS = '.relevant-forms .relevant-forms-choice label';
 
 	/**
 	 * The form's buttons: the submit button plus the multi-page wizard's

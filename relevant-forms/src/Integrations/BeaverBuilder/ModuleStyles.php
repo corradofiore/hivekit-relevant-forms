@@ -45,15 +45,23 @@ final class ModuleStyles {
 		return [
 			'title'    => esc_html__( 'Style', 'relevant-forms' ),
 			'sections' => [
-				'field_styles'  => [
+				'field_styles'   => [
 					'title'  => esc_html__( 'Field styles', 'relevant-forms' ),
 					'fields' => self::fields(),
 				],
-				'text_styles'   => [
-					'title'  => esc_html__( 'Text styles', 'relevant-forms' ),
-					'fields' => self::textFields(),
+				'label_styles'   => [
+					'title'  => esc_html__( 'Field labels', 'relevant-forms' ),
+					'fields' => self::textFields( 'label' ),
 				],
-				'button_styles' => [
+				'caption_styles' => [
+					'title'  => esc_html__( 'Field captions', 'relevant-forms' ),
+					'fields' => self::textFields( 'caption' ),
+				],
+				'option_styles'  => [
+					'title'  => esc_html__( 'Option labels', 'relevant-forms' ),
+					'fields' => self::textFields( 'option' ),
+				],
+				'button_styles'  => [
 					'title'  => esc_html__( 'Button styles', 'relevant-forms' ),
 					'fields' => self::buttonFields(),
 				],
@@ -164,17 +172,19 @@ final class ModuleStyles {
 	}
 
 	/**
-	 * All settings fields for the "Text styles" section: the form's own text
-	 * — field labels, option labels, help text and the display headings — as
-	 * opposed to the controls styled by the "Field styles" section.
+	 * All settings fields for one text group: the field labels, the captions
+	 * under them or the option labels beside radio/checkbox boxes. The three
+	 * groups are styled independently — an option does not have to look like
+	 * the field name above it.
 	 *
+	 * @param string $group Group key: 'label', 'caption' or 'option'.
 	 * @return array<string, array<string, mixed>> Settings fields.
 	 */
-	private static function textFields(): array {
+	private static function textFields( string $group ): array {
 		$refresh = [ 'preview' => [ 'type' => 'refresh' ] ];
 
 		return [
-			'text_color'  => $refresh + [
+			$group . '_color'  => $refresh + [
 				'type'        => 'color',
 				'label'       => esc_html__( 'Text color', 'relevant-forms' ),
 				'default'     => '',
@@ -182,13 +192,13 @@ final class ModuleStyles {
 				'show_alpha'  => true,
 				'connections' => [ 'color' ],
 			],
-			'text_size'   => $refresh + [
+			$group . '_size'   => $refresh + [
 				'type'    => 'unit',
 				'label'   => esc_html__( 'Font size', 'relevant-forms' ),
 				'default' => '',
 				'units'   => self::TEXT_UNITS,
 			],
-			'text_weight' => $refresh + [
+			$group . '_weight' => $refresh + [
 				'type'    => 'select',
 				'label'   => esc_html__( 'Font weight', 'relevant-forms' ),
 				'default' => '',
@@ -322,18 +332,35 @@ final class ModuleStyles {
 			]
 		);
 
-		// The text outside the controls: labels, option labels, help text and
-		// the display headings (module-level text controls are not offered).
+		// The text outside the controls, styled per group: field labels,
+		// captions and option labels are independent (module-level text
+		// controls are not offered).
 		$css .= TextStyleCss::css(
-			$scope . ' ' . FieldSelectors::TEXT,
+			$scope,
 			[
-				'color'  => self::color( $values, 'text_color' ),
-				'size'   => self::length( $values, 'text_size', 'px', self::TEXT_UNITS ),
-				'weight' => trim( (string) ( $values['text_weight'] ?? '' ) ),
+				FieldSelectors::LABELS   => self::textGroup( $values, 'label' ),
+				FieldSelectors::CAPTIONS => self::textGroup( $values, 'caption' ),
+				FieldSelectors::OPTIONS  => self::textGroup( $values, 'option' ),
 			]
 		);
 
 		return $css;
+	}
+
+	/**
+	 * One text group's values from the module settings.
+	 *
+	 * @param array<string, mixed> $values Module settings as an array.
+	 * @param string               $group  Group key: 'label', 'caption' or 'option'.
+	 * @return array<string, string> Values for TextStyleCss.
+	 */
+	private static function textGroup( array $values, string $group ): array {
+		return [
+			'color'  => self::color( $values, $group . '_color' ),
+			// The unit lives in a separate setting ("{$key}_unit").
+			'size'   => self::length( $values, $group . '_size', 'px', self::TEXT_UNITS ),
+			'weight' => trim( (string) ( $values[ $group . '_weight' ] ?? '' ) ),
+		];
 	}
 
 	/**

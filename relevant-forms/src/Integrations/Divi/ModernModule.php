@@ -16,6 +16,7 @@ namespace RelevantForms\Integrations\Divi;
 
 use RelevantForms\Forms\FormRenderer;
 use RelevantForms\Integrations\Support\ButtonStyleCss;
+use RelevantForms\Integrations\Support\FieldSelectors;
 use RelevantForms\Integrations\Support\TextStyleCss;
 
 // Defence in depth: the autoloader may reach this file on sites without Divi 5.
@@ -83,9 +84,9 @@ final class ModernModule implements \ET\Builder\Framework\DependencyManagement\I
 			return '';
 		}
 
-		$form_html         = ButtonStyleCss::scopedHtml( $form_html, self::buttonValues( $parsed_attrs ), 'rf-divi-' );
-				$form_html = TextStyleCss::scopedHtml( $form_html, self::textValues( $parsed_attrs ), 'rf-divi-' );
-		$module_inner      = sprintf(
+		$form_html    = ButtonStyleCss::scopedHtml( $form_html, self::buttonValues( $parsed_attrs ), 'rf-divi-' );
+		$form_html    = TextStyleCss::scopedHtml( $form_html, self::textGroups( $parsed_attrs ), 'rf-divi-' );
+		$module_inner = sprintf(
 			'<div class="et_pb_module_inner">%s</div>',
 			$form_html
 		);
@@ -133,24 +134,33 @@ final class ModernModule implements \ET\Builder\Framework\DependencyManagement\I
 	}
 
 	/**
-	 * The text style values from the module attributes (color, font size and
-	 * font weight of the text outside the controls).
+	 * The three text groups from the module attributes: field labels,
+	 * captions and option labels, each with color, font size and font weight.
+	 * The builder stores every attribute mode-wrapped (the same shape as
+	 * formId), so the desktop value is read here.
 	 *
 	 * @param array<string, mixed> $attrs Module attributes.
-	 * @return array<string, string> Values for TextStyleCss.
+	 * @return array<string, array<string, string>> Values per group.
 	 */
-	public static function textValues( array $attrs ): array {
+	public static function textGroups( array $attrs ): array {
+		$groups = [
+			'label'   => FieldSelectors::LABELS,
+			'caption' => FieldSelectors::CAPTIONS,
+			'option'  => FieldSelectors::OPTIONS,
+		];
+
 		$values = [];
 
-		foreach (
-			[
-				'color'  => 'textColor',
-				'size'   => 'textSize',
-				'weight' => 'textWeight',
-			] as $key => $attr
-		) {
-			$value          = $attrs[ $attr ]['desktop']['value'] ?? '';
-			$values[ $key ] = is_scalar( $value ) ? (string) $value : '';
+		foreach ( $groups as $group => $selector ) {
+			$flat = [];
+
+			foreach ( [ 'Color', 'Size', 'Weight' ] as $suffix ) {
+				$value = $attrs[ $group . $suffix ]['desktop']['value'] ?? '';
+
+				$flat[ strtolower( $suffix ) ] = is_scalar( $value ) ? (string) $value : '';
+			}
+
+			$values[ $selector ] = $flat;
 		}
 
 		return $values;
@@ -300,7 +310,9 @@ final class ModernModule implements \ET\Builder\Framework\DependencyManagement\I
 				'paddingPlaceholder' => __( 'e.g. 12px 24px', 'relevant-forms' ),
 			],
 			'textSettings'   => [
-				'label'           => __( 'Text styles', 'relevant-forms' ),
+				'label'           => __( 'Field labels', 'relevant-forms' ),
+				'caption'         => __( 'Field captions', 'relevant-forms' ),
+				'option'          => __( 'Option labels', 'relevant-forms' ),
 				'color'           => __( 'Text color', 'relevant-forms' ),
 				'size'            => __( 'Font size', 'relevant-forms' ),
 				'sizePlaceholder' => __( 'e.g. 18px', 'relevant-forms' ),

@@ -19,6 +19,7 @@ namespace RelevantForms\Integrations\Divi;
 
 use RelevantForms\Forms\FormRenderer;
 use RelevantForms\Integrations\Support\ButtonStyleCss;
+use RelevantForms\Integrations\Support\FieldSelectors;
 use RelevantForms\Integrations\Support\FormChoices;
 use RelevantForms\Integrations\Support\TextStyleCss;
 
@@ -179,10 +180,40 @@ final class DiviIntegration {
 			$raw_texts = isset( $_POST['texts'] ) && is_string( $_POST['texts'] ) ? wp_unslash( $_POST['texts'] ) : '';
 
 			$html = ButtonStyleCss::scopedHtml( $html, self::previewStyleValues( $raw_buttons, [ 'background', 'text', 'radius', 'padding' ] ), 'rf-divi-' );
-			$html = TextStyleCss::scopedHtml( $html, self::previewStyleValues( $raw_texts, [ 'color', 'size', 'weight' ] ), 'rf-divi-' );
+			$html = TextStyleCss::scopedHtml( $html, self::previewTextGroups( $raw_texts ), 'rf-divi-' );
 		}
 
 		wp_send_json_success( $html );
+	}
+
+	/**
+	 * The three text groups posted by the Visual Builder preview component as
+	 * JSON: field labels, captions and option labels, each with color, size
+	 * and weight. Unknown shapes resolve to empty strings, so a tampered
+	 * payload simply previews an unstyled module.
+	 *
+	 * @param string $raw JSON payload ('' when the component sent none).
+	 * @return array<string, array<string, string>> Values per group.
+	 */
+	private static function previewTextGroups( string $raw ): array {
+		$data = '' === $raw ? [] : json_decode( $raw, true );
+		$data = is_array( $data ) ? $data : [];
+
+		$groups = [
+			'label'   => FieldSelectors::LABELS,
+			'caption' => FieldSelectors::CAPTIONS,
+			'option'  => FieldSelectors::OPTIONS,
+		];
+
+		$values = [];
+
+		foreach ( $groups as $group => $selector ) {
+			$rawGroup = is_array( $data[ $group ] ?? null ) ? $data[ $group ] : [];
+
+			$values[ $selector ] = self::previewStyleValues( (string) wp_json_encode( $rawGroup ), [ 'color', 'size', 'weight' ] );
+		}
+
+		return $values;
 	}
 
 	/**

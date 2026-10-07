@@ -101,15 +101,39 @@
 			"type": "string",
 			"default": ""
 		},
-		"textColor": {
+		"labelColor": {
 			"type": "string",
 			"default": ""
 		},
-		"textSize": {
+		"labelSize": {
 			"type": "string",
 			"default": ""
 		},
-		"textWeight": {
+		"labelWeight": {
+			"type": "string",
+			"default": ""
+		},
+		"captionColor": {
+			"type": "string",
+			"default": ""
+		},
+		"captionSize": {
+			"type": "string",
+			"default": ""
+		},
+		"captionWeight": {
+			"type": "string",
+			"default": ""
+		},
+		"optionColor": {
+			"type": "string",
+			"default": ""
+		},
+		"optionSize": {
+			"type": "string",
+			"default": ""
+		},
+		"optionWeight": {
 			"type": "string",
 			"default": ""
 		}

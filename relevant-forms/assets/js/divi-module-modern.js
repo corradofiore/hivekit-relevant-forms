@@ -104,6 +104,28 @@
 	}
 
 	/**
+	 * The three text groups (labels, captions, option labels) resolved from
+	 * the module attributes, keyed by group so the preview payload and the
+	 * server-side values agree.
+	 *
+	 * @param {Object} attrs Module attributes.
+	 * @return {Object} Group => { color, size, weight }.
+	 */
+	function textGroups( attrs ) {
+		var groups = {};
+
+		[ 'label', 'caption', 'option' ].forEach( function ( group ) {
+			groups[ group ] = {
+				color: modeValue( attrs[ group + 'Color' ] ),
+				size: modeValue( attrs[ group + 'Size' ] ),
+				weight: modeValue( attrs[ group + 'Weight' ] )
+			};
+		} );
+
+		return groups;
+	}
+
+	/**
 	 * Resolve one module attribute to a plain string ('' when unset).
 	 *
 	 * @param {Object} attr Raw mode-wrapped attribute.
@@ -203,11 +225,7 @@
 			radius: modeValue( props.attrs.buttonRadius ),
 			padding: modeValue( props.attrs.buttonPadding )
 		};
-		var textValues = {
-			color: modeValue( props.attrs.textColor ),
-			size: modeValue( props.attrs.textSize ),
-			weight: modeValue( props.attrs.textWeight )
-		};
+		var textValues = textGroups( props.attrs );
 		var state = usePreviewFetch( formId, buttonValues, textValues );
 		var previewRef = useRef( null );
 
@@ -343,20 +361,64 @@
 			),
 			React.createElement(
 				divi.module.GroupContainer,
-				extend( {}, props, { id: 'textSettings', title: textLabels.label } ),
+				extend( {}, props, { id: 'labelSettings', title: textLabels.label } ),
 				React.createElement(
 					divi.module.FieldContainer,
-					extend( {}, props, { attrName: 'textColor', label: textLabels.color } ),
+					extend( {}, props, { attrName: 'labelColor', label: textLabels.color } ),
 					React.createElement( divi.fieldLibrary.ColorPicker, {} )
 				),
 				React.createElement(
 					divi.module.FieldContainer,
-					extend( {}, props, { attrName: 'textSize', label: textLabels.size } ),
+					extend( {}, props, { attrName: 'labelSize', label: textLabels.size } ),
 					React.createElement( divi.fieldLibrary.Text, { placeholder: textLabels.sizePlaceholder } )
 				),
 				React.createElement(
 					divi.module.FieldContainer,
-					extend( {}, props, { attrName: 'textWeight', label: textLabels.weight } ),
+					extend( {}, props, { attrName: 'labelWeight', label: textLabels.weight } ),
+					React.createElement( divi.fieldLibrary.Select, {
+						options: textLabels.weights || {},
+						emptyLabel: textLabels.weightDefault
+					} )
+				)
+			),
+			React.createElement(
+				divi.module.GroupContainer,
+				extend( {}, props, { id: 'captionSettings', title: textLabels.caption } ),
+				React.createElement(
+					divi.module.FieldContainer,
+					extend( {}, props, { attrName: 'captionColor', label: textLabels.color } ),
+					React.createElement( divi.fieldLibrary.ColorPicker, {} )
+				),
+				React.createElement(
+					divi.module.FieldContainer,
+					extend( {}, props, { attrName: 'captionSize', label: textLabels.size } ),
+					React.createElement( divi.fieldLibrary.Text, { placeholder: textLabels.sizePlaceholder } )
+				),
+				React.createElement(
+					divi.module.FieldContainer,
+					extend( {}, props, { attrName: 'captionWeight', label: textLabels.weight } ),
+					React.createElement( divi.fieldLibrary.Select, {
+						options: textLabels.weights || {},
+						emptyLabel: textLabels.weightDefault
+					} )
+				)
+			),
+			React.createElement(
+				divi.module.GroupContainer,
+				extend( {}, props, { id: 'optionSettings', title: textLabels.option } ),
+				React.createElement(
+					divi.module.FieldContainer,
+					extend( {}, props, { attrName: 'optionColor', label: textLabels.color } ),
+					React.createElement( divi.fieldLibrary.ColorPicker, {} )
+				),
+				React.createElement(
+					divi.module.FieldContainer,
+					extend( {}, props, { attrName: 'optionSize', label: textLabels.size } ),
+					React.createElement( divi.fieldLibrary.Text, { placeholder: textLabels.sizePlaceholder } )
+				),
+				React.createElement(
+					divi.module.FieldContainer,
+					extend( {}, props, { attrName: 'optionWeight', label: textLabels.weight } ),
 					React.createElement( divi.fieldLibrary.Select, {
 						options: textLabels.weights || {},
 						emptyLabel: textLabels.weightDefault
@@ -466,9 +528,15 @@
 			buttonText:    { type: 'string', default: '' },
 			buttonRadius:  { type: 'string', default: '' },
 			buttonPadding: { type: 'string', default: '' },
-			textColor:     { type: 'string', default: '' },
-			textSize:      { type: 'string', default: '' },
-			textWeight:    { type: 'string', default: '' }
+			labelColor:    { type: 'string', default: '' },
+			labelSize:     { type: 'string', default: '' },
+			labelWeight:   { type: 'string', default: '' },
+			captionColor:  { type: 'string', default: '' },
+			captionSize:   { type: 'string', default: '' },
+			captionWeight: { type: 'string', default: '' },
+			optionColor:   { type: 'string', default: '' },
+			optionSize:    { type: 'string', default: '' },
+			optionWeight:  { type: 'string', default: '' }
 		},
 		customCssFields: {},
 		settings: { design: 'auto', advanced: 'auto' }

@@ -37,6 +37,39 @@ final class StyleCss {
 
 	/**
 	 * Wrap rendered form markup in a deterministic scope class with one rule
+	 * per selector. Identical values share one scope, and unstyled forms pass
+	 * through unchanged — identical markup to the shortcode.
+	 *
+	 * @param string                       $html   Rendered form markup.
+	 * @param array<string, list<string>>  $rules  Selector => sanitized declarations.
+	 * @param array<string, mixed>         $values Raw control values (they decide the scope class).
+	 * @param string                       $prefix Scope class prefix (e.g. "rf-bb-").
+	 * @return string Wrapped markup (or the untouched markup).
+	 */
+	public static function scopedRules( string $html, array $rules, array $values, string $prefix ): string {
+		if ( '' === $html ) {
+			return $html;
+		}
+
+		ksort( $values );
+
+		$scope = $prefix . substr( md5( (string) wp_json_encode( $values ) ), 0, 12 );
+		$css   = '';
+
+		foreach ( $rules as $selector => $declarations ) {
+			$css .= self::rule( '.' . $scope . ' ' . (string) $selector, $declarations );
+		}
+
+		if ( '' === $css ) {
+			return $html;
+		}
+
+		return '<style>' . $css . '</style>'
+			. '<div class="' . esc_attr( $scope ) . '">' . $html . '</div>';
+	}
+
+	/**
+	 * Wrap rendered form markup in a deterministic scope class with one rule
 	 * for the given selector. Identical values share one scope, and unstyled
 	 * forms pass through unchanged — identical markup to the shortcode.
 	 *
@@ -48,21 +81,7 @@ final class StyleCss {
 	 * @return string Wrapped markup (or the untouched markup).
 	 */
 	public static function scopedHtml( string $html, string $selector, array $declarations, array $values, string $prefix ): string {
-		if ( '' === $html ) {
-			return $html;
-		}
-
-		ksort( $values );
-
-		$scope = $prefix . substr( md5( (string) wp_json_encode( $values ) ), 0, 12 );
-		$css   = self::rule( '.' . $scope . ' ' . $selector, $declarations );
-
-		if ( '' === $css ) {
-			return $html;
-		}
-
-		return '<style>' . $css . '</style>'
-			. '<div class="' . esc_attr( $scope ) . '">' . $html . '</div>';
+		return self::scopedRules( $html, [ $selector => $declarations ], $values, $prefix );
 	}
 
 	/**

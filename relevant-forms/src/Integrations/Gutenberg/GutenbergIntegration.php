@@ -13,6 +13,7 @@ namespace RelevantForms\Integrations\Gutenberg;
 use RelevantForms\Assets\FrontendAssets;
 use RelevantForms\Forms\FormRenderer;
 use RelevantForms\Integrations\Support\ButtonStyleCss;
+use RelevantForms\Integrations\Support\FieldSelectors;
 use RelevantForms\Integrations\Support\FormChoices;
 use RelevantForms\Integrations\Support\TextStyleCss;
 
@@ -98,19 +99,43 @@ final class GutenbergIntegration {
 					],
 
 					/*
-					 * The text outside the controls (labels, option labels, help text,
-					 * display headings). Prefixed deliberately: core's color support
-					 * already owns `textColor`.
+					 * The text outside the controls, one flat value per text group
+					 * (labels, captions, option labels). Prefixed deliberately: core's
+					 * color support already owns `textColor`.
 					 */
-					'textStyleColor'  => [
+					'labelColor'      => [
 						'type'    => 'string',
 						'default' => '',
 					],
-					'textStyleSize'   => [
+					'labelSize'       => [
 						'type'    => 'string',
 						'default' => '',
 					],
-					'textStyleWeight' => [
+					'labelWeight'     => [
+						'type'    => 'string',
+						'default' => '',
+					],
+					'captionColor'    => [
+						'type'    => 'string',
+						'default' => '',
+					],
+					'captionSize'     => [
+						'type'    => 'string',
+						'default' => '',
+					],
+					'captionWeight'   => [
+						'type'    => 'string',
+						'default' => '',
+					],
+					'optionColor'     => [
+						'type'    => 'string',
+						'default' => '',
+					],
+					'optionSize'      => [
+						'type'    => 'string',
+						'default' => '',
+					],
+					'optionWeight'    => [
 						'type'    => 'string',
 						'default' => '',
 					],
@@ -164,7 +189,7 @@ final class GutenbergIntegration {
 		}
 
 		$html = ButtonStyleCss::scopedHtml( $html, self::buttonValues( $attributes ), 'rf-gb-' );
-		$html = TextStyleCss::scopedHtml( $html, self::textStyleValues( $attributes ), 'rf-gb-' );
+		$html = TextStyleCss::scopedHtml( $html, self::textGroups( $attributes ), 'rf-gb-' );
 
 		return sprintf(
 			'<div %1$s>%2$s</div>',
@@ -174,23 +199,30 @@ final class GutenbergIntegration {
 	}
 
 	/**
-	 * The text style control values from the block attributes, normalized for
-	 * TextStyleCss.
+	 * The three text groups from the block attributes: field labels,
+	 * captions and option labels, each with color, size and weight.
 	 *
 	 * @param array<string, mixed> $attributes Block attributes.
-	 * @return array<string, string> Style values.
+	 * @return array<string, array<string, string>> Values per group.
 	 */
-	private static function textStyleValues( array $attributes ): array {
+	private static function textGroups( array $attributes ): array {
+		$groups = [
+			'label'   => FieldSelectors::LABELS,
+			'caption' => FieldSelectors::CAPTIONS,
+			'option'  => FieldSelectors::OPTIONS,
+		];
+
 		$values = [];
 
-		foreach (
-			[
-				'color'  => 'textStyleColor',
-				'size'   => 'textStyleSize',
-				'weight' => 'textStyleWeight',
-			] as $key => $attribute
-		) {
-			$values[ $key ] = is_string( $attributes[ $attribute ] ?? null ) ? $attributes[ $attribute ] : '';
+		foreach ( $groups as $group => $selector ) {
+			$values[ $selector ] = TextStyleCss::group(
+				$attributes,
+				[
+					'color'  => $group . 'Color',
+					'size'   => $group . 'Size',
+					'weight' => $group . 'Weight',
+				]
+			);
 		}
 
 		return $values;
