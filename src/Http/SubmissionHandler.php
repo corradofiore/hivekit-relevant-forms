@@ -386,6 +386,8 @@ final class SubmissionHandler {
 				$entryId = (int) $partial->id;
 
 				EventRecorder::record( $entryId, 'resume_completed', [ 'form_id' => $form->id ] );
+
+				do_action( 'relevant_forms_resume_completed', $entryId, $form );
 			} else {
 				$entry = new Entry(
 					null,

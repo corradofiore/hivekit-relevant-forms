@@ -71,6 +71,10 @@ Relevant Cloud can provide managed private object storage for form uploads:
 
 Storage credentials and presigned URLs are never issued to the site or the visitor's browser.
 
+= Let visitors save their progress =
+
+Long forms lose submissions. Save and Resume can be enabled per form: a button under the form stores the answers so far as a partial entry and emails the visitor a personal link that restores everything — including the step they were on. While typing, a draft is also kept in the visitor's own browser, so even a closed tab does not mean starting over; that draft never leaves the device. File uploads are not kept and are re-attached after resuming. Partial entries are listed in the Entries inbox, can be re-emailed from the entry screen, and are deleted automatically once their link expires.
+
 = Privacy and control =
 
 External processing is optional. Core does not send form submissions to Relevant Cloud merely because the plugin is installed or activated: an administrator must connect the site and explicitly enable each capability. Redaction (emails, phone numbers, IP addresses, URL paths) is applied by default, per form, before semantic classification. Administrators can disconnect Relevant Cloud at any time without disabling Core forms.
@@ -157,6 +161,10 @@ element) and WPBakery (a "Relevant Form" element) — each lets you pick your
 form from a dropdown and renders it exactly like the shortcode. On any other
 builder, paste [relevant_form id="123"] into a Code, Text or HTML element.
 
+= How does Save and Resume work? =
+
+Administrators enable it per form (Form settings → Save and Resume). Visitors then see a "Save and Resume" button: clicking it asks for an email address and sends a link that restores their answers, including the step they were on, for the number of days configured on the form (30 by default). The answers are stored as a partial entry until the visitor finishes or the link expires — expired saves are deleted automatically. Independently, a draft of what has been typed is kept in the visitor's own browser, so returning to the page restores it automatically; that draft never leaves the device and is discarded on submit or via "Start fresh".
+
 = Can I migrate from WPForms? =
 
 Relevant Forms can scan and import supported WPForms configurations as drafts without deleting or modifying the source forms. Compatibility varies by field type and integration; the scanner reports what will be imported and what will be skipped before migration.
@@ -172,6 +180,7 @@ Relevant Forms is an independent product and is not affiliated with or endorsed 
 * Uploads: local private quarantine with strict validation and a scan-before-download policy.
 * Migration: WPForms compatibility scanner and draft importer (field types including page breaks, dividers, entry previews, content blocks and custom HTML code blocks, notifications, confirmations and conditional logic converted to visibility rules), plus a Tier 1 hook compatibility layer that runs only while WPForms itself is not active. Imported forms keep the original WPForms form ID, so integrations with per-form mappings — e.g. Newsletter subscription sources — keep working after the switch.
 * Payments: Stripe Connect card payments (fixed items, priced choices, donation-style amounts, live total), hosted Stripe Checkout on the site owner's own Stripe account, 2% platform fee, admin refunds and WPForms payment-field import with amounts preserved.
+* Save and Resume (per form): visitors can store partial progress and receive an emailed link that restores their answers and the step they were on; a browser-local draft keeps progress across visits without leaving the device. Uploads are not kept, partial entries appear in the Entries inbox with their own status, can be re-emailed from the entry screen, and expire automatically.
 * Optional Relevant Cloud: explicit consent connection flow, semantic classification with redaction, priority SMS alerts, managed secure uploads, usage metering and per-site subscriptions with hosted checkout. Notification sender, AI guidance (purpose, priorities, unwanted enquiries, privacy mode) and the priority SMS recipient are configured per form in the form editor.
 * Privacy: no external calls before explicit configuration; the plugin is fully functional without Relevant Cloud.
 
