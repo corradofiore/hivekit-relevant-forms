@@ -136,4 +136,33 @@ final class ElementorIntegrationTest extends TestCase {
 		$this->assertStringContainsString( 'button_radius', $file );
 		$this->assertStringContainsString( 'button_padding', $file );
 	}
+
+	/**
+	 * The widget declares a "Text styles" section for the text outside the
+	 * controls — labels, option labels, help text and display headings —
+	 * with its own color control and typography group, so the surrounding
+	 * text is styled separately from the fields.
+	 */
+	public function testTheWidgetDeclaresTextStyleControls(): void {
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Reading a local file, not a remote URL.
+		$file = file_get_contents( RELEVANT_FORMS_PATH . 'src/Integrations/Elementor/FormWidget.php' );
+
+		$this->assertIsString( $file );
+		$this->assertStringContainsString( "'Text styles'", $file );
+		$this->assertStringContainsString( 'FieldSelectors::TEXT', $file );
+		$this->assertStringContainsString( 'relevant_form_text_style', $file );
+		$this->assertStringContainsString( 'register_text_style_controls', $file );
+		$this->assertStringContainsString( 'text_style_color', $file );
+		$this->assertStringContainsString( 'text_style_typography', $file );
+
+		// Registered between the field and button sections.
+		$this->assertLessThan(
+			(int) strpos( $file, 'register_button_style_controls();' ),
+			(int) strpos( $file, 'register_text_style_controls();' )
+		);
+		$this->assertGreaterThan(
+			(int) strpos( $file, 'register_field_style_controls();' ),
+			(int) strpos( $file, 'register_text_style_controls();' )
+		);
+	}
 }

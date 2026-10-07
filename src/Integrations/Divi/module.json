@@ -100,6 +100,18 @@
 		"buttonPadding": {
 			"type": "string",
 			"default": ""
+		},
+		"textColor": {
+			"type": "string",
+			"default": ""
+		},
+		"textSize": {
+			"type": "string",
+			"default": ""
+		},
+		"textWeight": {
+			"type": "string",
+			"default": ""
 		}
 	},
 	"customCssFields": {},
