@@ -165,11 +165,12 @@ element) and WPBakery (a "Relevant Form" element) — each lets you pick your
 form from a dropdown and renders it exactly like the shortcode. On any other
 builder, paste [relevant_form id="123"] into a Code, Text or HTML element.
 
-The integrations style the form in three independent places: the builder's own
-text controls style the fields themselves, a "Text styles" panel styles the text
-around them (field labels, radio and checkbox option labels, help text and the
-display headings) and a "Button styles" panel styles the submit and wizard
-buttons. Any of them can be cleared to keep the theme's own styling.
+The integrations style the form in independent places: the builder's own text
+controls style the fields themselves; the "Field labels", "Field captions" and
+"Option labels" panels style the text around them separately, so a radio option
+does not have to look like the field name above it; and the "Button styles"
+panel styles the submit and wizard buttons. Clearing a control keeps the theme's
+own typography for that element.
 
 = How does Save and Resume work? =
 
@@ -198,11 +199,13 @@ nothing is posted, so no entry, notification, payment or alert is created.
 Uploads and browser drafts stay off, custom HTML blocks are sanitized so author
 scripts never run inside wp-admin, and the preview refreshes in place after a
 save.
-* Builders: a "Text styles" panel in the Divi 5, Elementor, Beaver Builder and
-block-editor integrations styles the text outside the controls — field labels,
-radio and checkbox option labels, help text and the display headings —
-separately from the builder's own text controls, which keep styling the fields
-themselves.
+* Builders: the Divi 5, Elementor, Beaver Builder and block-editor integrations
+style the form in independent panels. The builder's own text controls style the
+fields; "Field labels", "Field captions" and "Option labels" style the text
+around them separately — text color, font size and font weight each — so a radio
+option does not have to look like the field name above it; "Button styles"
+styles the submit and wizard buttons. Clearing a control keeps the theme's own
+styling for that element.
 * Optional Relevant Cloud: explicit consent connection flow, semantic classification with redaction, priority SMS alerts, managed secure uploads, usage metering and per-site subscriptions with hosted checkout. Notification sender, AI guidance (purpose, priorities, unwanted enquiries, privacy mode) and the priority SMS recipient are configured per form in the form editor.
 * Privacy: no external calls before explicit configuration; the plugin is fully functional without Relevant Cloud.
 
