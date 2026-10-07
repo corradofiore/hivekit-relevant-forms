@@ -15,6 +15,7 @@ use RelevantForms\Admin\Controllers\ApiStatusController;
 use RelevantForms\Admin\Controllers\EntryCorrectionController;
 use RelevantForms\Admin\Controllers\EntryStatusController;
 use RelevantForms\Admin\Controllers\FormActionController;
+use RelevantForms\Admin\Controllers\FormPreviewController;
 use RelevantForms\Admin\Controllers\FormSaveController;
 use RelevantForms\Admin\Controllers\ImportController;
 use RelevantForms\Admin\Controllers\LogsController;
@@ -74,6 +75,7 @@ final class Plugin {
 		CloudBillingController::register();
 		FormSaveController::register();
 		FormActionController::register();
+		FormPreviewController::register();
 		LogsController::register();
 		EntryStatusController::register();
 		EntryCorrectionController::register();

@@ -63,35 +63,57 @@ final class FormRenderer {
 	 * submission feedback of the current request (if any), so a failed
 	 * in-page POST shows validation errors inline.
 	 *
-	 * @param Form                         $form   Form to render.
-	 * @param array<string, string>|null   $errors Validation errors keyed by field id.
-	 * @param array<string, mixed>|null    $values Previously submitted values.
+	 * @param Form                         $form    Form to render.
+	 * @param array<string, string>|null   $errors  Validation errors keyed by field id.
+	 * @param array<string, mixed>|null    $values  Previously submitted values.
+	 * @param bool                         $preview Render for the admin form preview: the
+	 *                                              markup matches the live form but carries no
+	 *                                              submission wiring (no upload tokens, no Save
+	 *                                              and Resume, no feedback from the request) and
+	 *                                              uses its own control ids.
 	 */
-	public static function renderForm( Form $form, ?array $errors = null, ?array $values = null ): string {
-		do_action( 'relevant_forms_before_form_output', $form );
+	public static function renderForm( Form $form, ?array $errors = null, ?array $values = null, bool $preview = false ): string {
+		// Front-end integrations hook this to render alongside the live form;
+		// the editor preview leaves them out rather than running visitor-side
+		// code inside wp-admin.
+		if ( ! $preview ) {
+			do_action( 'relevant_forms_before_form_output', $form );
+		}
 
 		$hasFeedback = null !== $errors || null !== $values;
 
-		if ( null === $errors ) {
+		if ( ! $preview && null === $errors ) {
 			$errors = SubmissionFeedback::errors( (int) $form->id );
 		}
 
-		if ( null === $values ) {
+		if ( ! $preview && null === $values ) {
 			$values = SubmissionFeedback::values( (int) $form->id );
+		}
+
+		// A preview has no submission behind it: the fields render their
+		// stored defaults, without errors or entered values.
+		if ( $preview ) {
+			$errors ??= [];
+			$values ??= [];
 		}
 
 		// Save and Resume: resolve a resume link and restore the saved values
 		// — unless this request already carries submission feedback (a failed
-		// POST is the most recent input and wins).
+		// POST is the most recent input and wins). The preview never saves or
+		// restores progress.
 		$resumeConfig = $form->schema->saveResume();
-		$saveResumeOn = (bool) apply_filters( 'relevant_forms_save_resume_enabled', $resumeConfig['enabled'], $form );
+		$saveResumeOn = ! $preview && (bool) apply_filters( 'relevant_forms_save_resume_enabled', $resumeConfig['enabled'], $form );
 		$resume       = $saveResumeOn ? ResumeRequest::resolve( $form ) : [ 'status' => 'none' ];
 
 		if ( ! $hasFeedback && 'resolved' === $resume['status'] && is_array( $resume['values'] ?? null ) ) {
 			$values = $resume['values'];
 		}
 
-		wp_enqueue_style( 'relevant-forms' );
+		if ( ! $preview ) {
+			// The admin form preview lives on a screen that already loads the
+			// front-end stylesheet, so enqueuing it again would print a copy.
+			wp_enqueue_style( 'relevant-forms' );
+		}
 
 		// The first field is always shown: rules can only depend on fields
 		// above, and nothing sits above the first field. Stored rules
@@ -162,8 +184,8 @@ final class FormRenderer {
 		}
 
 		$output   = [];
-		$output[] = self::successMessage( $form );
-		$output[] = self::paymentNotice( $form );
+		$output[] = $preview ? '' : self::successMessage( $form );
+		$output[] = $preview ? '' : self::paymentNotice( $form );
 		// Empty action: the browser posts to this very page, where the
 		// front-end submission handler renders errors inline and redirects
 		// after success — user pages never post to wp-admin.
@@ -176,6 +198,11 @@ final class FormRenderer {
 				/* translators: 1: current page number, 2: total number of pages. */
 				esc_attr__( 'Step %1$d of %2$d', 'relevant-forms' )
 			);
+		// The preview carries no upload token: the front-end upload script only
+		// binds to forms that have one, so nothing can be uploaded from it.
+		$uploadAttr = $preview
+			? ''
+			: sprintf( ' data-upload-nonce="%s"', esc_attr( wp_create_nonce( 'relevant_upload_' . $form->id ) ) );
 		$resumeAttr = '';
 
 		if ( $saveResumeOn ) {
@@ -197,12 +224,19 @@ final class FormRenderer {
 			}
 		}
 
+		// Distinct control ids in the preview: the editor renders per-field
+		// samples of the same fields with the real form id, and duplicate ids
+		// would break their labels.
+		$renderId = $preview ? $form->id . '-preview' : (string) $form->id;
+
 		$output[] = sprintf(
-			'<form class="relevant-forms" data-form-id="%d" data-upload-nonce="%s"%s%s method="post" action="" novalidate>',
+			'<form class="%1$s" data-form-id="%2$d"%3$s%4$s%5$s%6$s method="post" action="" novalidate>',
+			$preview ? 'relevant-forms relevant-forms--preview' : 'relevant-forms',
 			$form->id,
-			esc_attr( wp_create_nonce( 'relevant_upload_' . $form->id ) ),
+			$uploadAttr,
 			$pagesAttr,
-			$resumeAttr
+			$resumeAttr,
+			$preview ? ' data-rf-form-preview="1"' : ''
 		);
 		$output[] = '<input type="hidden" name="action" value="relevant_forms_submit">';
 		$output[] = sprintf( '<input type="hidden" name="_relevant_form_id" value="%d">', $form->id );
@@ -221,7 +255,7 @@ final class FormRenderer {
 
 		if ( null === $pages ) {
 			foreach ( $definitions as $definition ) {
-				$markup = self::renderField( $definition, $currency, $values, $errors, $visibility, (string) $form->id );
+				$markup = self::renderField( $definition, $currency, $values, $errors, $visibility, $renderId, $preview );
 
 				if ( '' !== $markup ) {
 					$output[] = $markup;
@@ -242,7 +276,7 @@ final class FormRenderer {
 				// The break marker opens every page after the first; it is a
 				// plain divider and disappears together with its page.
 				if ( $index > 0 && null !== $break && null !== $page['break'] ) {
-					$output[] = $break->render( (array) $page['break'], null, null, (string) $form->id );
+					$output[] = $break->render( (array) $page['break'], null, null, $renderId );
 				}
 				$output[] = sprintf(
 					'<p class="relevant-forms-page-indicator" data-rf-page-indicator>%s</p>',
@@ -263,7 +297,7 @@ final class FormRenderer {
 				}
 
 				foreach ( $page['fields'] as $definition ) {
-					$markup = self::renderField( $definition, $currency, $values, $errors, $visibility, (string) $form->id );
+					$markup = self::renderField( $definition, $currency, $values, $errors, $visibility, $renderId, $preview );
 
 					if ( '' !== $markup ) {
 						$output[] = $markup;
@@ -367,8 +401,9 @@ final class FormRenderer {
 	 * @param array<string, string>  $errors     Validation errors keyed by field id.
 	 * @param array<string, bool>    $visibility Visibility map keyed by field id.
 	 * @param string                 $formId     Form id for control ids.
+	 * @param bool                   $preview    Whether this is the admin preview.
 	 */
-	private static function renderField( array $definition, string $currency, array $values, array $errors, array $visibility, string $formId ): string {
+	private static function renderField( array $definition, string $currency, array $values, array $errors, array $visibility, string $formId, bool $preview = false ): string {
 		// Payment fields format and validate with the form currency.
 		$definition['currency'] = $currency;
 
@@ -395,7 +430,24 @@ final class FormRenderer {
 			$definition['visibility_hidden'] = $hidden;
 		}
 
-		return $type->render( $definition, $value, $error, $formId );
+		$previewNote = '';
+
+		if ( $preview && 'html' === (string) ( $definition['type'] ?? '' ) ) {
+			// Raw author code never runs inside wp-admin: the preview renders
+			// the block through the same filter the save path applies to users
+			// without unfiltered_html, and says what it left out.
+			$raw                = (string) ( $definition['code'] ?? '' );
+			$definition['code'] = wp_kses_post( $raw );
+
+			if ( $definition['code'] !== $raw ) {
+				$previewNote = sprintf(
+					'<p class="relevant-forms-preview__note">%s</p>',
+					esc_html__( 'Custom HTML block: scripts and unsafe markup are not run in the preview — they appear on the live form.', 'relevant-forms' )
+				);
+			}
+		}
+
+		return $type->render( $definition, $value, $error, $formId ) . $previewNote;
 	}
 
 	/**

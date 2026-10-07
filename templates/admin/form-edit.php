@@ -85,6 +85,7 @@ $rf_save_label = $isEditing ? __( 'Save Form', 'relevant-forms' ) : __( 'Create 
 		<nav class="nav-tab-wrapper relevant-forms-tabs" aria-label="<?php esc_attr_e( 'Form editor sections', 'relevant-forms' ); ?>">
 			<a class="nav-tab nav-tab-active relevant-forms-tabs__tab" href="<?php echo esc_url( '#rf-panel-settings' ); ?>"><?php esc_html_e( 'Form settings', 'relevant-forms' ); ?></a>
 			<a class="nav-tab relevant-forms-tabs__tab" href="<?php echo esc_url( '#rf-panel-fields' ); ?>"><?php esc_html_e( 'Form fields', 'relevant-forms' ); ?></a>
+			<a class="nav-tab relevant-forms-tabs__tab" href="<?php echo esc_url( '#rf-panel-preview' ); ?>"><?php esc_html_e( 'Form preview', 'relevant-forms' ); ?></a>
 		</nav>
 
 		<div id="rf-panel-settings" class="relevant-forms-tabs__panel">
@@ -456,6 +457,25 @@ $rf_save_label = $isEditing ? __( 'Save Form', 'relevant-forms' ) : __( 'Create 
 		</div>
 		</div><!-- #rf-panel-fields -->
 	</form>
+
+	<?php
+	/*
+	 * The preview renders a real front-end form, and a form cannot be nested
+	 * inside another one (the HTML parser drops the inner tag), so its panel
+	 * sits outside the editor's save form. That also keeps the preview's
+	 * controls out of every save request.
+	 */
+	?>
+	<div id="rf-panel-preview" class="relevant-forms-tabs__panel">
+		<p class="description relevant-forms-preview__intro"><?php esc_html_e( 'This is the form as your visitors will see it: conditional fields, multi-page steps, entry previews, counters and totals all work here. Submitting runs the browser\'s own validation and shows the confirmation — nothing is sent to the server, so preview submissions are never stored, never notified and never charged.', 'relevant-forms' ); ?></p>
+		<p class="rf-preview-actions">
+			<button type="button" class="button" id="rf-preview-refresh"><?php esc_html_e( 'Refresh preview', 'relevant-forms' ); ?></button>
+			<span class="rf-sms-message" id="rf-preview-status" role="status" aria-live="polite" hidden></span>
+		</p>
+		<div id="rf-preview-body" class="relevant-forms-preview__body">
+			<?php echo \RelevantForms\Admin\Preview\FormPreview::body( $form ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- markup escaped by the renderers. ?>
+		</div>
+	</div><!-- #rf-panel-preview -->
 
 	<?php foreach ( $types as $field_type ) : ?>
 		<template id="rf-field-template-<?php echo esc_attr( $field_type->type() ); ?>">

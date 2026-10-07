@@ -2110,6 +2110,12 @@
 						url.searchParams.set( 'form_id', data.form_id );
 						window.history.replaceState( {}, '', url.toString() );
 					}
+
+					// The stored form changed: re-render the preview in place (a
+					// reload would drop whatever is still unsaved in the editor).
+					if ( 'function' === typeof previewRefresh ) {
+						previewRefresh( false );
+					}
 				} )
 				.catch( function () {
 					setMessage( message, strings.failed || '', 'error' );
@@ -2177,6 +2183,172 @@
 		} );
 
 		activate( known ? initial : items[ 0 ].tab.getAttribute( 'href' ) );
+	}
+
+	/**
+	 * Set by initFormPreview(): re-renders the preview from the stored form.
+	 * The editor save calls it so the preview never keeps showing a schema the
+	 * user has already replaced (reloading the page would drop unsaved edits).
+	 */
+	var previewRefresh = null;
+
+	/**
+	 * Form editor: the Form preview tab renders the live form. A submission
+	 * is handled here instead of being posted — the browser validates, the
+	 * confirmation is revealed and the form returns to its first step, which
+	 * is what a real visitor sees after the page reload, minus any storage.
+	 */
+	function initFormPreview() {
+		var body = document.getElementById( 'rf-preview-body' );
+
+		if ( ! body ) {
+			return;
+		}
+
+		var settings = window.relevantFormsAdmin || {};
+		var strings = settings.formPreviewStrings || {};
+		var status = document.getElementById( 'rf-preview-status' );
+		var refreshButton = document.getElementById( 'rf-preview-refresh' );
+
+		/**
+		 * Show (or clear) the preview status line.
+		 *
+		 * @param {string} text Message text ('' hides it).
+		 * @param {string} tone 'error' | 'info' | 'ok' | ''.
+		 */
+		function feedback( text, tone ) {
+			if ( status ) {
+				setMessage( status, text, tone );
+			}
+		}
+
+		/**
+		 * Hand injected markup to the front-end feature scripts (conditional
+		 * fields, wizard, totals, counters, entry previews).
+		 *
+		 * @param {Element} root Scope to search.
+		 */
+		function bootFeatures( root ) {
+			( window.relevantFormsFrontend || [] ).forEach( function ( boot ) {
+				try {
+					boot( root );
+				} catch ( error ) {
+					// A front-end script must never break the editor.
+				}
+			} );
+		}
+
+		/**
+		 * The preview's form, or null before the form has been saved once.
+		 */
+		function previewForm() {
+			return body.querySelector( 'form.relevant-forms[data-rf-form-preview]' );
+		}
+
+		/**
+		 * Show the confirmation a visitor would get and reset the form the way
+		 * a fresh page load does.
+		 *
+		 * @param {Element} form Preview form.
+		 */
+		function confirmPreview( form ) {
+			var notice = body.querySelector( '[data-rf-form-preview-success]' );
+
+			if ( notice ) {
+				notice.hidden = false;
+			}
+
+			form.reset();
+			form.dispatchEvent( new window.Event( 'input', { bubbles: true } ) );
+			form.dispatchEvent( new window.Event( 'change', { bubbles: true } ) );
+			form.dispatchEvent( new window.CustomEvent( 'relevant-forms:reset' ) );
+
+			if ( notice && notice.scrollIntoView ) {
+				notice.scrollIntoView( { block: 'nearest' } );
+			}
+		}
+
+		/**
+		 * Keep the preview's own submission off the network.
+		 */
+		function bindPreview() {
+			var form = previewForm();
+
+			if ( ! form || '1' === form.getAttribute( 'data-rf-preview-bound' ) ) {
+				return;
+			}
+
+			form.setAttribute( 'data-rf-preview-bound', '1' );
+
+			// A preview always starts at the first step.
+			form.dispatchEvent( new window.CustomEvent( 'relevant-forms:reset' ) );
+
+			form.addEventListener( 'submit', function ( event ) {
+				event.preventDefault();
+
+				if ( 'function' === typeof form.checkValidity && ! form.checkValidity() ) {
+					if ( 'function' === typeof form.reportValidity ) {
+						form.reportValidity();
+					}
+
+					return;
+				}
+
+				confirmPreview( form );
+			} );
+		}
+
+		/**
+		 * Replace the preview with markup rendered from the stored form.
+		 *
+		 * @param {boolean} announce Whether to show the in-flight/success line.
+		 * @return {Promise} Refresh promise.
+		 */
+		function refresh( announce ) {
+			var idField = document.querySelector( '#rf-form-editor-form input[name="form_id"]' );
+			var formId = idField ? parseInt( idField.value, 10 ) || 0 : 0;
+
+			if ( announce ) {
+				feedback( strings.refreshing || '', 'info' );
+			}
+
+			return postAdminAjax( 'relevant_forms_preview_form', settings.previewNonce || '', { form_id: formId } )
+				.then( function ( result ) {
+					if ( ! result || ! result.success || ! result.data || 'string' !== typeof result.data.html ) {
+						feedback( errorText( result, strings.failed ), 'error' );
+						return;
+					}
+
+					body.innerHTML = result.data.html;
+
+					bindPreview();
+					bootFeatures( body );
+
+					if ( announce ) {
+						feedback( strings.updated || '', 'ok' );
+					} else {
+						feedback( '', '' );
+					}
+				} )
+				.catch( function () {
+					feedback( strings.failed || '', 'error' );
+				} );
+		}
+
+		if ( refreshButton ) {
+			refreshButton.addEventListener( 'click', function () {
+				refreshButton.disabled = true;
+
+				refresh( true ).then( function () {
+					refreshButton.disabled = false;
+				} );
+			} );
+		}
+
+		bindPreview();
+		bootFeatures( body );
+
+		previewRefresh = refresh;
 	}
 
 	/**
@@ -2281,5 +2453,6 @@
 	initCloudKeyField();
 	initCloudKeyAutosave();
 	initApiStatusTest();
+	initFormPreview();
 	initFormSave();
 } )();

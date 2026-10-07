@@ -9,9 +9,11 @@ declare(strict_types=1);
 
 namespace RelevantForms\Admin\Assets;
 
+use RelevantForms\Admin\Controllers\FormPreviewController;
 use RelevantForms\Admin\Controllers\RedirectTargetSearchController;
 use RelevantForms\Admin\Controllers\SmsVerificationController;
 use RelevantForms\Admin\Controllers\TestEmailController;
+use RelevantForms\Assets\FrontendAssets;
 use RelevantForms\Forms\Visibility\VisibilityRules;
 use RelevantForms\Support\AssetVersion;
 
@@ -53,6 +55,23 @@ final class AdminAssets {
 				[],
 				AssetVersion::get( 'assets/css/frontend.css' )
 			);
+
+			/*
+			 * The Form preview tab renders the live form, so the front-end
+			 * feature scripts are loaded here too. All of them are enqueued (not
+			 * just the ones the stored form needs) because the preview is
+			 * refreshed through admin-ajax: injected markup has to find every
+			 * script already present to boot it again.
+			 *
+			 * Save and Resume is deliberately left out: drafts and resume links
+			 * have no place in the editor, and the preview omits the attributes
+			 * its script binds to.
+			 */
+			FrontendAssets::registerAssets();
+
+			foreach ( [ 'upload', 'counter', 'conditional', 'total', 'pages', 'preview' ] as $frontendScript ) {
+				wp_enqueue_script( 'relevant-forms-' . $frontendScript );
+			}
 		}
 
 		wp_enqueue_script(
@@ -70,6 +89,7 @@ final class AdminAssets {
 				'ajaxUrl'             => admin_url( 'admin-ajax.php' ),
 				'searchNonce'         => wp_create_nonce( RedirectTargetSearchController::ACTION ),
 				'noResults'           => __( 'No pages or posts found.', 'relevant-forms' ),
+				'previewNonce'        => wp_create_nonce( FormPreviewController::ACTION ),
 				'smsSendNonce'        => wp_create_nonce( SmsVerificationController::ACTION_SEND ),
 				'smsVerifyNonce'      => wp_create_nonce( SmsVerificationController::ACTION_VERIFY ),
 				'testEmailNonce'      => wp_create_nonce( TestEmailController::ACTION ),
@@ -92,6 +112,11 @@ final class AdminAssets {
 					'saving' => __( 'Saving…', 'relevant-forms' ),
 					'saved'  => __( 'Form saved.', 'relevant-forms' ),
 					'failed' => __( 'The form could not be saved. Please try again.', 'relevant-forms' ),
+				],
+				'formPreviewStrings'  => [
+					'refreshing' => __( 'Refreshing…', 'relevant-forms' ),
+					'updated'    => __( 'Preview updated.', 'relevant-forms' ),
+					'failed'     => __( 'The preview could not be refreshed. Save the form and try again.', 'relevant-forms' ),
 				],
 				'cloudKeyStrings'     => [
 					'edit'   => __( 'Edit', 'relevant-forms' ),
