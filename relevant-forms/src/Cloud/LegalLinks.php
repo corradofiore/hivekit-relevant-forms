@@ -14,6 +14,11 @@ namespace RelevantForms\Cloud;
  * site, so the plugin does not guess URLs: define the constants below in
  * wp-config.php (or filter `relevant_forms_legal_links`) and the Cloud
  * settings screen links the actual documents.
+ *
+ * The terms and the privacy policy are public pages; the subprocessor list is
+ * served to registered clients inside the client dashboard, so point
+ * RELEVANT_CLOUD_SUBPROCESSORS_URL at that dashboard page (readers sign in
+ * there).
  */
 final class LegalLinks {
 
