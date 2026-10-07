@@ -18,9 +18,11 @@ use RelevantForms\Forms\FormRenderer;
 use RelevantForms\Forms\FormRepository;
 use RelevantForms\Forms\FormSchema;
 use RelevantForms\Http\SaveResumeController;
+use RelevantForms\Http\SubmissionHandler;
 use RelevantForms\Support\Privacy;
 use RelevantForms\Tests\Integration\Support\AjaxRequests;
 use RelevantForms\Tests\Integration\Support\CapturesMail;
+use RelevantForms\Tests\Integration\Support\RedirectedException;
 
 /**
  * {@inheritdoc}
@@ -457,6 +459,126 @@ final class SaveResumeTest extends TestCase {
 		$html = FormRenderer::render( $formId );
 
 		$this->assertStringNotContainsString( 'This resume link is no longer valid', $html );
+	}
+
+	/**
+	 * Submitting a resumed form converts the partial entry in place: one
+	 * entry, final values, resume state cleared, notifications fired.
+	 */
+	public function testSubmittingAResumedFormConvertsThePartialEntryInPlace(): void {
+		$this->captureMail();
+
+		$formId = $this->resumableForm();
+
+		$save = $this->dispatch(
+			$formId,
+			[
+				'save_resume_email'     => 'save-twelve@example.test',
+				'relevant_field_f_name' => 'Ada',
+			]
+		);
+
+		$partial = ( new EntryRepository() )->findPartialByEmail( $formId, 'save-twelve@example.test' );
+
+		$this->assertInstanceOf( Entry::class, $partial );
+
+		// From here on only the submission notification matters.
+		$this->stopCapturingMail();
+		$this->sent_mail = [];
+		$this->captureMail();
+
+		$this->submit(
+			$formId,
+			[
+				'relevant_field_f_name'  => 'Ada Lovelace',
+				'_relevant_resume_token' => $save['data']['token'],
+			]
+		);
+
+		$entries = ( new EntryRepository() )->findMany( [ 'form_id' => $formId ] );
+
+		$this->assertCount( 1, $entries );
+		$this->assertSame( (int) $partial->id, (int) $entries[0]->id );
+		$this->assertSame( Entry::STATUS_NEW, $entries[0]->status );
+		$this->assertSame( 'Ada Lovelace', $entries[0]->meta['f_name'] );
+		$this->assertSame( 1, $entries[0]->meta['_resumed'] );
+		$this->assertNull( $entries[0]->resumeTokenHash );
+		$this->assertNull( $entries[0]->resumeEmail );
+		$this->assertNull( $entries[0]->resumeExpiresAt );
+		$this->assertCount( 1, $this->sent_mail );
+	}
+
+	/**
+	 * Stale or tampered tokens fall back to a fresh entry; the partial entry
+	 * stays untouched.
+	 */
+	public function testTamperedResumeTokensFallBackToANewEntry(): void {
+		$formId = $this->resumableForm();
+
+		$this->dispatch(
+			$formId,
+			[
+				'save_resume_email'     => 'save-thirteen@example.test',
+				'relevant_field_f_name' => 'Ada',
+			]
+		);
+
+		$this->submit(
+			$formId,
+			[
+				'relevant_field_f_name'  => 'Grace',
+				'_relevant_resume_token' => str_repeat( 'c', 64 ),
+			]
+		);
+
+		$entries = ( new EntryRepository() )->findMany( [ 'form_id' => $formId ] );
+
+		$this->assertCount( 2, $entries );
+
+		$partial = ( new EntryRepository() )->findPartialByEmail( $formId, 'save-thirteen@example.test' );
+
+		$this->assertInstanceOf( Entry::class, $partial );
+		$this->assertSame( Entry::STATUS_PARTIAL, $partial->status );
+
+		$submitted = array_values(
+			array_filter( $entries, static fn ( Entry $entry ): bool => Entry::STATUS_NEW === $entry->status )
+		);
+
+		$this->assertCount( 1, $submitted );
+		$this->assertSame( 'Grace', $submitted[0]->meta['f_name'] );
+	}
+
+	/**
+	 * Simulate a front-end submission POST (expected to succeed).
+	 *
+	 * @param int                  $formId Form ID.
+	 * @param array<string, mixed> $fields Field values plus extra POST keys.
+	 */
+	private function submit( int $formId, array $fields ): void {
+		$_POST = array_merge(
+			[
+				'_relevant_form_id'    => $formId,
+				'_relevant_form_nonce' => wp_create_nonce( 'relevant_form_' . $formId ),
+			],
+			$fields
+		);
+
+		add_filter(
+			'relevant_forms_redirect',
+			static function ( string $url ): string {
+				// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- handler-generated redirect captured for assertions.
+				throw new RedirectedException( $url );
+			}
+		);
+
+		try {
+			SubmissionHandler::handle();
+		} catch ( RedirectedException $redirected ) {
+			$this->assertStringContainsString( 'relevant_form_success=' . $formId, $redirected->url );
+		} finally {
+			remove_all_filters( 'relevant_forms_redirect' );
+			unset( $_POST );
+		}
 	}
 
 	/**

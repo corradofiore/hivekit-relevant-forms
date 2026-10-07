@@ -207,6 +207,13 @@ final class FormRenderer {
 		$output[] = '<input type="hidden" name="action" value="relevant_forms_submit">';
 		$output[] = sprintf( '<input type="hidden" name="_relevant_form_id" value="%d">', $form->id );
 		$output[] = sprintf( '<input type="hidden" name="_relevant_started_at" value="%s">', esc_attr( (string) microtime( true ) ) );
+
+		if ( 'resolved' === $resume['status'] ) {
+			// Completion conversion (SubmissionHandler): the final submission
+			// updates the partial entry instead of creating a second one.
+			$output[] = sprintf( '<input type="hidden" name="_relevant_resume_token" value="%s">', esc_attr( (string) ( $resume['token'] ?? '' ) ) );
+		}
+
 		$output[] = wp_nonce_field( 'relevant_form_' . $form->id, '_relevant_form_nonce', true, false );
 		$output[] = self::honeypot();
 

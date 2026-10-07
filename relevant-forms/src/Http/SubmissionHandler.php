@@ -11,6 +11,7 @@ namespace RelevantForms\Http;
 
 use RelevantForms\Entries\Entry;
 use RelevantForms\Entries\EntryRepository;
+use RelevantForms\Entries\Resume\ResumeTokens;
 use RelevantForms\Ai\AiClassifier;
 use RelevantForms\Ai\AttentionScore;
 use RelevantForms\Ai\Classification;
@@ -295,6 +296,31 @@ final class SubmissionHandler {
 	}
 
 	/**
+	 * Partial entry this submission completes, when the POST carries a valid
+	 * Save and Resume token (docs/hooks.md). Stale or tampered tokens return
+	 * null: the submission then proceeds as a fresh entry.
+	 *
+	 * @param Form                 $form Form entity.
+	 * @param array<string, mixed> $raw  Unslashed POST data.
+	 */
+	private static function resumedPartial( Form $form, array $raw ): ?Entry {
+		$token = isset( $raw['_relevant_resume_token'] ) ? (string) $raw['_relevant_resume_token'] : '';
+		$token = preg_replace( '/[^0-9a-f]/', '', strtolower( $token ) );
+
+		if ( ! is_string( $token ) || 64 !== strlen( $token ) ) {
+			return null;
+		}
+
+		$entry = ( new EntryRepository() )->findPartialByResumeHash( ResumeTokens::hash( $token ) );
+
+		if ( null === $entry || $entry->formId !== $form->id || Entry::STATUS_PARTIAL !== $entry->status ) {
+			return null;
+		}
+
+		return $entry;
+	}
+
+	/**
 	 * Store a validated submission, record events, notify (or defer the
 	 * notifications for payments), then redirect.
 	 *
@@ -338,22 +364,46 @@ final class SubmissionHandler {
 				$meta['_attention_score'] = $classification->attentionScore;
 			}
 
+			$entries   = new EntryRepository();
 			$versionId = $repository->createVersion( $form->id, $form->schema );
-			$entry     = new Entry(
-				null,
-				$form->id,
-				$versionId,
-				$entryStatus,
-				self::requestUrl(),
-				// phpcs:ignore WordPress.Security.ValidatedSanitizedInput -- stored only, escaped on display.
-				(string) ( $_SERVER['HTTP_REFERER'] ?? '' ),
-				Privacy::userAgentHash(),
-				Privacy::ipHash(),
-				current_time( 'mysql', true ),
-				current_time( 'mysql', true ),
-				$meta,
-			);
-			$entryId = ( new EntryRepository() )->create( $entry );
+			$partial   = self::resumedPartial( $form, $raw );
+
+			if ( null !== $partial ) {
+				// Save and Resume: the recovered partial becomes the final
+				// entry — one submission, one entry, original created_at kept.
+				$meta['_resumed'] = 1;
+
+				$entries->completePartial(
+					(int) $partial->id,
+					$versionId,
+					$entryStatus,
+					$meta,
+					self::requestUrl(),
+					// phpcs:ignore WordPress.Security.ValidatedSanitizedInput -- stored only, escaped on display.
+					(string) ( $_SERVER['HTTP_REFERER'] ?? '' )
+				);
+
+				$entryId = (int) $partial->id;
+
+				EventRecorder::record( $entryId, 'resume_completed', [ 'form_id' => $form->id ] );
+			} else {
+				$entry = new Entry(
+					null,
+					$form->id,
+					$versionId,
+					$entryStatus,
+					self::requestUrl(),
+					// phpcs:ignore WordPress.Security.ValidatedSanitizedInput -- stored only, escaped on display.
+					(string) ( $_SERVER['HTTP_REFERER'] ?? '' ),
+					Privacy::userAgentHash(),
+					Privacy::ipHash(),
+					current_time( 'mysql', true ),
+					current_time( 'mysql', true ),
+					$meta,
+				);
+
+				$entryId = $entries->create( $entry );
+			}
 		} catch ( \Throwable $exception ) {
 			Logger::error(
 				'Failed to store submission',
