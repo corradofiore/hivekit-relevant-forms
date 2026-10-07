@@ -71,6 +71,7 @@ final class FormSchema implements JsonSerializable {
 				],
 				'ai_policy'      => [],
 				'upload_policy'  => [],
+				'save_resume'    => self::normalizeSaveResume( [] ),
 				'metadata'       => [],
 			]
 		);
@@ -116,6 +117,7 @@ final class FormSchema implements JsonSerializable {
 				],
 				'ai_policy'      => is_array( $data['ai_policy'] ?? null ) ? $data['ai_policy'] : [],
 				'upload_policy'  => is_array( $data['upload_policy'] ?? null ) ? $data['upload_policy'] : [],
+				'save_resume'    => self::normalizeSaveResume( $data['save_resume'] ?? null ),
 				'metadata'       => is_array( $data['metadata'] ?? null ) ? $data['metadata'] : [],
 			]
 		);
@@ -310,6 +312,51 @@ final class FormSchema implements JsonSerializable {
 		$copy['upload_policy'] = $policy;
 
 		return new self( $copy );
+	}
+
+	/**
+	 * Per-form "Save and Resume" configuration (partial saves, resume links
+	 * and browser-local drafts).
+	 *
+	 * @return array{enabled: bool, label: string, expiry_days: int, email_subject: string, email_body: string, drafts_in_browser: bool}
+	 */
+	public function saveResume(): array {
+		return self::normalizeSaveResume( $this->data['save_resume'] ?? null );
+	}
+
+	/**
+	 * Copy with new "Save and Resume" settings.
+	 *
+	 * @param array<string, mixed> $config Save and Resume configuration.
+	 */
+	public function withSaveResume( array $config ): self {
+		$copy                = $this->data;
+		$copy['save_resume'] = self::normalizeSaveResume( $config );
+
+		return new self( $copy );
+	}
+
+	/**
+	 * Normalize a raw "Save and Resume" configuration. Empty label,
+	 * subject and body mean "use the shipped default" at send time.
+	 *
+	 * @param mixed $raw Raw configuration.
+	 * @return array{enabled: bool, label: string, expiry_days: int, email_subject: string, email_body: string, drafts_in_browser: bool}
+	 */
+	private static function normalizeSaveResume( mixed $raw ): array {
+		$config = is_array( $raw ) ? $raw : [];
+
+		$days = is_scalar( $config['expiry_days'] ?? null ) ? (int) $config['expiry_days'] : 30;
+		$days = max( 1, min( 365, $days ) );
+
+		return [
+			'enabled'           => ! empty( $config['enabled'] ),
+			'label'             => isset( $config['label'] ) ? (string) $config['label'] : '',
+			'expiry_days'       => $days,
+			'email_subject'     => isset( $config['email_subject'] ) ? (string) $config['email_subject'] : '',
+			'email_body'        => isset( $config['email_body'] ) ? (string) $config['email_body'] : '',
+			'drafts_in_browser' => ! isset( $config['drafts_in_browser'] ) || (bool) $config['drafts_in_browser'],
+		];
 	}
 
 	/**  * Notification recipient emails.

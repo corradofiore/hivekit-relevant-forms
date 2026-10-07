@@ -325,3 +325,60 @@ it(
 		expect( $schema->notificationEmails() )->toBe( [ 'a@example.com', 'b@example.com' ] );
 	}
 );
+
+it(
+	'defaults the save and resume configuration',
+	function () {
+		$config = FormSchema::empty()->saveResume();
+
+		expect( $config )->toBe(
+			[
+				'enabled'           => false,
+				'label'             => '',
+				'expiry_days'       => 30,
+				'email_subject'     => '',
+				'email_body'        => '',
+				'drafts_in_browser' => true,
+			]
+		);
+	}
+);
+
+it(
+	'normalizes save and resume settings on read and write',
+	function () {
+		$schema = FormSchema::fromArray(
+			[
+				'name'        => 'Resumable',
+				'save_resume' => [
+					'enabled'           => true,
+					'expiry_days'       => '7',
+					'drafts_in_browser' => false,
+				],
+			]
+		);
+
+		$config = $schema->saveResume();
+
+		expect( $config['enabled'] )->toBeTrue();
+		expect( $config['expiry_days'] )->toBe( 7 );
+		expect( $config['drafts_in_browser'] )->toBeFalse();
+		expect( $config['label'] )->toBe( '' );
+
+		// Days are clamped to the supported window.
+		$clamped = $schema->withSaveResume(
+			[
+				'enabled'     => true,
+				'expiry_days' => 900,
+			]
+		);
+
+		expect( $clamped->saveResume()['expiry_days'] )->toBe( 365 );
+		expect( $schema->withSaveResume( [ 'expiry_days' => 0 ] )->saveResume()['expiry_days'] )->toBe( 1 );
+
+		// The configuration survives the storage round-trip.
+		$restored = FormSchema::fromArray( $schema->jsonSerialize() );
+
+		expect( $restored->saveResume() )->toBe( $config );
+	}
+);

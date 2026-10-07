@@ -9,6 +9,7 @@ declare(strict_types=1);
 
 namespace RelevantForms\Database;
 
+use RelevantForms\Database\Migrations\AddResumeColumnsToEntries;
 use RelevantForms\Database\Migrations\CreateEntriesTable;
 use RelevantForms\Database\Migrations\CreateEntryMetaTable;
 use RelevantForms\Database\Migrations\CreateEventsTable;
@@ -40,6 +41,7 @@ final class MigrationRunner {
 		CreateEventsTable::class,
 		CreateUploadsTable::class,
 		CreateLogsTable::class,
+		AddResumeColumnsToEntries::class,
 	];
 
 	/**
