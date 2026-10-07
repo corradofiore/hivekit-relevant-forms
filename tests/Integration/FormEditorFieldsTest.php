@@ -15,6 +15,7 @@ use RelevantForms\Admin\Controllers\FormSaveController;
 use RelevantForms\Admin\Pages\FormEditPage;
 use RelevantForms\Forms\FormRepository;
 use RelevantForms\Forms\FormSchema;
+use RelevantForms\Tests\Integration\Support\AjaxRequests;
 use RelevantForms\Tests\Integration\Support\CapturesRedirects;
 
 /**
@@ -607,6 +608,114 @@ final class FormEditorFieldsTest extends TestCase {
 		FormEditPage::render();
 
 		return (string) ob_get_clean();
+	}
+
+	/**
+	 * Radio buttons choose their default from the declared choices instead of
+	 * accepting free text that could never match an option.
+	 */
+	public function testTheRadioDefaultValueUsesAChoicesDropdown(): void {
+		wp_set_current_user( self::factory()->user->create( [ 'role' => 'administrator' ] ) );
+
+		$formId = $this->formWithRadio( 'b' );
+
+		$html = $this->renderEditor( $formId );
+
+		$this->assertMatchesRegularExpression(
+			'/<select class="widefat" id="rf-field-f_plan-default" name="relevant_fields\[f_plan\]\[default_value\]">/',
+			$html
+		);
+		$this->assertStringContainsString( '<option value="">— No default —</option>', $html );
+		$this->assertMatchesRegularExpression( '/<option value="a"\s+>A<\/option>/', $html );
+		$this->assertMatchesRegularExpression( '/<option value="b"\s+selected=/', $html );
+
+		// Other field types keep the free-text control.
+		$this->assertStringContainsString(
+			'<input type="text" class="widefat" id="rf-field-f_name-default" name="relevant_fields[f_name][default_value]"',
+			$html
+		);
+	}
+
+	/**
+	 * A stored default that no longer matches a choice stays selectable, so
+	 * saving the form cannot drop it silently.
+	 */
+	public function testTheRadioDefaultKeepsAStaleChoiceAsAnExtraOption(): void {
+		wp_set_current_user( self::factory()->user->create( [ 'role' => 'administrator' ] ) );
+
+		$formId = $this->formWithRadio( 'legacy' );
+
+		$html = $this->renderEditor( $formId );
+
+		$this->assertStringContainsString( '<option value="legacy" selected>legacy (not in the choices)</option>', $html );
+	}
+
+	/**
+	 * The dropdown posts the same default_value key as before, so the saved
+	 * schema keeps the chosen option.
+	 */
+	public function testSavingKeepsARadioDefaultChosenFromTheDropdown(): void {
+		wp_set_current_user( self::factory()->user->create( [ 'role' => 'administrator' ] ) );
+
+		$formId = $this->formWithRadio( '' );
+
+		$_REQUEST['_wpnonce'] = wp_create_nonce( 'relevant_form_save' );
+		$_POST                = [
+			'form_id'         => $formId,
+			'form_name'       => 'Plan',
+			'form_status'     => 'published',
+			'relevant_fields' => [
+				'f_name' => [
+					'id'    => 'f_name',
+					'type'  => 'text',
+					'label' => 'Name',
+				],
+				'f_plan' => [
+					'id'            => 'f_plan',
+					'type'          => 'radio',
+					'label'         => 'Plan',
+					'choices'       => "a|A\nb|B",
+					'default_value' => 'b',
+				],
+			],
+		];
+
+		$response = AjaxRequests::dispatch( [ FormSaveController::class, 'handleAjax' ] );
+
+		$this->assertTrue( $response['success'] );
+
+		$field = ( new FormRepository() )->find( $formId )->schema->field( 'f_plan' );
+
+		$this->assertIsArray( $field );
+		$this->assertSame( 'b', (string) $field['default_value'] );
+
+		unset( $_POST, $_REQUEST['_wpnonce'] );
+	}
+
+	/**
+	 * Create a published form with a text field and a radio field.
+	 *
+	 * @param string $defaultValue Stored radio default value.
+	 */
+	private function formWithRadio( string $defaultValue ): int {
+		$schema = FormSchema::empty( 'Plan' )->withFields(
+			[
+				[
+					'id'    => 'f_name',
+					'type'  => 'text',
+					'label' => 'Name',
+				],
+				[
+					'id'            => 'f_plan',
+					'type'          => 'radio',
+					'label'         => 'Plan',
+					'choices'       => [ 'a|A', 'b|B' ],
+					'default_value' => $defaultValue,
+				],
+			]
+		);
+
+		return ( new FormRepository() )->create( 'Plan', $schema, 'published' );
 	}
 
 	/**

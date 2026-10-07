@@ -41,6 +41,7 @@ if ( $isSection ) {
 
 $fieldType       = (string) $definition['type'];
 $isFile          = 'file' === $fieldType;
+$isRadio         = 'radio' === $fieldType;
 $isPricedPayment = in_array( $fieldType, [ 'payment-select', 'payment-multiple', 'payment-checkbox' ], true );
 $isPaymentSingle = 'payment-single' === $fieldType;
 $isPaymentTotal  = 'payment-total' === $fieldType;
@@ -274,7 +275,34 @@ $inputIdBase = 'rf-field-' . $fieldId;
 				</tr>
 			<?php endif; ?>
 
-			<?php if ( ! $isSection && ! $isPagebreak && ! $isEntryPreview && ! $isContent && ! $isHtml && ! $isPaymentTotal && ! $isPricedPayment && ! $isFile ) : ?>
+			<?php if ( $isRadio ) : ?>
+				<?php
+				// Radio buttons pick their default from the declared choices, so
+				// the control mirrors the Choices textarea instead of accepting
+				// free text that would never match an option.
+				$defaultValue      = trim( (string) ( $definition['default_value'] ?? '' ) );
+				$defaultChoices    = $field_type->normalizeChoices( $definition );
+				$defaultChoiceKeys = array_map( static fn ( array $choice ): string => (string) $choice['value'], $defaultChoices );
+				?>
+				<tr>
+					<th scope="row"><label for="<?php echo esc_attr( $inputIdBase . '-default' ); ?>"><?php esc_html_e( 'Default value', 'relevant-forms' ); ?></label></th>
+					<td>
+						<select class="widefat" id="<?php echo esc_attr( $inputIdBase . '-default' ); ?>" name="relevant_fields[<?php echo esc_attr( $fieldId ); ?>][default_value]">
+							<option value=""><?php esc_html_e( '— No default —', 'relevant-forms' ); ?></option>
+							<?php foreach ( $defaultChoices as $defaultChoice ) : ?>
+								<option value="<?php echo esc_attr( (string) $defaultChoice['value'] ); ?>" <?php selected( $defaultValue, (string) $defaultChoice['value'] ); ?>><?php echo esc_html( (string) $defaultChoice['label'] ); ?></option>
+							<?php endforeach; ?>
+							<?php if ( '' !== $defaultValue && ! in_array( $defaultValue, $defaultChoiceKeys, true ) ) : ?>
+								<?php // A stored default that no longer matches a choice is kept visible so saving never drops it silently. ?>
+								<option value="<?php echo esc_attr( $defaultValue ); ?>" selected><?php echo esc_html( $defaultValue . ' (' . __( 'not in the choices', 'relevant-forms' ) . ')' ); ?></option>
+							<?php endif; ?>
+						</select>
+						<p class="description"><?php esc_html_e( 'The option that is pre-selected when the form loads.', 'relevant-forms' ); ?></p>
+					</td>
+				</tr>
+			<?php endif; ?>
+
+			<?php if ( ! $isSection && ! $isPagebreak && ! $isEntryPreview && ! $isContent && ! $isHtml && ! $isPaymentTotal && ! $isPricedPayment && ! $isFile && ! $isRadio ) : ?>
 				<tr>
 					<th scope="row"><label for="<?php echo esc_attr( $inputIdBase . '-default' ); ?>"><?php esc_html_e( 'Default value', 'relevant-forms' ); ?></label></th>
 					<td>
