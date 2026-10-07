@@ -27,6 +27,10 @@ Core functionality includes:
 * Common form fields (text, textarea, email, telephone, number, URL, select, radio, checkbox, consent, hidden, date, file)
 * Multi-page forms: page breaks split long forms into steps with Previous/Next navigation and a "Step X of Y" indicator
 * Entry preview: an optional review step that shows the answers entered so far, updated live, before the visitor submits
+* Form preview: a "Form preview" tab in the editor renders the form exactly as
+visitors see it — conditional fields, multi-page steps, entry previews, counters
+and totals all work — while test submissions stay in the browser and are never
+stored, notified or paid
 * Content blocks for formatted instructions (headings, links, lists and images) between fields, plus a custom HTML field for embedded code (rendered as authored and editable only by users who may save unfiltered HTML)
 * Conditional field visibility: show or hide fields based on earlier answers, with rule groups (AND within a group, OR across groups)
 * Payment fields: fixed single items, priced dropdowns and choices, donation-style user-entered amounts and an automatic live total (collecting payments requires connecting your own Stripe account)
@@ -181,6 +185,13 @@ Relevant Forms is an independent product and is not affiliated with or endorsed 
 * Migration: WPForms compatibility scanner and draft importer (field types including page breaks, dividers, entry previews, content blocks and custom HTML code blocks, notifications, confirmations and conditional logic converted to visibility rules), plus a Tier 1 hook compatibility layer that runs only while WPForms itself is not active. Imported forms keep the original WPForms form ID, so integrations with per-form mappings — e.g. Newsletter subscription sources — keep working after the switch.
 * Payments: Stripe Connect card payments (fixed items, priced choices, donation-style amounts, live total), hosted Stripe Checkout on the site owner's own Stripe account, 2% platform fee, admin refunds and WPForms payment-field import with amounts preserved.
 * Save and Resume (per form): visitors can store partial progress and receive an emailed link that restores their answers and the step they were on; a browser-local draft keeps progress across visits without leaving the device. Uploads are not kept, partial entries appear in the Entries inbox with their own status, can be re-emailed from the entry screen, and expire automatically.
+* Editor: a "Form preview" tab renders the live form inside the editor, so a
+form can be filled in and reviewed before it is published. Submitting runs the
+browser's validation and reveals the confirmation the visitor would get —
+nothing is posted, so no entry, notification, payment or alert is created.
+Uploads and browser drafts stay off, custom HTML blocks are sanitized so author
+scripts never run inside wp-admin, and the preview refreshes in place after a
+save.
 * Optional Relevant Cloud: explicit consent connection flow, semantic classification with redaction, priority SMS alerts, managed secure uploads, usage metering and per-site subscriptions with hosted checkout. Notification sender, AI guidance (purpose, priorities, unwanted enquiries, privacy mode) and the priority SMS recipient are configured per form in the form editor.
 * Privacy: no external calls before explicit configuration; the plugin is fully functional without Relevant Cloud.
 

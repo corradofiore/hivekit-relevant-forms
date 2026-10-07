@@ -299,6 +299,53 @@
 	margin-top: 0.5rem;
 }
 
+/*
+ * Form editor: Form preview tab. The panel sits outside the save form (it
+ * holds a real form element) and renders the live front-end markup, so it
+ * only needs a card to sit on plus spacing for its action row.
+ *
+ * The confirmation block is toggled through the hidden attribute: never set
+ * a display property on it or core's [hidden] rule loses the fight.
+ */
+
+.relevant-forms-preview__body {
+	background: #fff;
+	border: 1px solid #c3c4c7;
+	border-radius: 4px;
+	padding: 1rem 1.25rem;
+}
+
+.rf-preview-actions {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+
+.rf-preview-actions .rf-sms-message {
+	margin: 0;
+}
+
+.relevant-forms-preview__success {
+	background: #edfaef;
+	border: 1px solid #b8e6bf;
+	border-radius: 4px;
+	padding: 0.75rem 1rem;
+	margin-bottom: 1rem;
+}
+
+.relevant-forms-preview__success p {
+	margin: 0.25rem 0 0;
+}
+
+.relevant-forms-preview__success p:first-child {
+	margin-top: 0;
+	font-weight: 600;
+}
+
+.relevant-forms-preview__hint {
+	margin-top: 0;
+}
+
 .rf-field-visibility__intro {
 	color: #646970;
 	margin: 0 0 0.5rem;

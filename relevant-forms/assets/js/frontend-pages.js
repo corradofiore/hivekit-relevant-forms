@@ -209,6 +209,13 @@
 		form.addEventListener( 'relevant-forms:visibility', refresh );
 		form.addEventListener( 'change', refresh );
 
+		// A successful submission comes back as a fresh page, so the wizard
+		// restarts at the first step. The admin form preview resets the form
+		// itself and asks for the same state through this event.
+		form.addEventListener( 'relevant-forms:reset', function () {
+			show( 0, false );
+		} );
+
 		// After a failed submission round-trip, reopen the page that holds the
 		// first validation error. Save and Resume links reopen the saved page.
 		var start = 0;
