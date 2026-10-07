@@ -165,6 +165,12 @@ element) and WPBakery (a "Relevant Form" element) — each lets you pick your
 form from a dropdown and renders it exactly like the shortcode. On any other
 builder, paste [relevant_form id="123"] into a Code, Text or HTML element.
 
+The integrations style the form in three independent places: the builder's own
+text controls style the fields themselves, a "Text styles" panel styles the text
+around them (field labels, radio and checkbox option labels, help text and the
+display headings) and a "Button styles" panel styles the submit and wizard
+buttons. Any of them can be cleared to keep the theme's own styling.
+
 = How does Save and Resume work? =
 
 Administrators enable it per form (Form settings → Save and Resume). Visitors then see a "Save and Resume" button: clicking it asks for an email address and sends a link that restores their answers, including the step they were on, for the number of days configured on the form (30 by default). The answers are stored as a partial entry until the visitor finishes or the link expires — expired saves are deleted automatically. Independently, a draft of what has been typed is kept in the visitor's own browser, so returning to the page restores it automatically; that draft never leaves the device and is discarded on submit or via "Start fresh".
@@ -192,6 +198,11 @@ nothing is posted, so no entry, notification, payment or alert is created.
 Uploads and browser drafts stay off, custom HTML blocks are sanitized so author
 scripts never run inside wp-admin, and the preview refreshes in place after a
 save.
+* Builders: a "Text styles" panel in the Divi 5, Elementor, Beaver Builder and
+block-editor integrations styles the text outside the controls — field labels,
+radio and checkbox option labels, help text and the display headings —
+separately from the builder's own text controls, which keep styling the fields
+themselves.
 * Optional Relevant Cloud: explicit consent connection flow, semantic classification with redaction, priority SMS alerts, managed secure uploads, usage metering and per-site subscriptions with hosted checkout. Notification sender, AI guidance (purpose, priorities, unwanted enquiries, privacy mode) and the priority SMS recipient are configured per form in the form editor.
 * Privacy: no external calls before explicit configuration; the plugin is fully functional without Relevant Cloud.
 

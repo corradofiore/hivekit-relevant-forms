@@ -29,33 +29,7 @@ final class ButtonStyleCss {
 	 * @return string CSS rule ('' when nothing usable is set).
 	 */
 	public static function css( string $selector, array $values ): string {
-		$declarations = [];
-
-		$background = self::color( (string) ( $values['background'] ?? '' ) );
-		if ( '' !== $background ) {
-			$declarations[] = 'background-color:' . $background . ';';
-		}
-
-		$text = self::color( (string) ( $values['text'] ?? '' ) );
-		if ( '' !== $text ) {
-			$declarations[] = 'color:' . $text . ';';
-		}
-
-		$radius = self::length( (string) ( $values['radius'] ?? '' ) );
-		if ( '' !== $radius ) {
-			$declarations[] = 'border-radius:' . $radius . ';';
-		}
-
-		$padding = self::padding( (string) ( $values['padding'] ?? '' ) );
-		if ( '' !== $padding ) {
-			$declarations[] = 'padding:' . $padding . ';';
-		}
-
-		if ( [] === $declarations ) {
-			return '';
-		}
-
-		return $selector . '{' . implode( '', $declarations ) . '}';
+		return StyleCss::rule( $selector, self::declarations( $values ) );
 	}
 
 	/**
@@ -69,21 +43,39 @@ final class ButtonStyleCss {
 	 * @return string Wrapped markup (or the untouched markup).
 	 */
 	public static function scopedHtml( string $html, array $values, string $prefix ): string {
-		if ( '' === $html ) {
-			return $html;
+		return StyleCss::scopedHtml( $html, FieldSelectors::BUTTONS, self::declarations( $values ), $values, $prefix );
+	}
+
+	/**
+	 * The sanitized declarations of one set of button values, in a fixed order.
+	 *
+	 * @param array<string, string> $values Raw control values.
+	 * @return list<string> Declarations (empty when nothing usable is set).
+	 */
+	private static function declarations( array $values ): array {
+		$declarations = [];
+
+		$background = StyleCss::color( (string) ( $values['background'] ?? '' ) );
+		if ( '' !== $background ) {
+			$declarations[] = 'background-color:' . $background . ';';
 		}
 
-		ksort( $values );
-
-		$scope = $prefix . substr( md5( (string) wp_json_encode( $values ) ), 0, 12 );
-		$css   = self::css( '.' . $scope . ' ' . FieldSelectors::BUTTONS, $values );
-
-		if ( '' === $css ) {
-			return $html;
+		$text = StyleCss::color( (string) ( $values['text'] ?? '' ) );
+		if ( '' !== $text ) {
+			$declarations[] = 'color:' . $text . ';';
 		}
 
-		return '<style>' . $css . '</style>'
-			. '<div class="' . esc_attr( $scope ) . '">' . $html . '</div>';
+		$radius = StyleCss::length( (string) ( $values['radius'] ?? '' ) );
+		if ( '' !== $radius ) {
+			$declarations[] = 'border-radius:' . $radius . ';';
+		}
+
+		$padding = self::padding( (string) ( $values['padding'] ?? '' ) );
+		if ( '' !== $padding ) {
+			$declarations[] = 'padding:' . $padding . ';';
+		}
+
+		return $declarations;
 	}
 
 	/**
@@ -95,25 +87,7 @@ final class ButtonStyleCss {
 	 * @return string Color ('' when unset or invalid).
 	 */
 	public static function color( string $raw ): string {
-		$raw = trim( $raw );
-
-		if ( '' === $raw ) {
-			return '';
-		}
-
-		if ( preg_match( '/^#(?:[0-9a-f]{3,4}|[0-9a-f]{6}|[0-9a-f]{8})$/i', $raw ) ) {
-			return $raw;
-		}
-
-		if ( preg_match( '/^(?:rgb|rgba|hsl|hsla)\([\d\s.,%\/]+\)$/i', $raw ) ) {
-			return $raw;
-		}
-
-		if ( in_array( strtolower( $raw ), [ 'transparent', 'currentcolor' ], true ) ) {
-			return $raw;
-		}
-
-		return '';
+		return StyleCss::color( $raw );
 	}
 
 	/**
@@ -124,21 +98,7 @@ final class ButtonStyleCss {
 	 * @return string Length ('' when unset or invalid).
 	 */
 	public static function length( string $raw ): string {
-		$raw = strtolower( trim( $raw ) );
-
-		if ( '' === $raw ) {
-			return '';
-		}
-
-		if ( '0' === $raw || preg_match( '/^\d+(?:\.\d+)?$/', $raw ) ) {
-			return '0' === $raw ? '0' : $raw . 'px';
-		}
-
-		if ( preg_match( '/^(\d+(?:\.\d+)?)(px|em|rem|%|vw|vh)$/', $raw, $matches ) ) {
-			return $matches[1] . $matches[2];
-		}
-
-		return '';
+		return StyleCss::length( $raw );
 	}
 
 	/**

@@ -16,6 +16,7 @@ namespace RelevantForms\Integrations\Divi;
 
 use RelevantForms\Forms\FormRenderer;
 use RelevantForms\Integrations\Support\ButtonStyleCss;
+use RelevantForms\Integrations\Support\TextStyleCss;
 
 // Defence in depth: the autoloader may reach this file on sites without Divi 5.
 if ( ! interface_exists( '\ET\Builder\Framework\DependencyManagement\Interfaces\DependencyInterface' ) ) {
@@ -82,9 +83,9 @@ final class ModernModule implements \ET\Builder\Framework\DependencyManagement\I
 			return '';
 		}
 
-		$form_html = ButtonStyleCss::scopedHtml( $form_html, self::buttonValues( $parsed_attrs ), 'rf-divi-' );
-
-		$module_inner = sprintf(
+		$form_html         = ButtonStyleCss::scopedHtml( $form_html, self::buttonValues( $parsed_attrs ), 'rf-divi-' );
+				$form_html = TextStyleCss::scopedHtml( $form_html, self::textValues( $parsed_attrs ), 'rf-divi-' );
+		$module_inner      = sprintf(
 			'<div class="et_pb_module_inner">%s</div>',
 			$form_html
 		);
@@ -124,6 +125,30 @@ final class ModernModule implements \ET\Builder\Framework\DependencyManagement\I
 			'radius'     => 'buttonRadius',
 			'padding'    => 'buttonPadding',
 		] as $key => $attr ) {
+			$value          = $attrs[ $attr ]['desktop']['value'] ?? '';
+			$values[ $key ] = is_scalar( $value ) ? (string) $value : '';
+		}
+
+		return $values;
+	}
+
+	/**
+	 * The text style values from the module attributes (color, font size and
+	 * font weight of the text outside the controls).
+	 *
+	 * @param array<string, mixed> $attrs Module attributes.
+	 * @return array<string, string> Values for TextStyleCss.
+	 */
+	public static function textValues( array $attrs ): array {
+		$values = [];
+
+		foreach (
+			[
+				'color'  => 'textColor',
+				'size'   => 'textSize',
+				'weight' => 'textWeight',
+			] as $key => $attr
+		) {
 			$value          = $attrs[ $attr ]['desktop']['value'] ?? '';
 			$values[ $key ] = is_scalar( $value ) ? (string) $value : '';
 		}
@@ -273,6 +298,20 @@ final class ModernModule implements \ET\Builder\Framework\DependencyManagement\I
 				'radiusPlaceholder'  => __( 'e.g. 8px', 'relevant-forms' ),
 				'padding'            => __( 'Padding', 'relevant-forms' ),
 				'paddingPlaceholder' => __( 'e.g. 12px 24px', 'relevant-forms' ),
+			],
+			'textSettings'   => [
+				'label'           => __( 'Text styles', 'relevant-forms' ),
+				'color'           => __( 'Text color', 'relevant-forms' ),
+				'size'            => __( 'Font size', 'relevant-forms' ),
+				'sizePlaceholder' => __( 'e.g. 18px', 'relevant-forms' ),
+				'weight'          => __( 'Font weight', 'relevant-forms' ),
+				'weightDefault'   => __( 'Default', 'relevant-forms' ),
+				'weights'         => [
+					'400' => [ 'label' => __( 'Normal (400)', 'relevant-forms' ) ],
+					'500' => [ 'label' => __( 'Medium (500)', 'relevant-forms' ) ],
+					'600' => [ 'label' => __( 'Semibold (600)', 'relevant-forms' ) ],
+					'700' => [ 'label' => __( 'Bold (700)', 'relevant-forms' ) ],
+				],
 			],
 			'noForms'        => __( 'No forms yet — create one in the Relevant Forms admin first.', 'relevant-forms' ),
 			'openAdmin'      => __( 'Open Relevant Forms', 'relevant-forms' ),

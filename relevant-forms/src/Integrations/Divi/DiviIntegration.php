@@ -20,6 +20,7 @@ namespace RelevantForms\Integrations\Divi;
 use RelevantForms\Forms\FormRenderer;
 use RelevantForms\Integrations\Support\ButtonStyleCss;
 use RelevantForms\Integrations\Support\FormChoices;
+use RelevantForms\Integrations\Support\TextStyleCss;
 
 /**
  * Hooks the Divi modules into the builder and provides the data they need.
@@ -174,27 +175,31 @@ final class DiviIntegration {
 		if ( '' !== $html ) {
 			// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- JSON payload; every value is validated by ButtonStyleCss before output.
 			$raw_buttons = isset( $_POST['buttons'] ) && is_string( $_POST['buttons'] ) ? wp_unslash( $_POST['buttons'] ) : '';
+			// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- JSON payload; every value is validated by TextStyleCss before output.
+			$raw_texts = isset( $_POST['texts'] ) && is_string( $_POST['texts'] ) ? wp_unslash( $_POST['texts'] ) : '';
 
-			$html = ButtonStyleCss::scopedHtml( $html, self::previewButtonValues( $raw_buttons ), 'rf-divi-' );
+			$html = ButtonStyleCss::scopedHtml( $html, self::previewStyleValues( $raw_buttons, [ 'background', 'text', 'radius', 'padding' ] ), 'rf-divi-' );
+			$html = TextStyleCss::scopedHtml( $html, self::previewStyleValues( $raw_texts, [ 'color', 'size', 'weight' ] ), 'rf-divi-' );
 		}
 
 		wp_send_json_success( $html );
 	}
 
 	/**
-	 * The button style values posted by the Visual Builder preview
-	 * component as JSON. Unknown shapes resolve to empty strings, so a
-	 * tampered payload simply previews an unstyled module.
+	 * The style values posted by the Visual Builder preview component as
+	 * JSON. Unknown shapes resolve to empty strings, so a tampered payload
+	 * simply previews an unstyled module.
 	 *
-	 * @param string $raw JSON payload ('' when the component sent none).
-	 * @return array<string, string> Values for ButtonStyleCss.
+	 * @param string       $raw  JSON payload ('' when the component sent none).
+	 * @param list<string> $keys Value keys to read.
+	 * @return array<string, string> Style values.
 	 */
-	private static function previewButtonValues( string $raw ): array {
+	private static function previewStyleValues( string $raw, array $keys ): array {
 		$data = '' === $raw ? null : json_decode( $raw, true );
 
 		$values = [];
 
-		foreach ( [ 'background', 'text', 'radius', 'padding' ] as $key ) {
+		foreach ( $keys as $key ) {
 			$value          = is_array( $data ) ? ( $data[ $key ] ?? '' ) : '';
 			$values[ $key ] = is_scalar( $value ) ? (string) $value : '';
 		}

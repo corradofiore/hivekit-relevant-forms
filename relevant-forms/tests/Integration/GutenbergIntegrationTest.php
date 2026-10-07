@@ -14,6 +14,7 @@ use RelevantForms\Forms\FormRenderer;
 use RelevantForms\Forms\FormRepository;
 use RelevantForms\Forms\FormSchema;
 use RelevantForms\Integrations\Gutenberg\GutenbergIntegration;
+use RelevantForms\Integrations\Support\FieldSelectors;
 
 /**
  * {@inheritdoc}
@@ -202,5 +203,50 @@ final class GutenbergIntegrationTest extends TestCase {
 		$this->assertStringContainsString( 'border-radius:8px;', $markup );
 		$this->assertStringNotContainsString( 'background-color:', $markup );
 		$this->assertStringNotContainsString( '.evil', $markup );
+	}
+
+	/**
+	 * The "Text styles" controls style the text outside the controls —
+	 * labels, option labels, help text and display headings — with their own
+	 * scoped rule, independent from the block's own color/typography
+	 * supports (which reach the whole block).
+	 */
+	public function testTheBlockRendersTheTextStyleOverrides(): void {
+		$repository = new FormRepository();
+		$formId     = $repository->create( 'Contact', FormSchema::empty( 'Contact' ), 'published' );
+
+		$markup = do_blocks(
+			'<!-- wp:relevant-forms/form-selector {"formId":' . $formId . ',"textStyleColor":"#112233","textStyleSize":"18px","textStyleWeight":"600"} /-->'
+		);
+
+		$this->assertMatchesRegularExpression(
+			'/<style>\.rf-gb-[0-9a-f]{12} ' . preg_quote( FieldSelectors::TEXT, '/' ) . '\{/',
+			$markup
+		);
+		$this->assertStringContainsString( 'color:#112233;', $markup );
+		$this->assertStringContainsString( 'font-size:18px;', $markup );
+		$this->assertStringContainsString( 'font-weight:600;', $markup );
+		$this->assertStringContainsString( '<form class="relevant-forms"', $markup );
+	}
+
+	/**
+	 * Without any text value no rule is emitted, and hostile values are
+	 * dropped like the button ones.
+	 */
+	public function testTextStyleOverridesAreSanitized(): void {
+		$repository = new FormRepository();
+		$formId     = $repository->create( 'Contact', FormSchema::empty( 'Contact' ), 'published' );
+
+		$clean = do_blocks( '<!-- wp:relevant-forms/form-selector {"formId":' . $formId . '} /-->' );
+
+		$this->assertStringNotContainsString( '<style>', $clean );
+
+		$hostile = do_blocks(
+			'<!-- wp:relevant-forms/form-selector {"formId":' . $formId . ',"textStyleColor":"red;} .evil{color:blue","textStyleWeight":"600;} .evil{color:red"} /-->'
+		);
+
+		$this->assertStringNotContainsString( '<style>', $hostile );
+		$this->assertStringNotContainsString( '.evil', $hostile );
+		$this->assertStringContainsString( '<form class="relevant-forms"', $hostile );
 	}
 }

@@ -89,6 +89,7 @@ final class FormWidget extends \Elementor\Widget_Base {
 		$this->end_controls_section();
 
 		$this->register_field_style_controls();
+		$this->register_text_style_controls();
 		$this->register_button_style_controls();
 	}
 
@@ -187,6 +188,47 @@ final class FormWidget extends \Elementor\Widget_Base {
 			[
 				'name'     => 'field_box_shadow',
 				'selector' => $fields,
+			]
+		);
+
+		$this->end_controls_section();
+	}
+
+	/**
+	 * Style section: the form's own text — field labels, radio and checkbox
+	 * option labels, help text and the display headings — styled separately
+	 * from the controls, which keep their own "Field styles" section. The
+	 * typography group is offered in full here (size, weight, line height,
+	 * spacing, transform), which is what "Module text" means for the
+	 * surrounding text.
+	 */
+	private function register_text_style_controls(): void {
+		$text = '{{WRAPPER}} ' . FieldSelectors::TEXT;
+
+		$this->start_controls_section(
+			'relevant_form_text_style',
+			[
+				'label' => esc_html__( 'Text styles', 'relevant-forms' ),
+				'tab'   => \Elementor\Controls_Manager::TAB_STYLE,
+			]
+		);
+
+		$this->add_control(
+			'text_style_color',
+			[
+				'label'     => esc_html__( 'Text color', 'relevant-forms' ),
+				'type'      => \Elementor\Controls_Manager::COLOR,
+				'selectors' => [
+					$text => 'color: {{VALUE}};',
+				],
+			]
+		);
+
+		$this->add_group_control(
+			\Elementor\Group_Control_Typography::get_type(),
+			[
+				'name'     => 'text_style_typography',
+				'selector' => $text,
 			]
 		);
 

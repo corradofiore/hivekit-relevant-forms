@@ -277,6 +277,76 @@ final class BeaverIntegrationTest extends TestCase {
 	}
 
 	/**
+	 * The Style tab's "Text styles" section offers the controls for the text
+	 * outside the controls: color, font size and font weight.
+	 */
+	public function testTheStyleTabOffersTheTextStylingControls(): void {
+		$tab = ModuleStyles::styleTab();
+
+		$this->assertArrayHasKey( 'text_styles', $tab['sections'] );
+		$this->assertSame( 'Text styles', $tab['sections']['text_styles']['title'] );
+
+		$this->assertSame(
+			[ 'text_color', 'text_size', 'text_weight' ],
+			array_keys( $tab['sections']['text_styles']['fields'] )
+		);
+
+		// The field controls keep their own section.
+		$this->assertSame(
+			[ 'field_styles', 'text_styles', 'button_styles' ],
+			array_keys( $tab['sections'] )
+		);
+	}
+
+	/**
+	 * Text style values are emitted as one scoped rule targeting the form's
+	 * labels, option labels and help text — separately from the field rule,
+	 * which keeps targeting the controls.
+	 */
+	public function testTheModuleRendersScopedTextStyles(): void {
+		$formId = $this->createFormWithOneTextField();
+
+		$html = ModuleStyles::render(
+			(object) [
+				'form_id'        => $formId,
+				'text_color'     => '#112233',
+				'text_size'      => '18',
+				'text_size_unit' => 'px',
+				'text_weight'    => '600',
+			]
+		);
+
+		$escaped = preg_quote( FieldSelectors::TEXT, '/' );
+
+		$this->assertMatchesRegularExpression( '/\.rf-bb-[0-9a-f]{12} ' . $escaped . '\{/', $html );
+		$this->assertStringContainsString( 'color:#112233;', $html );
+		$this->assertStringContainsString( 'font-size:18px;', $html );
+		$this->assertStringContainsString( 'font-weight:600;', $html );
+
+		// The field rule is separate: the controls are not styled here.
+		$this->assertStringNotContainsString( FieldSelectors::FIELDS . '{', $html );
+	}
+
+	/**
+	 * Hostile text values are dropped exactly like the field and button ones.
+	 */
+	public function testHostileTextValuesAreDropped(): void {
+		$formId = $this->createFormWithOneTextField();
+
+		$html = ModuleStyles::render(
+			(object) [
+				'form_id'     => $formId,
+				'text_color'  => 'red;} .evil{color:blue',
+				'text_weight' => '600;} .evil{color:red',
+			]
+		);
+
+		$this->assertStringNotContainsString( '<style>', $html );
+		$this->assertStringNotContainsString( '.evil', $html );
+		$this->assertStringContainsString( 'relevant-forms-field', $html );
+	}
+
+	/**
 	 * Create a published form with one text field for render tests.
 	 *
 	 * @return int Form ID.

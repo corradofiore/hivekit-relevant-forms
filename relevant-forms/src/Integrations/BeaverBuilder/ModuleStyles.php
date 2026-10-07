@@ -19,6 +19,7 @@ namespace RelevantForms\Integrations\BeaverBuilder;
 
 use RelevantForms\Integrations\Support\ButtonStyleCss;
 use RelevantForms\Integrations\Support\FieldSelectors;
+use RelevantForms\Integrations\Support\TextStyleCss;
 
 /**
  * Settings schema and CSS builder for the module's field style controls.
@@ -47,6 +48,10 @@ final class ModuleStyles {
 				'field_styles'  => [
 					'title'  => esc_html__( 'Field styles', 'relevant-forms' ),
 					'fields' => self::fields(),
+				],
+				'text_styles'   => [
+					'title'  => esc_html__( 'Text styles', 'relevant-forms' ),
+					'fields' => self::textFields(),
 				],
 				'button_styles' => [
 					'title'  => esc_html__( 'Button styles', 'relevant-forms' ),
@@ -159,6 +164,56 @@ final class ModuleStyles {
 	}
 
 	/**
+	 * All settings fields for the "Text styles" section: the form's own text
+	 * — field labels, option labels, help text and the display headings — as
+	 * opposed to the controls styled by the "Field styles" section.
+	 *
+	 * @return array<string, array<string, mixed>> Settings fields.
+	 */
+	private static function textFields(): array {
+		$refresh = [ 'preview' => [ 'type' => 'refresh' ] ];
+
+		return [
+			'text_color'  => $refresh + [
+				'type'        => 'color',
+				'label'       => esc_html__( 'Text color', 'relevant-forms' ),
+				'default'     => '',
+				'show_reset'  => true,
+				'show_alpha'  => true,
+				'connections' => [ 'color' ],
+			],
+			'text_size'   => $refresh + [
+				'type'    => 'unit',
+				'label'   => esc_html__( 'Font size', 'relevant-forms' ),
+				'default' => '',
+				'units'   => self::TEXT_UNITS,
+			],
+			'text_weight' => $refresh + [
+				'type'    => 'select',
+				'label'   => esc_html__( 'Font weight', 'relevant-forms' ),
+				'default' => '',
+				'options' => self::weightOptions(),
+			],
+		];
+	}
+
+	/**
+	 * The offered font weights ('' keeps the theme's own weight). PHP turns
+	 * the numeric option keys into integers, so the map is mixed-keyed.
+	 *
+	 * @return array<int|string, string> Option value => label.
+	 */
+	private static function weightOptions(): array {
+		return [
+			''    => esc_html__( 'Default', 'relevant-forms' ),
+			'400' => esc_html__( 'Normal (400)', 'relevant-forms' ),
+			'500' => esc_html__( 'Medium (500)', 'relevant-forms' ),
+			'600' => esc_html__( 'Semibold (600)', 'relevant-forms' ),
+			'700' => esc_html__( 'Bold (700)', 'relevant-forms' ),
+		];
+	}
+
+	/**
 	 * All settings fields for the "Button styles" section.
 	 *
 	 * @return array<string, array<string, mixed>> Settings fields.
@@ -264,6 +319,17 @@ final class ModuleStyles {
 				'text'       => self::color( $values, 'button_text_color' ),
 				'radius'     => self::length( $values, 'button_radius', 'px', self::RADIUS_UNITS ),
 				'padding'    => self::padding( $values, 'button_padding' ),
+			]
+		);
+
+		// The text outside the controls: labels, option labels, help text and
+		// the display headings (module-level text controls are not offered).
+		$css .= TextStyleCss::css(
+			$scope . ' ' . FieldSelectors::TEXT,
+			[
+				'color'  => self::color( $values, 'text_color' ),
+				'size'   => self::length( $values, 'text_size', 'px', self::TEXT_UNITS ),
+				'weight' => trim( (string) ( $values['text_weight'] ?? '' ) ),
 			]
 		);
 

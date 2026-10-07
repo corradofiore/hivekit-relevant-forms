@@ -14,6 +14,7 @@ use RelevantForms\Assets\FrontendAssets;
 use RelevantForms\Forms\FormRenderer;
 use RelevantForms\Integrations\Support\ButtonStyleCss;
 use RelevantForms\Integrations\Support\FormChoices;
+use RelevantForms\Integrations\Support\TextStyleCss;
 
 /**
  * Registers the block and its editor UI.
@@ -95,6 +96,24 @@ final class GutenbergIntegration {
 						'type'    => 'object',
 						'default' => [],
 					],
+
+					/*
+					 * The text outside the controls (labels, option labels, help text,
+					 * display headings). Prefixed deliberately: core's color support
+					 * already owns `textColor`.
+					 */
+					'textStyleColor'  => [
+						'type'    => 'string',
+						'default' => '',
+					],
+					'textStyleSize'   => [
+						'type'    => 'string',
+						'default' => '',
+					],
+					'textStyleWeight' => [
+						'type'    => 'string',
+						'default' => '',
+					],
 				],
 				'editor_script'   => 'relevant-forms-block-editor',
 				'style'           => 'relevant-forms',
@@ -145,12 +164,36 @@ final class GutenbergIntegration {
 		}
 
 		$html = ButtonStyleCss::scopedHtml( $html, self::buttonValues( $attributes ), 'rf-gb-' );
+		$html = TextStyleCss::scopedHtml( $html, self::textStyleValues( $attributes ), 'rf-gb-' );
 
 		return sprintf(
 			'<div %1$s>%2$s</div>',
 			get_block_wrapper_attributes( [ 'class' => 'relevant-forms-embed' ] ),
 			$html
 		);
+	}
+
+	/**
+	 * The text style control values from the block attributes, normalized for
+	 * TextStyleCss.
+	 *
+	 * @param array<string, mixed> $attributes Block attributes.
+	 * @return array<string, string> Style values.
+	 */
+	private static function textStyleValues( array $attributes ): array {
+		$values = [];
+
+		foreach (
+			[
+				'color'  => 'textStyleColor',
+				'size'   => 'textStyleSize',
+				'weight' => 'textStyleWeight',
+			] as $key => $attribute
+		) {
+			$values[ $key ] = is_string( $attributes[ $attribute ] ?? null ) ? $attributes[ $attribute ] : '';
+		}
+
+		return $values;
 	}
 
 	/**

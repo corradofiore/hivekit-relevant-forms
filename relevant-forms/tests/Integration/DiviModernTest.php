@@ -16,6 +16,7 @@ use RelevantForms\Forms\FormRepository;
 use RelevantForms\Forms\FormSchema;
 use RelevantForms\Integrations\Divi\DiviIntegration;
 use RelevantForms\Integrations\Divi\ModernModule;
+use RelevantForms\Integrations\Support\FieldSelectors;
 use RelevantForms\Tests\Integration\Support\AjaxRequests;
 use RelevantForms\Tests\Integration\Support\DiviDependencyTreeStub;
 
@@ -185,6 +186,25 @@ final class DiviModernTest extends TestCase {
 			$this->assertArrayHasKey( $attribute, $module['attributes'] );
 			$this->assertSame( '', $module['attributes'][ $attribute ]['default'] );
 		}
+
+		// The "Text styles" controls: the text outside the form controls.
+		foreach ( [ 'textColor', 'textSize', 'textWeight' ] as $attribute ) {
+			$this->assertArrayHasKey( $attribute, $module['attributes'] );
+			$this->assertSame( '', $module['attributes'][ $attribute ]['default'] );
+		}
+
+		$script = (string) file_get_contents( RELEVANT_FORMS_PATH . 'assets/js/divi-module-modern.js' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Reading a local file, not a remote URL.
+
+		// The builder metadata must declare the same attributes and expose
+		// the group, or the panel and the stored values would drift apart.
+		foreach ( [ 'textColor', 'textSize', 'textWeight' ] as $attribute ) {
+			$this->assertStringContainsString( $attribute, $script, $attribute );
+		}
+
+		$this->assertStringContainsString( "id: 'textSettings'", $script );
+		$this->assertStringContainsString( "attrName: 'textColor'", $script );
+		$this->assertStringContainsString( "attrName: 'textSize'", $script );
+		$this->assertStringContainsString( "attrName: 'textWeight'", $script );
 
 		$this->assertIsArray( $outline );
 		$this->assertSame( 'formId.*', $outline['module']['form_id'] );
@@ -357,13 +377,89 @@ final class DiviModernTest extends TestCase {
 	}
 
 	/**
+	 * The module reads the text style values from the same mode-wrapped
+	 * attributes; the builder posts them to the preview endpoint, which
+	 * scopes them to the text outside the controls.
+	 */
+	public function testTheModuleExtractsAndPreviewsTheTextValues(): void {
+		require_once __DIR__ . '/Support/DiviDependencyInterface.php';
+
+		$this->assertTrue( class_exists( ModernModule::class ) );
+
+		$this->assertSame(
+			[
+				'color'  => '#112233',
+				'size'   => '18px',
+				'weight' => '600',
+			],
+			ModernModule::textValues(
+				[
+					'textColor'  => [ 'desktop' => [ 'value' => '#112233' ] ],
+					'textSize'   => [ 'desktop' => [ 'value' => '18px' ] ],
+					'textWeight' => [ 'desktop' => [ 'value' => '600' ] ],
+				]
+			)
+		);
+
+		// Junk shapes resolve to empty strings, so nothing is styled.
+		$this->assertSame(
+			[
+				'color'  => '',
+				'size'   => '',
+				'weight' => '',
+			],
+			ModernModule::textValues(
+				[
+					'textColor'  => [ 'desktop' => [ 'value' => [ 'nope' ] ] ],
+					'textSize'   => 'not-a-shape',
+					'textWeight' => [],
+				]
+			)
+		);
+
+		wp_set_current_user( self::factory()->user->create( [ 'role' => 'administrator' ] ) );
+
+		$formId   = ( new FormRepository() )->create( 'Contact', FormSchema::empty( 'Contact' ), 'published' );
+		$response = $this->dispatchPreview(
+			$formId,
+			[],
+			[
+				'color'  => '#112233',
+				'size'   => '18px',
+				'weight' => '600',
+			]
+		);
+
+		$this->assertTrue( $response['success'] );
+		$this->assertMatchesRegularExpression(
+			'/^<style>\.rf-divi-[0-9a-f]{12} ' . preg_quote( FieldSelectors::TEXT, '/' ) . '\{color:#112233;font-size:18px;font-weight:600;\}<\/style><div class="rf-divi-[0-9a-f]{12}">/',
+			$response['data']
+		);
+
+		// Hostile values are dropped: the size still renders, the payload
+		// cannot break out of the declaration.
+		$hostile = $this->dispatchPreview(
+			$formId,
+			[],
+			[
+				'color'  => 'red;} .evil{color:blue',
+				'weight' => '600;} .evil{color:red',
+			]
+		);
+
+		$this->assertStringNotContainsString( '.evil', $hostile['data'] );
+		$this->assertStringNotContainsString( '<style>', $hostile['data'] );
+	}
+
+	/**
 	 * POST to the Visual Builder preview endpoint with a valid nonce.
 	 *
 	 * @param int                  $formId  Form ID to preview.
 	 * @param array<string, mixed> $buttons Button style payload ('' values when empty).
+	 * @param array<string, mixed> $texts   Text style payload ('' values when empty).
 	 * @return array<string, mixed> Decoded response body.
 	 */
-	private function dispatchPreview( int $formId, array $buttons = [] ): array {
+	private function dispatchPreview( int $formId, array $buttons = [], array $texts = [] ): array {
 		$_POST['form_id']  = $formId;
 		$_REQUEST['nonce'] = wp_create_nonce( 'relevant_forms_divi_builder' );
 
@@ -371,6 +467,12 @@ final class DiviModernTest extends TestCase {
 			$_POST['buttons'] = (string) wp_json_encode( $buttons );
 		} else {
 			unset( $_POST['buttons'] );
+		}
+
+		if ( [] !== $texts ) {
+			$_POST['texts'] = (string) wp_json_encode( $texts );
+		} else {
+			unset( $_POST['texts'] );
 		}
 
 		return AjaxRequests::dispatch( [ DiviIntegration::class, 'preview' ] );

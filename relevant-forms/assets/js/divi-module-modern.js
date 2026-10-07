@@ -117,19 +117,21 @@
 
 	/**
 	 * Fetch the form's front-end markup for the preview. Re-fetches when the
-	 * form or any button style value changes, so the canvas always shows
-	 * what the front end would render.
+	 * form or any style value changes, so the canvas always shows what the
+	 * front end would render.
 	 *
 	 * @param {string} formId  Selected form ID.
 	 * @param {Object} buttons Button style values (background, text, radius, padding).
+	 * @param {Object} texts   Text style values (color, size, weight).
 	 * @return {Object} { isLoading, html, failed }.
 	 */
-	function usePreviewFetch( formId, buttons ) {
+	function usePreviewFetch( formId, buttons, texts ) {
 		var state = useState( { isLoading: false, html: '', failed: false } );
 		var current = state[ 0 ];
 		var setState = state[ 1 ];
 		var controller = useRef( null );
 		var buttonsKey = JSON.stringify( buttons );
+		var textsKey = JSON.stringify( texts );
 
 		useEffect( function () {
 			if ( ! formId ) {
@@ -152,6 +154,7 @@
 			body.append( 'nonce', data.nonce );
 			body.append( 'form_id', formId );
 			body.append( 'buttons', buttonsKey );
+			body.append( 'texts', textsKey );
 
 			window
 				.fetch( data.ajaxUrl, {
@@ -179,7 +182,7 @@
 			return function () {
 				active.abort();
 			};
-		}, [ formId, buttonsKey ] );
+		}, [ formId, buttonsKey, textsKey ] );
 
 		return current;
 	}
@@ -200,7 +203,12 @@
 			radius: modeValue( props.attrs.buttonRadius ),
 			padding: modeValue( props.attrs.buttonPadding )
 		};
-		var state = usePreviewFetch( formId, buttonValues );
+		var textValues = {
+			color: modeValue( props.attrs.textColor ),
+			size: modeValue( props.attrs.textSize ),
+			weight: modeValue( props.attrs.textWeight )
+		};
+		var state = usePreviewFetch( formId, buttonValues, textValues );
 		var previewRef = useRef( null );
 
 		// Runs after every render: binds the form's behaviours once the
@@ -307,14 +315,16 @@
 	}
 
 	/**
-	 * Settings panel content: a "Form Settings" group with the form picker
-	 * and a "Button styles" group with the button overrides.
+	 * Settings panel content: a "Form Settings" group with the form picker,
+	 * a "Text styles" group for the text outside the controls and a
+	 * "Button styles" group with the button overrides.
 	 *
 	 * @param {Object} props Settings props from the module library.
 	 * @return {Object} Settings element.
 	 */
 	function Settings( props ) {
 		var labels = data.buttonSettings || {};
+		var textLabels = data.textSettings || {};
 
 		return React.createElement(
 			React.Fragment,
@@ -328,6 +338,28 @@
 					React.createElement( divi.fieldLibrary.Select, {
 						options: data.forms || {},
 						emptyLabel: data.formId.placeholder
+					} )
+				)
+			),
+			React.createElement(
+				divi.module.GroupContainer,
+				extend( {}, props, { id: 'textSettings', title: textLabels.label } ),
+				React.createElement(
+					divi.module.FieldContainer,
+					extend( {}, props, { attrName: 'textColor', label: textLabels.color } ),
+					React.createElement( divi.fieldLibrary.ColorPicker, {} )
+				),
+				React.createElement(
+					divi.module.FieldContainer,
+					extend( {}, props, { attrName: 'textSize', label: textLabels.size } ),
+					React.createElement( divi.fieldLibrary.Text, { placeholder: textLabels.sizePlaceholder } )
+				),
+				React.createElement(
+					divi.module.FieldContainer,
+					extend( {}, props, { attrName: 'textWeight', label: textLabels.weight } ),
+					React.createElement( divi.fieldLibrary.Select, {
+						options: textLabels.weights || {},
+						emptyLabel: textLabels.weightDefault
 					} )
 				)
 			),
@@ -433,7 +465,10 @@
 			buttonBg:      { type: 'string', default: '' },
 			buttonText:    { type: 'string', default: '' },
 			buttonRadius:  { type: 'string', default: '' },
-			buttonPadding: { type: 'string', default: '' }
+			buttonPadding: { type: 'string', default: '' },
+			textColor:     { type: 'string', default: '' },
+			textSize:      { type: 'string', default: '' },
+			textWeight:    { type: 'string', default: '' }
 		},
 		customCssFields: {},
 		settings: { design: 'auto', advanced: 'auto' }
