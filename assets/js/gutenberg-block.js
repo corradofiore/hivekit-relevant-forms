@@ -102,49 +102,68 @@
 				} )
 			);
 
-			// The text style controls target the text OUTSIDE the controls:
-			// field labels, option labels, help text and display headings.
-			// Clearing a control keeps the theme's own styling.
-			var textPanel = el(
-				components.PanelBody,
-				{ title: 'Text styles', initialOpen: false },
-				el( components.PanelColorSettings, {
-					key: 'text-color',
-					title: 'Text color',
-					colors: [],
-					colorSettings: [
-						{
-							value: props.attributes.textStyleColor,
-							onChange: function ( value ) {
-								props.setAttributes( { textStyleColor: value || '' } );
-							},
-							label: 'Labels and help text'
+			// One panel per text group: the field labels, the captions under
+			// them and the option labels beside radio/checkbox boxes are
+			// configured independently. Clearing a control keeps the theme's
+			// own styling.
+			var textGroups = [
+				{ key: 'label', title: 'Field labels' },
+				{ key: 'caption', title: 'Field captions' },
+				{ key: 'option', title: 'Option labels' }
+			];
+
+			var textPanels = textGroups.map( function ( group ) {
+				var colorAttribute = group.key + 'Color';
+				var sizeAttribute = group.key + 'Size';
+				var weightAttribute = group.key + 'Weight';
+
+				return el(
+					components.PanelBody,
+					{ key: 'text-' + group.key, title: group.title, initialOpen: false },
+					el( components.PanelColorSettings, {
+						key: 'text-color',
+						title: 'Text color',
+						colors: [],
+						colorSettings: [
+							{
+								value: props.attributes[ colorAttribute ],
+								onChange: function ( value ) {
+									var next = {};
+									next[ colorAttribute ] = value || '';
+									props.setAttributes( next );
+								},
+								label: group.title
+							}
+						]
+					} ),
+					el( components.UnitControl, {
+						key: 'text-size',
+						label: 'Font size',
+						value: props.attributes[ sizeAttribute ],
+						onChange: function ( value ) {
+							var next = {};
+							next[ sizeAttribute ] = value || '';
+							props.setAttributes( next );
 						}
-					]
-				} ),
-				el( components.UnitControl, {
-					key: 'text-size',
-					label: 'Font size',
-					value: props.attributes.textStyleSize,
-					onChange: function ( value ) {
-						props.setAttributes( { textStyleSize: value || '' } );
-					}
-				} ),
-				el( components.SelectControl, {
-					key: 'text-weight',
-					label: 'Font weight',
-					value: props.attributes.textStyleWeight,
-					options: weightOptions,
-					onChange: function ( value ) {
-						props.setAttributes( { textStyleWeight: value || '' } );
-					}
-				} )
-			);
+					} ),
+					el( components.SelectControl, {
+						key: 'text-weight',
+						label: 'Font weight',
+						value: props.attributes[ weightAttribute ],
+						options: weightOptions,
+						onChange: function ( value ) {
+							var next = {};
+							next[ weightAttribute ] = value || '';
+							props.setAttributes( next );
+						}
+					} )
+				);
+			} );
 
 			var inspector = el(
 				blockEditor.InspectorControls,
 				{ key: 'relevant-form-styles' },
-				textPanel,
+				textPanels,
 				buttonPanel
 			);
 

@@ -187,8 +187,9 @@ final class DiviModernTest extends TestCase {
 			$this->assertSame( '', $module['attributes'][ $attribute ]['default'] );
 		}
 
-		// The "Text styles" controls: the text outside the form controls.
-		foreach ( [ 'textColor', 'textSize', 'textWeight' ] as $attribute ) {
+		// One group of attributes per text group: field labels, captions and
+		// option labels (the text outside the controls).
+		foreach ( [ 'labelColor', 'labelSize', 'labelWeight', 'captionColor', 'captionSize', 'captionWeight', 'optionColor', 'optionSize', 'optionWeight' ] as $attribute ) {
 			$this->assertArrayHasKey( $attribute, $module['attributes'] );
 			$this->assertSame( '', $module['attributes'][ $attribute ]['default'] );
 		}
@@ -196,15 +197,18 @@ final class DiviModernTest extends TestCase {
 		$script = (string) file_get_contents( RELEVANT_FORMS_PATH . 'assets/js/divi-module-modern.js' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Reading a local file, not a remote URL.
 
 		// The builder metadata must declare the same attributes and expose
-		// the group, or the panel and the stored values would drift apart.
-		foreach ( [ 'textColor', 'textSize', 'textWeight' ] as $attribute ) {
+		// the groups, or the panel and the stored values would drift apart.
+		foreach ( [ 'labelColor', 'labelSize', 'labelWeight', 'captionColor', 'optionColor', 'optionWeight' ] as $attribute ) {
 			$this->assertStringContainsString( $attribute, $script, $attribute );
 		}
 
-		$this->assertStringContainsString( "id: 'textSettings'", $script );
-		$this->assertStringContainsString( "attrName: 'textColor'", $script );
-		$this->assertStringContainsString( "attrName: 'textSize'", $script );
-		$this->assertStringContainsString( "attrName: 'textWeight'", $script );
+		foreach ( [ 'labelSettings', 'captionSettings', 'optionSettings' ] as $group ) {
+			$this->assertStringContainsString( "id: '" . $group . "'", $script, $group );
+		}
+
+		$this->assertStringContainsString( "attrName: 'labelColor'", $script );
+		$this->assertStringContainsString( "attrName: 'captionSize'", $script );
+		$this->assertStringContainsString( "attrName: 'optionWeight'", $script );
 
 		$this->assertIsArray( $outline );
 		$this->assertSame( 'formId.*', $outline['module']['form_id'] );
@@ -377,45 +381,62 @@ final class DiviModernTest extends TestCase {
 	}
 
 	/**
-	 * The module reads the text style values from the same mode-wrapped
-	 * attributes; the builder posts them to the preview endpoint, which
-	 * scopes them to the text outside the controls.
+	 * The module reads one value triple per text group from the same
+	 * mode-wrapped attributes, and the builder posts the groups to the
+	 * preview endpoint, which scopes them to the matching elements.
 	 */
-	public function testTheModuleExtractsAndPreviewsTheTextValues(): void {
+	public function testTheModuleExtractsAndPreviewsTheTextGroups(): void {
 		require_once __DIR__ . '/Support/DiviDependencyInterface.php';
 
 		$this->assertTrue( class_exists( ModernModule::class ) );
 
 		$this->assertSame(
 			[
-				'color'  => '#112233',
-				'size'   => '18px',
-				'weight' => '600',
+				FieldSelectors::LABELS   => [
+					'color'  => '#112233',
+					'size'   => '18px',
+					'weight' => '600',
+				],
+				FieldSelectors::CAPTIONS => [
+					'color'  => '',
+					'size'   => '',
+					'weight' => '',
+				],
+				FieldSelectors::OPTIONS  => [
+					'color'  => '',
+					'size'   => '',
+					'weight' => '',
+				],
 			],
-			ModernModule::textValues(
+			ModernModule::textGroups(
 				[
-					'textColor'  => [ 'desktop' => [ 'value' => '#112233' ] ],
-					'textSize'   => [ 'desktop' => [ 'value' => '18px' ] ],
-					'textWeight' => [ 'desktop' => [ 'value' => '600' ] ],
+					'labelColor'   => [ 'desktop' => [ 'value' => '#112233' ] ],
+					'labelSize'    => [ 'desktop' => [ 'value' => '18px' ] ],
+					'labelWeight'  => [ 'desktop' => [ 'value' => '600' ] ],
+					'captionColor' => [ 'desktop' => [ 'value' => [ 'nope' ] ] ],
 				]
 			)
 		);
 
 		// Junk shapes resolve to empty strings, so nothing is styled.
-		$this->assertSame(
+		$empty = ModernModule::textGroups(
 			[
-				'color'  => '',
-				'size'   => '',
-				'weight' => '',
-			],
-			ModernModule::textValues(
-				[
-					'textColor'  => [ 'desktop' => [ 'value' => [ 'nope' ] ] ],
-					'textSize'   => 'not-a-shape',
-					'textWeight' => [],
-				]
-			)
+				'labelColor' => 'not-a-shape',
+				'optionSize' => [],
+			]
 		);
+
+		foreach ( [ FieldSelectors::LABELS, FieldSelectors::CAPTIONS, FieldSelectors::OPTIONS ] as $selector ) {
+			$this->assertSame(
+				[
+					'color'  => '',
+					'size'   => '',
+					'weight' => '',
+				],
+				$empty[ $selector ],
+				$selector
+			);
+		}
 
 		wp_set_current_user( self::factory()->user->create( [ 'role' => 'administrator' ] ) );
 
@@ -424,26 +445,32 @@ final class DiviModernTest extends TestCase {
 			$formId,
 			[],
 			[
-				'color'  => '#112233',
-				'size'   => '18px',
-				'weight' => '600',
+				'label'   => [
+					'color'  => '#112233',
+					'size'   => '18px',
+					'weight' => '600',
+				],
+				'caption' => [ 'color' => '#777777' ],
+				'option'  => [ 'weight' => '400' ],
 			]
 		);
 
 		$this->assertTrue( $response['success'] );
 		$this->assertMatchesRegularExpression(
-			'/^<style>\.rf-divi-[0-9a-f]{12} ' . preg_quote( FieldSelectors::TEXT, '/' ) . '\{color:#112233;font-size:18px;font-weight:600;\}<\/style><div class="rf-divi-[0-9a-f]{12}">/',
+			'/^<style>\.rf-divi-[0-9a-f]{12} ' . preg_quote( FieldSelectors::LABELS, '/' ) . '\{color:#112233;font-size:18px;font-weight:600;\}'
+			. '\.rf-divi-[0-9a-f]{12} ' . preg_quote( FieldSelectors::CAPTIONS, '/' ) . '\{color:#777777;\}'
+			. '\.rf-divi-[0-9a-f]{12} ' . preg_quote( FieldSelectors::OPTIONS, '/' ) . '\{font-weight:400;\}<\/style><div class="rf-divi-[0-9a-f]{12}">/',
 			$response['data']
 		);
 
-		// Hostile values are dropped: the size still renders, the payload
-		// cannot break out of the declaration.
+		// Hostile values are dropped: the payload cannot break out of a
+		// declaration and unstyled groups stay out of the output.
 		$hostile = $this->dispatchPreview(
 			$formId,
 			[],
 			[
-				'color'  => 'red;} .evil{color:blue',
-				'weight' => '600;} .evil{color:red',
+				'label'   => [ 'color' => 'red;} .evil{color:blue' ],
+				'caption' => [ 'weight' => '600;} .evil{color:red' ],
 			]
 		);
 
@@ -452,11 +479,45 @@ final class DiviModernTest extends TestCase {
 	}
 
 	/**
+	 * Every settings-panel control maps to an attribute declared in BOTH
+	 * module.json (server side) and the builder metadata (panel side), so a
+	 * typo can never silently drop a control or its stored value.
+	 */
+	public function testEveryPanelControlMapsToADeclaredAttribute(): void {
+		$directory = RELEVANT_FORMS_PATH . 'src/Integrations/Divi/';
+		$module    = wp_json_file_decode( $directory . 'module.json', [ 'associative' => true ] );
+		$script    = (string) file_get_contents( RELEVANT_FORMS_PATH . 'assets/js/divi-module-modern.js' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Reading a local file, not a remote URL.
+
+		$this->assertIsArray( $module );
+		$this->assertGreaterThan( 0, preg_match_all( "/attrName: '([A-Za-z]+)'/", $script, $matches ) );
+
+		$attributes = array_unique( $matches[1] );
+
+		$this->assertContains( 'formId', $attributes );
+
+		foreach ( $attributes as $attribute ) {
+			$this->assertArrayHasKey( $attribute, $module['attributes'], $attribute );
+			$this->assertMatchesRegularExpression(
+				'/\b' . $attribute . ':\s*\{\s*type:/',
+				$script,
+				$attribute . ' must be declared in the builder metadata'
+			);
+		}
+
+		// The three text groups each have a color, a size and a weight.
+		foreach ( [ 'label', 'caption', 'option' ] as $group ) {
+			foreach ( [ 'Color', 'Size', 'Weight' ] as $suffix ) {
+				$this->assertContains( $group . $suffix, $attributes, $group . $suffix );
+			}
+		}
+	}
+
+	/**
 	 * POST to the Visual Builder preview endpoint with a valid nonce.
 	 *
 	 * @param int                  $formId  Form ID to preview.
 	 * @param array<string, mixed> $buttons Button style payload ('' values when empty).
-	 * @param array<string, mixed> $texts   Text style payload ('' values when empty).
+	 * @param array<string, mixed> $texts   Text group payload ('' values when empty).
 	 * @return array<string, mixed> Decoded response body.
 	 */
 	private function dispatchPreview( int $formId, array $buttons = [], array $texts = [] ): array {

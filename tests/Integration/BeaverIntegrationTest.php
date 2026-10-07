@@ -277,51 +277,68 @@ final class BeaverIntegrationTest extends TestCase {
 	}
 
 	/**
-	 * The Style tab's "Text styles" section offers the controls for the text
-	 * outside the controls: color, font size and font weight.
+	 * The Style tab offers one section per text group — field labels,
+	 * captions and option labels — so they are styled independently, plus
+	 * the field and button sections.
 	 */
 	public function testTheStyleTabOffersTheTextStylingControls(): void {
 		$tab = ModuleStyles::styleTab();
 
-		$this->assertArrayHasKey( 'text_styles', $tab['sections'] );
-		$this->assertSame( 'Text styles', $tab['sections']['text_styles']['title'] );
-
 		$this->assertSame(
-			[ 'text_color', 'text_size', 'text_weight' ],
-			array_keys( $tab['sections']['text_styles']['fields'] )
-		);
-
-		// The field controls keep their own section.
-		$this->assertSame(
-			[ 'field_styles', 'text_styles', 'button_styles' ],
+			[ 'field_styles', 'label_styles', 'caption_styles', 'option_styles', 'button_styles' ],
 			array_keys( $tab['sections'] )
 		);
+
+		foreach (
+			[
+				'label_styles'   => [ 'label_color', 'label_size', 'label_weight' ],
+				'caption_styles' => [ 'caption_color', 'caption_size', 'caption_weight' ],
+				'option_styles'  => [ 'option_color', 'option_size', 'option_weight' ],
+			] as $section => $keys
+		) {
+			$this->assertArrayHasKey( $section, $tab['sections'] );
+			$this->assertSame( $keys, array_keys( $tab['sections'][ $section ]['fields'] ), $section );
+		}
+
+		$this->assertSame( 'Field labels', $tab['sections']['label_styles']['title'] );
+		$this->assertSame( 'Field captions', $tab['sections']['caption_styles']['title'] );
+		$this->assertSame( 'Option labels', $tab['sections']['option_styles']['title'] );
 	}
 
 	/**
-	 * Text style values are emitted as one scoped rule targeting the form's
-	 * labels, option labels and help text — separately from the field rule,
-	 * which keeps targeting the controls.
+	 * Each group renders its own scoped rule targeting only its elements, so
+	 * an option label can look different from the field name above it.
 	 */
 	public function testTheModuleRendersScopedTextStyles(): void {
 		$formId = $this->createFormWithOneTextField();
 
 		$html = ModuleStyles::render(
 			(object) [
-				'form_id'        => $formId,
-				'text_color'     => '#112233',
-				'text_size'      => '18',
-				'text_size_unit' => 'px',
-				'text_weight'    => '600',
+				'form_id'           => $formId,
+				'label_color'       => '#112233',
+				'label_size'        => '18',
+				'label_size_unit'   => 'px',
+				'label_weight'      => '600',
+				'caption_color'     => '#777777',
+				'caption_size'      => '13',
+				'caption_size_unit' => 'px',
+				'option_color'      => '#0a7d34',
+				'option_weight'     => '400',
 			]
 		);
 
-		$escaped = preg_quote( FieldSelectors::TEXT, '/' );
-
-		$this->assertMatchesRegularExpression( '/\.rf-bb-[0-9a-f]{12} ' . $escaped . '\{/', $html );
-		$this->assertStringContainsString( 'color:#112233;', $html );
-		$this->assertStringContainsString( 'font-size:18px;', $html );
-		$this->assertStringContainsString( 'font-weight:600;', $html );
+		$this->assertMatchesRegularExpression(
+			'/\.rf-bb-[0-9a-f]{12} ' . preg_quote( FieldSelectors::LABELS, '/' ) . '\{color:#112233;font-size:18px;font-weight:600;\}/',
+			$html
+		);
+		$this->assertMatchesRegularExpression(
+			'/\.rf-bb-[0-9a-f]{12} ' . preg_quote( FieldSelectors::CAPTIONS, '/' ) . '\{color:#777777;font-size:13px;\}/',
+			$html
+		);
+		$this->assertMatchesRegularExpression(
+			'/\.rf-bb-[0-9a-f]{12} ' . preg_quote( FieldSelectors::OPTIONS, '/' ) . '\{color:#0a7d34;font-weight:400;\}/',
+			$html
+		);
 
 		// The field rule is separate: the controls are not styled here.
 		$this->assertStringNotContainsString( FieldSelectors::FIELDS . '{', $html );
@@ -335,9 +352,9 @@ final class BeaverIntegrationTest extends TestCase {
 
 		$html = ModuleStyles::render(
 			(object) [
-				'form_id'     => $formId,
-				'text_color'  => 'red;} .evil{color:blue',
-				'text_weight' => '600;} .evil{color:red',
+				'form_id'       => $formId,
+				'label_color'   => 'red;} .evil{color:blue',
+				'option_weight' => '600;} .evil{color:red',
 			]
 		);
 

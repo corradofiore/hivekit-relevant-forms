@@ -206,26 +206,37 @@ final class GutenbergIntegrationTest extends TestCase {
 	}
 
 	/**
-	 * The "Text styles" controls style the text outside the controls —
-	 * labels, option labels, help text and display headings — with their own
-	 * scoped rule, independent from the block's own color/typography
-	 * supports (which reach the whole block).
+	 * Each text group (field labels, captions, option labels) is styled by its
+	 * own attributes and scoped rule, independently from the others and from
+	 * the block's own color/typography supports.
 	 */
 	public function testTheBlockRendersTheTextStyleOverrides(): void {
 		$repository = new FormRepository();
 		$formId     = $repository->create( 'Contact', FormSchema::empty( 'Contact' ), 'published' );
 
 		$markup = do_blocks(
-			'<!-- wp:relevant-forms/form-selector {"formId":' . $formId . ',"textStyleColor":"#112233","textStyleSize":"18px","textStyleWeight":"600"} /-->'
+			'<!-- wp:relevant-forms/form-selector {"formId":' . $formId
+			. ',"labelColor":"#112233","labelSize":"18px","labelWeight":"600"'
+			. ',"captionColor":"#777777","captionSize":"13px"'
+			. ',"optionColor":"#0a7d34","optionWeight":"400"} /-->'
 		);
 
 		$this->assertMatchesRegularExpression(
-			'/<style>\.rf-gb-[0-9a-f]{12} ' . preg_quote( FieldSelectors::TEXT, '/' ) . '\{/',
+			'/<style>\.rf-gb-[0-9a-f]{12} ' . preg_quote( FieldSelectors::LABELS, '/' ) . '\{color:#112233;font-size:18px;font-weight:600;\}/',
 			$markup
 		);
-		$this->assertStringContainsString( 'color:#112233;', $markup );
-		$this->assertStringContainsString( 'font-size:18px;', $markup );
-		$this->assertStringContainsString( 'font-weight:600;', $markup );
+		$this->assertMatchesRegularExpression(
+			'/\.rf-gb-[0-9a-f]{12} ' . preg_quote( FieldSelectors::CAPTIONS, '/' ) . '\{color:#777777;font-size:13px;\}/',
+			$markup
+		);
+		$this->assertMatchesRegularExpression(
+			'/\.rf-gb-[0-9a-f]{12} ' . preg_quote( FieldSelectors::OPTIONS, '/' ) . '\{color:#0a7d34;font-weight:400;\}/',
+			$markup
+		);
+
+		// One scope class carries every group.
+		$this->assertSame( 1, substr_count( $markup, '<style>' ) );
+		$this->assertMatchesRegularExpression( '/<div class="rf-gb-[0-9a-f]{12}">/', $markup );
 		$this->assertStringContainsString( '<form class="relevant-forms"', $markup );
 	}
 
@@ -242,7 +253,8 @@ final class GutenbergIntegrationTest extends TestCase {
 		$this->assertStringNotContainsString( '<style>', $clean );
 
 		$hostile = do_blocks(
-			'<!-- wp:relevant-forms/form-selector {"formId":' . $formId . ',"textStyleColor":"red;} .evil{color:blue","textStyleWeight":"600;} .evil{color:red"} /-->'
+			'<!-- wp:relevant-forms/form-selector {"formId":' . $formId
+			. ',"labelColor":"red;} .evil{color:blue","optionWeight":"600;} .evil{color:red"} /-->'
 		);
 
 		$this->assertStringNotContainsString( '<style>', $hostile );

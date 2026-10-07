@@ -138,10 +138,10 @@ final class ElementorIntegrationTest extends TestCase {
 	}
 
 	/**
-	 * The widget declares a "Text styles" section for the text outside the
-	 * controls — labels, option labels, help text and display headings —
-	 * with its own color control and typography group, so the surrounding
-	 * text is styled separately from the fields.
+	 * The widget declares a "Text styles" section with one tab per text group
+	 * — field labels, captions and option labels — each with its own color
+	 * control and typography group, so a radio option does not have to look
+	 * like the field name above it.
 	 */
 	public function testTheWidgetDeclaresTextStyleControls(): void {
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Reading a local file, not a remote URL.
@@ -149,11 +149,17 @@ final class ElementorIntegrationTest extends TestCase {
 
 		$this->assertIsString( $file );
 		$this->assertStringContainsString( "'Text styles'", $file );
-		$this->assertStringContainsString( 'FieldSelectors::TEXT', $file );
+		$this->assertStringContainsString( 'FieldSelectors::LABELS', $file );
+		$this->assertStringContainsString( 'FieldSelectors::CAPTIONS', $file );
+		$this->assertStringContainsString( 'FieldSelectors::OPTIONS', $file );
 		$this->assertStringContainsString( 'relevant_form_text_style', $file );
 		$this->assertStringContainsString( 'register_text_style_controls', $file );
-		$this->assertStringContainsString( 'text_style_color', $file );
-		$this->assertStringContainsString( 'text_style_typography', $file );
+		$this->assertStringContainsString( 'start_controls_tabs', $file );
+		$this->assertStringContainsString( "'Field labels'", $file );
+		$this->assertStringContainsString( "'Field captions'", $file );
+		$this->assertStringContainsString( "'Option labels'", $file );
+		$this->assertStringContainsString( '$group . \'_style_color\'', $file );
+		$this->assertStringContainsString( '$group . \'_style_typography\'', $file );
 
 		// Registered between the field and button sections.
 		$this->assertLessThan(

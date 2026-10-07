@@ -1,8 +1,8 @@
 <?php
 /**
- * TextStyleCss tests: the value sanitizers, the rule builder and the scoped
- * wrapper shared by the Divi, Gutenberg and Beaver Builder "Text styles"
- * controls.
+ * TextStyleCss tests: the value sanitizers, the per-group rule builder and
+ * the scoped wrapper shared by the Divi, Gutenberg and Beaver Builder text
+ * style controls.
  *
  * @package RelevantForms
  */
@@ -22,27 +22,45 @@ use RelevantForms\Integrations\Support\TextStyleCss;
 final class TextStyleCssTest extends TestCase {
 
 	/**
-	 * The rule builder emits one declaration per usable value in a fixed
-	 * order and returns nothing when no value is set — unstyled text keeps
-	 * the theme's typography.
+	 * Each group gets its own rule, in a fixed declaration order, and a group
+	 * with no usable value emits nothing.
 	 */
-	public function testTheRuleBuilderEmitsOnlyTheValuesThatAreSet(): void {
+	public function testEachGroupGetsItsOwnRule(): void {
 		$css = TextStyleCss::css(
-			'.rf-x ' . FieldSelectors::TEXT,
+			'.rf-x',
 			[
-				'color'  => '#112233',
-				'size'   => '',
-				'weight' => '600',
+				FieldSelectors::LABELS   => [
+					'color'  => '#112233',
+					'size'   => '18',
+					'weight' => '600',
+				],
+				FieldSelectors::CAPTIONS => [
+					'color' => '#777777',
+				],
+				FieldSelectors::OPTIONS  => [],
 			]
 		);
 
 		$this->assertSame(
-			'.rf-x ' . FieldSelectors::TEXT . '{color:#112233;font-weight:600;}',
+			'.rf-x ' . FieldSelectors::LABELS . '{color:#112233;font-size:18px;font-weight:600;}'
+			. '.rf-x ' . FieldSelectors::CAPTIONS . '{color:#777777;}',
 			$css
 		);
 
-		$this->assertSame( '', TextStyleCss::css( '.x', [ 'color' => '' ] ) );
-		$this->assertSame( '', TextStyleCss::css( '.x', [] ) );
+		$this->assertSame( '', TextStyleCss::css( '.rf-x', [] ) );
+		$this->assertSame(
+			'',
+			TextStyleCss::css(
+				'.rf-x',
+				[
+					FieldSelectors::LABELS => [
+						'color'  => 'nope',
+						'size'   => 'wide',
+						'weight' => 'heavy',
+					],
+				]
+			)
+		);
 	}
 
 	/**
@@ -51,14 +69,14 @@ final class TextStyleCssTest extends TestCase {
 	 */
 	public function testFontSizesReuseTheLengthSanitizer(): void {
 		$this->assertSame(
-			'.x{font-size:18px;}',
-			TextStyleCss::css( '.x', [ 'size' => '18' ] )
+			'.x ' . FieldSelectors::LABELS . '{font-size:18px;}',
+			TextStyleCss::css( '.x', [ FieldSelectors::LABELS => [ 'size' => '18' ] ] )
 		);
 		$this->assertSame(
-			'.x{font-size:1.1rem;}',
-			TextStyleCss::css( '.x', [ 'size' => '1.1rem' ] )
+			'.x ' . FieldSelectors::LABELS . '{font-size:1.1rem;}',
+			TextStyleCss::css( '.x', [ FieldSelectors::LABELS => [ 'size' => '1.1rem' ] ] )
 		);
-		$this->assertSame( '', TextStyleCss::css( '.x', [ 'size' => 'wide' ] ) );
+		$this->assertSame( '', TextStyleCss::css( '.x', [ FieldSelectors::LABELS => [ 'size' => 'wide' ] ] ) );
 	}
 
 	/**
@@ -79,45 +97,56 @@ final class TextStyleCssTest extends TestCase {
 
 	/**
 	 * The scoped wrapper: empty markup passes through, unstyled forms pass
-	 * through, styled forms get a deterministic scope class with one rule
-	 * for the text outside the controls. Identical values — in any key
-	 * order — always share one class.
+	 * through, styled forms get ONE scope class carrying every group's rule.
+	 * Identical values — in any key order — always share one class.
 	 */
 	public function testScopedHtmlWrapsStyledMarkupAndPassesThroughOtherwise(): void {
 		$html = '<form class="relevant-forms"></form>';
 
-		$this->assertSame( '', TextStyleCss::scopedHtml( '', [ 'color' => '#000000' ], 'rf-x-' ) );
-		$this->assertSame( $html, TextStyleCss::scopedHtml( $html, [], 'rf-x-' ) );
-
-		$wrapped = TextStyleCss::scopedHtml(
-			$html,
-			[
-				'color'  => '#112233',
-				'weight' => '600',
+		$groups = [
+			FieldSelectors::LABELS  => [
+				'color' => '#112233',
+				'size'  => '',
 			],
-			'rf-x-'
+			FieldSelectors::OPTIONS => [
+				'weight' => '400',
+			],
+		];
+
+		$this->assertSame( '', TextStyleCss::scopedHtml( '', $groups, 'rf-x-' ) );
+		$this->assertSame( $html, TextStyleCss::scopedHtml( $html, [], 'rf-x-' ) );
+		$this->assertSame(
+			$html,
+			TextStyleCss::scopedHtml( $html, [ FieldSelectors::LABELS => [ 'color' => 'not-a-color' ] ], 'rf-x-' )
 		);
 
+		$wrapped = TextStyleCss::scopedHtml( $html, $groups, 'rf-x-' );
+
+		$this->assertSame( 1, substr_count( $wrapped, '<style>' ) );
+		$this->assertSame( 1, substr_count( $wrapped, '<div class="rf-x-' ) );
 		$this->assertMatchesRegularExpression(
-			'/^<style>\.rf-x-[0-9a-f]{12} ' . preg_quote( FieldSelectors::TEXT, '/' ) . '\{color:#112233;font-weight:600;\}<\/style><div class="rf-x-[0-9a-f]{12}">/',
+			'/^<style>\.rf-x-[0-9a-f]{12} ' . preg_quote( FieldSelectors::LABELS, '/' ) . '\{color:#112233;\}'
+			. '\.rf-x-[0-9a-f]{12} ' . preg_quote( FieldSelectors::OPTIONS, '/' ) . '\{font-weight:400;\}<\/style>'
+			. '<div class="rf-x-[0-9a-f]{12}">/',
 			$wrapped
 		);
 		$this->assertStringContainsString( $html, $wrapped );
 
+		// The scope does not depend on the order the groups or their keys
+		// were filled in.
 		$this->assertSame(
+			$wrapped,
 			TextStyleCss::scopedHtml(
 				$html,
 				[
-					'color' => '#112233',
-					'size'  => '18px',
-				],
-				'rf-x-'
-			),
-			TextStyleCss::scopedHtml(
-				$html,
-				[
-					'size'  => '18px',
-					'color' => '#112233',
+					FieldSelectors::OPTIONS => [
+						'weight' => '400',
+						'color'  => '',
+					],
+					FieldSelectors::LABELS  => [
+						'size'  => '',
+						'color' => '#112233',
+					],
 				],
 				'rf-x-'
 			)
@@ -125,35 +154,78 @@ final class TextStyleCssTest extends TestCase {
 	}
 
 	/**
-	 * The shared selector covers the text outside the controls — field
-	 * labels, option labels, help text and the display headings — and
-	 * deliberately leaves error messages and authored content alone.
+	 * The three groups cover distinct elements: labels (with the display
+	 * headings), captions (help text, step indicator, empty state) and option
+	 * labels. Errors and authored content stay out of all three.
 	 */
-	public function testTheTextSelectorCoversTheNonControlText(): void {
-		foreach (
-			[
-				'.relevant-forms-field > label',
-				'.relevant-forms-choice label',
-				'.relevant-forms-help',
-				'.relevant-forms-section-title',
-				'.relevant-forms-content-title',
-				'.relevant-forms-page-title',
-				'.relevant-forms-page-indicator',
-				'.relevant-forms-preview-heading',
-				'.relevant-forms-preview-label',
-			] as $expected
-		) {
-			$this->assertStringContainsString( $expected, FieldSelectors::TEXT, $expected );
+	public function testTheThreeGroupsCoverDistinctElements(): void {
+		foreach ( [ '.relevant-forms-field > label', '.relevant-forms-section-title', '.relevant-forms-preview-label' ] as $expected ) {
+			$this->assertStringContainsString( $expected, FieldSelectors::LABELS, $expected );
+			$this->assertStringNotContainsString( $expected, FieldSelectors::CAPTIONS, $expected );
+			$this->assertStringNotContainsString( $expected, FieldSelectors::OPTIONS, $expected );
 		}
 
-		$this->assertStringNotContainsString( '.relevant-forms-error', FieldSelectors::TEXT );
-		$this->assertStringNotContainsString( 'input', FieldSelectors::TEXT );
+		foreach ( [ '.relevant-forms-help', '.relevant-forms-page-indicator' ] as $expected ) {
+			$this->assertStringContainsString( $expected, FieldSelectors::CAPTIONS, $expected );
+			$this->assertStringNotContainsString( $expected, FieldSelectors::LABELS, $expected );
+		}
 
-		// One `:is()` compound selector: the list sits inside the functional
-		// pseudo-class, so the top level has no comma and the whole thing is
-		// a single selector string — what the builder APIs take per control.
-		$this->assertStringStartsWith( '.relevant-forms :is(', FieldSelectors::TEXT );
-		$this->assertStringEndsWith( ')', FieldSelectors::TEXT );
-		$this->assertSame( 1, substr_count( FieldSelectors::TEXT, ':is(' ) );
+		$this->assertStringContainsString( '.relevant-forms-choice label', FieldSelectors::OPTIONS );
+		$this->assertStringNotContainsString( 'choice', FieldSelectors::LABELS );
+		$this->assertStringNotContainsString( 'choice', FieldSelectors::CAPTIONS );
+
+		foreach ( [ FieldSelectors::LABELS, FieldSelectors::CAPTIONS, FieldSelectors::OPTIONS ] as $selector ) {
+			$this->assertStringNotContainsString( '.relevant-forms-error', $selector );
+			$this->assertStringNotContainsString( '.relevant-forms-content ', $selector );
+			$this->assertStringStartsWith( '.relevant-forms ', $selector );
+
+			// At most one `:is()` compound selector: the top level has no
+			// comma, so the scope class and the builder APIs can prepend to
+			// it as a single selector.
+			$this->assertLessThanOrEqual( 1, substr_count( $selector, ':is(' ) );
+		}
+	}
+
+	/**
+	 * The groups can be created empty and filled from a flat source array.
+	 */
+	public function testGroupsCanBeBuiltFromAFlatSource(): void {
+		$groups = TextStyleCss::emptyGroups();
+
+		$this->assertSame(
+			[ FieldSelectors::LABELS, FieldSelectors::CAPTIONS, FieldSelectors::OPTIONS ],
+			array_keys( $groups )
+		);
+
+		foreach ( $groups as $values ) {
+			$this->assertSame(
+				[
+					'color'  => '',
+					'size'   => '',
+					'weight' => '',
+				],
+				$values
+			);
+		}
+
+		$this->assertSame(
+			[
+				'color'  => '#112233',
+				'size'   => '18px',
+				'weight' => '',
+			],
+			TextStyleCss::group(
+				[
+					'labelColor' => '#112233',
+					'labelSize'  => '18px',
+					'labelJunk'  => [ 'nope' ],
+				],
+				[
+					'color'  => 'labelColor',
+					'size'   => 'labelSize',
+					'weight' => 'labelWeight',
+				]
+			)
+		);
 	}
 }

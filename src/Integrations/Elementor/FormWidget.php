@@ -195,16 +195,13 @@ final class FormWidget extends \Elementor\Widget_Base {
 	}
 
 	/**
-	 * Style section: the form's own text — field labels, radio and checkbox
-	 * option labels, help text and the display headings — styled separately
-	 * from the controls, which keep their own "Field styles" section. The
-	 * typography group is offered in full here (size, weight, line height,
-	 * spacing, transform), which is what "Module text" means for the
-	 * surrounding text.
+	 * Style section: the text outside the controls, styled per group — field
+	 * labels, captions and option labels are configured independently, so a
+	 * radio option does not have to look like the field name above it. Each
+	 * tab offers a color control plus the full typography group (size,
+	 * weight, line height, spacing, transform).
 	 */
 	private function register_text_style_controls(): void {
-		$text = '{{WRAPPER}} ' . FieldSelectors::TEXT;
-
 		$this->start_controls_section(
 			'relevant_form_text_style',
 			[
@@ -213,24 +210,54 @@ final class FormWidget extends \Elementor\Widget_Base {
 			]
 		);
 
-		$this->add_control(
-			'text_style_color',
-			[
-				'label'     => esc_html__( 'Text color', 'relevant-forms' ),
-				'type'      => \Elementor\Controls_Manager::COLOR,
-				'selectors' => [
-					$text => 'color: {{VALUE}};',
-				],
-			]
-		);
+		$this->start_controls_tabs( 'relevant_form_text_style_tabs' );
 
-		$this->add_group_control(
-			\Elementor\Group_Control_Typography::get_type(),
+		foreach (
 			[
-				'name'     => 'text_style_typography',
-				'selector' => $text,
-			]
-		);
+				'label'   => [
+					'label'    => esc_html__( 'Field labels', 'relevant-forms' ),
+					'selector' => FieldSelectors::LABELS,
+				],
+				'caption' => [
+					'label'    => esc_html__( 'Field captions', 'relevant-forms' ),
+					'selector' => FieldSelectors::CAPTIONS,
+				],
+				'option'  => [
+					'label'    => esc_html__( 'Option labels', 'relevant-forms' ),
+					'selector' => FieldSelectors::OPTIONS,
+				],
+			] as $group => $config
+		) {
+			$selector = '{{WRAPPER}} ' . $config['selector'];
+
+			$this->start_controls_tab(
+				'relevant_form_text_style_tab_' . $group,
+				[ 'label' => $config['label'] ]
+			);
+
+			$this->add_control(
+				$group . '_style_color',
+				[
+					'label'     => esc_html__( 'Text color', 'relevant-forms' ),
+					'type'      => \Elementor\Controls_Manager::COLOR,
+					'selectors' => [
+						$selector => 'color: {{VALUE}};',
+					],
+				]
+			);
+
+			$this->add_group_control(
+				\Elementor\Group_Control_Typography::get_type(),
+				[
+					'name'     => $group . '_style_typography',
+					'selector' => $selector,
+				]
+			);
+
+			$this->end_controls_tab();
+		}
+
+		$this->end_controls_tabs();
 
 		$this->end_controls_section();
 	}
