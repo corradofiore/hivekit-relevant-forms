@@ -97,11 +97,11 @@ Relevant Cloud provides the paid managed functionality described above (semantic
 
 Service terms: [INSERT RELEVANT CLOUD TERMS URL]
 Privacy policy: [INSERT RELEVANT PRIVACY POLICY URL]
-Subprocessors (client dashboard, sign-in required): [INSERT RELEVANT SUBPROCESSORS URL]
+Subprocessors: [INSERT RELEVANT SUBPROCESSORS URL]
 
 = AI model providers =
 
-When semantic classification is enabled, configured and redacted submission text is processed by Relevant Cloud and its configured model provider(s). The current provider list is documented in the Relevant Cloud client dashboard (sign-in required), linked above.
+When semantic classification is enabled, configured and redacted submission text is processed by Relevant Cloud and its configured model provider(s). The current provider list is documented on the Relevant subprocessors page linked above.
 
 = SMS providers =
 
@@ -118,7 +118,7 @@ Payment fields are local and free: nothing leaves the site until an administrato
 Stripe services agreement: https://stripe.com/legal/connect-account
 Stripe privacy policy: https://stripe.com/privacy
 Relevant Cloud platform fee terms: [INSERT RELEVANT CLOUD TERMS URL]
-Subprocessors (including Stripe; client dashboard, sign-in required): [INSERT RELEVANT SUBPROCESSORS URL]
+Subprocessors (including Stripe): [INSERT RELEVANT SUBPROCESSORS URL]
 
 == Installation ==
 
