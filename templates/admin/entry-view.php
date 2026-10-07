@@ -282,6 +282,56 @@ if ( ! defined( 'ABSPATH' ) ) {
 		<?php endif; ?>
 	<?php endif; ?>
 
+	<?php if ( \RelevantForms\Entries\Entry::STATUS_PARTIAL === $entry->status ) : ?>
+		<?php
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only status marker set by our own redirect.
+		$resumeNotice = isset( $_GET['resume_notice'] ) ? sanitize_key( wp_unslash( (string) $_GET['resume_notice'] ) ) : '';
+
+		$resumeNoticeMap = [
+			'sent'          => [ 'success', __( 'A new resume link was emailed to the address on file.', 'relevant-forms' ) ],
+			'failed'        => [ 'warning', __( 'The resume link could not be emailed — try again in a few minutes.', 'relevant-forms' ) ],
+			'not_available' => [ 'error', __( 'This entry has no saved email address to send a resume link to.', 'relevant-forms' ) ],
+		];
+
+		if ( isset( $resumeNoticeMap[ $resumeNotice ] ) ) {
+			printf(
+				'<div class="notice notice-%1$s is-dismissible"><p>%2$s</p></div>',
+				esc_attr( $resumeNoticeMap[ $resumeNotice ][0] ),
+				esc_html( $resumeNoticeMap[ $resumeNotice ][1] )
+			);
+		}
+		?>
+		<h2><?php esc_html_e( 'Saved progress (Save and Resume)', 'relevant-forms' ); ?></h2>
+		<p><?php esc_html_e( 'This entry is a partial save: the visitor has not submitted the form yet. The saved answers are deleted when the link expires.', 'relevant-forms' ); ?></p>
+		<table class="form-table" role="presentation">
+			<tr>
+				<th scope="row"><?php esc_html_e( 'Resume link sent to', 'relevant-forms' ); ?></th>
+				<td><code><?php echo esc_html( (string) $entry->resumeEmail ); ?></code></td>
+			</tr>
+			<tr>
+				<th scope="row"><?php esc_html_e( 'Last sent', 'relevant-forms' ); ?></th>
+				<td><?php echo '' !== (string) $entry->resumeEmailSentAt ? esc_html( (string) $entry->resumeEmailSentAt ) : '&mdash;'; ?></td>
+			</tr>
+			<tr>
+				<th scope="row"><?php esc_html_e( 'Link expires', 'relevant-forms' ); ?></th>
+				<td><?php echo '' !== (string) $entry->resumeExpiresAt ? esc_html( (string) $entry->resumeExpiresAt ) : '&mdash;'; ?></td>
+			</tr>
+			<?php if ( null !== $entry->resumePage ) : ?>
+				<tr>
+					<th scope="row"><?php esc_html_e( 'Saved on page', 'relevant-forms' ); ?></th>
+					<td><?php echo esc_html( (string) (int) $entry->resumePage ); ?></td>
+				</tr>
+			<?php endif; ?>
+		</table>
+		<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+			<input type="hidden" name="action" value="relevant_forms_resend_resume">
+			<input type="hidden" name="entry_id" value="<?php echo esc_attr( (string) $entry->id ); ?>">
+			<?php wp_nonce_field( 'relevant_resume_resend_' . $entry->id ); ?>
+			<button type="submit" class="button"><?php esc_html_e( 'Email a new resume link', 'relevant-forms' ); ?></button>
+			<p class="description"><?php esc_html_e( 'Replaces the previous link: older emails stop working. The new link is valid for the form\'s configured window.', 'relevant-forms' ); ?></p>
+		</form>
+	<?php endif; ?>
+
 	<h2><?php esc_html_e( 'Status', 'relevant-forms' ); ?></h2>
 	<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
 		<input type="hidden" name="action" value="relevant_forms_entry_status">

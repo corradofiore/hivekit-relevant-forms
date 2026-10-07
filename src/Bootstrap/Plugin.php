@@ -21,11 +21,13 @@ use RelevantForms\Admin\Controllers\LogsController;
 use RelevantForms\Admin\Controllers\PaymentEntryController;
 use RelevantForms\Admin\Controllers\PaymentSettingsController;
 use RelevantForms\Admin\Controllers\RedirectTargetSearchController;
+use RelevantForms\Admin\Controllers\ResumeLinkController;
 use RelevantForms\Admin\Controllers\SmsVerificationController;
 use RelevantForms\Admin\Controllers\TestEmailController;
 use RelevantForms\Admin\Pages\SettingsPage;
 use RelevantForms\Assets\FrontendAssets;
 use RelevantForms\Database\MigrationRunner;
+use RelevantForms\Entries\Cleanup\PartialEntryCleanup;
 use RelevantForms\Forms\FormRenderer;
 use RelevantForms\Forms\FormUsage;
 use RelevantForms\Http\CloudBillingController;
@@ -80,6 +82,7 @@ final class Plugin {
 		SmsVerificationController::register();
 		TestEmailController::register();
 		ApiStatusController::register();
+		ResumeLinkController::register();
 		PaymentReturnHandler::register();
 		PaymentEntryController::register();
 		PaymentSettingsController::register();
@@ -87,6 +90,7 @@ final class Plugin {
 		add_action( 'relevant_forms_scan_upload', [ ScanService::class, 'handleScheduled' ], 10, 1 );
 		add_action( 'relevant_forms_poll_scan_results', [ ScanService::class, 'pollBackendScans' ] );
 		UploadCleanup::register();
+		PartialEntryCleanup::register();
 
 		add_filter( 'cron_schedules', [ self::class, 'registerCronSchedules' ] );
 
@@ -105,6 +109,10 @@ final class Plugin {
 
 		if ( false === wp_next_scheduled( 'relevant_forms_poll_scan_results' ) ) {
 			wp_schedule_event( time() + 15 * MINUTE_IN_SECONDS, 'relevant_fifteen_minutes', 'relevant_forms_poll_scan_results' );
+		}
+
+		if ( false === wp_next_scheduled( 'relevant_forms_cleanup_partials' ) ) {
+			wp_schedule_event( time() + DAY_IN_SECONDS, 'daily', 'relevant_forms_cleanup_partials' );
 		}
 
 		do_action( 'relevant_forms_activated' );

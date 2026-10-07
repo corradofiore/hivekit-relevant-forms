@@ -178,6 +178,23 @@ final class FormSaveController {
 			'sms_phone'    => $smsPhone,
 		];
 
+		$saveResumeDays = absint( $raw['save_resume_expiry_days'] ?? 30 );
+
+		if ( $saveResumeDays < 1 ) {
+			$saveResumeDays = 30;
+		}
+
+		// "Keep a draft in this browser" is a checkbox: absent means off,
+		// which is also the intended unchecked state on save.
+		$saveResume = [
+			'enabled'           => ! empty( $raw['save_resume_enabled'] ),
+			'label'             => sanitize_text_field( (string) ( $raw['save_resume_label'] ?? '' ) ),
+			'expiry_days'       => $saveResumeDays,
+			'email_subject'     => sanitize_text_field( (string) ( $raw['save_resume_email_subject'] ?? '' ) ),
+			'email_body'        => wp_kses_post( (string) ( $raw['save_resume_email_body'] ?? '' ) ),
+			'drafts_in_browser' => ! empty( $raw['save_resume_drafts_in_browser'] ),
+		];
+
 		$schema = FormSchema::empty()
 			->withName( $name )
 			->withFields( $fields )
@@ -185,6 +202,7 @@ final class FormSaveController {
 			->withSender( $senderName, $senderEmail )
 			->withConfirmation( $message, $redirect, $redirectPage, $mode )
 			->withAiPolicy( $aiPolicy )
+			->withSaveResume( $saveResume )
 			->withCurrency( $currency )
 			// Preserve non-editor keys (import provenance, future top-level
 			// upload policy) instead of resetting them on every save.

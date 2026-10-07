@@ -323,6 +323,58 @@ $rf_save_label = $isEditing ? __( 'Save Form', 'relevant-forms' ) : __( 'Create 
 			</tr>
 		</table>
 		</div><!-- /.relevant-forms-ai-panel -->
+		<?php $save_resume = $form->schema->saveResume(); ?>
+		<h2><?php esc_html_e( 'Save and Resume', 'relevant-forms' ); ?></h2>
+		<table class="form-table" role="presentation">
+			<tr>
+				<th scope="row"><?php esc_html_e( 'Enable', 'relevant-forms' ); ?></th>
+				<td>
+					<label>
+						<input type="checkbox" name="save_resume_enabled" value="1" <?php checked( $save_resume['enabled'] ); ?>>
+						<?php esc_html_e( 'Let visitors save their progress and resume later', 'relevant-forms' ); ?>
+					</label>
+					<p class="description"><?php esc_html_e( 'Adds a "Save and Resume" button under the form: the visitor enters an email address and receives a link that restores their answers. Uploaded files are not saved and must be re-attached when resuming.', 'relevant-forms' ); ?></p>
+				</td>
+			</tr>
+			<tr>
+				<th scope="row"><label for="relevant-save-resume-label"><?php esc_html_e( 'Button label', 'relevant-forms' ); ?></label></th>
+				<td>
+					<input type="text" class="regular-text" id="relevant-save-resume-label" name="save_resume_label" value="<?php echo esc_attr( $save_resume['label'] ); ?>" placeholder="<?php esc_attr_e( 'Save and Resume', 'relevant-forms' ); ?>">
+				</td>
+			</tr>
+			<tr>
+				<th scope="row"><label for="relevant-save-resume-expiry"><?php esc_html_e( 'Resume link validity', 'relevant-forms' ); ?></label></th>
+				<td>
+					<input type="number" class="small-text" id="relevant-save-resume-expiry" name="save_resume_expiry_days" min="1" max="365" step="1" value="<?php echo esc_attr( (string) $save_resume['expiry_days'] ); ?>">
+					<?php esc_html_e( 'days', 'relevant-forms' ); ?>
+					<p class="description"><?php esc_html_e( 'After this window the link stops working and the saved answers are deleted. Browser drafts expire at the same time.', 'relevant-forms' ); ?></p>
+				</td>
+			</tr>
+			<tr>
+				<th scope="row"><?php esc_html_e( 'Browser drafts', 'relevant-forms' ); ?></th>
+				<td>
+					<label>
+						<input type="checkbox" name="save_resume_drafts_in_browser" value="1" <?php checked( $save_resume['drafts_in_browser'] ); ?>>
+						<?php esc_html_e( 'Keep a draft in the visitor\'s browser while they fill the form', 'relevant-forms' ); ?>
+					</label>
+					<p class="description"><?php esc_html_e( 'Drafts never leave the visitor\'s device and are restored automatically on their next visit, until they submit or choose "Start fresh".', 'relevant-forms' ); ?></p>
+				</td>
+			</tr>
+			<tr>
+				<th scope="row"><label for="relevant-save-resume-subject"><?php esc_html_e( 'Resume email subject', 'relevant-forms' ); ?></label></th>
+				<td>
+					<input type="text" class="regular-text" id="relevant-save-resume-subject" name="save_resume_email_subject" value="<?php echo esc_attr( $save_resume['email_subject'] ); ?>" placeholder="<?php echo esc_attr( \RelevantForms\Notifications\ResumeEmail::DEFAULT_SUBJECT ); ?>">
+					<p class="description"><?php esc_html_e( 'Leave empty to use the default subject shown as a hint.', 'relevant-forms' ); ?></p>
+				</td>
+			</tr>
+			<tr>
+				<th scope="row"><label for="relevant-save-resume-body"><?php esc_html_e( 'Resume email message', 'relevant-forms' ); ?></label></th>
+				<td>
+					<textarea class="relevant-forms-textarea" id="relevant-save-resume-body" name="save_resume_email_body" rows="8" placeholder="<?php echo esc_attr( \RelevantForms\Notifications\ResumeEmail::DEFAULT_BODY ); ?>"><?php echo esc_textarea( $save_resume['email_body'] ); ?></textarea>
+					<p class="description relevant-forms-textarea-caption"><?php esc_html_e( 'Leave empty to use the default text. Placeholders: {resume_link}, {form_name}, {expiry_days}, {site_name}. The link is appended automatically when {resume_link} is missing.', 'relevant-forms' ); ?></p>
+				</td>
+			</tr>
+		</table>
 		<p class="submit rf-save rf-save--settings"><button type="submit" class="button button-primary"><?php echo esc_html( $rf_save_label ); ?></button></p>
 		</div><!-- #rf-panel-settings -->
 
