@@ -301,3 +301,117 @@
 .relevant-forms-entry-preview--table_compact .relevant-forms-preview-row {
 	padding: 0.25em 0;
 }
+
+/* Save and Resume: the button row, notices and the email modal. */
+
+.relevant-forms-save-resume {
+	margin-top: 1em;
+}
+
+.relevant-forms-save-resume__button {
+	background: none;
+	border: 0;
+	color: inherit;
+	cursor: pointer;
+	font: inherit;
+	padding: 0;
+	text-decoration: underline;
+	text-underline-offset: 2px;
+}
+
+.relevant-forms-save-resume__button:hover,
+.relevant-forms-save-resume__button:focus {
+	text-decoration: none;
+}
+
+.relevant-forms-save-resume__status,
+.relevant-forms-save-resume__draft {
+	color: #646970;
+	font-size: 0.85em;
+	margin: 0.35em 0 0;
+}
+
+.relevant-forms-notice {
+	background: #f0f6fc;
+	border-left: 4px solid #2271b1;
+	font-size: 0.9em;
+	margin: 0.75em 0;
+	padding: 0.6em 0.75em;
+}
+
+.relevant-forms-notice--warning {
+	background: #fcf9e8;
+	border-left-color: #dba617;
+}
+
+.relevant-forms-notice__action {
+	background: none;
+	border: 0;
+	color: inherit;
+	cursor: pointer;
+	font: inherit;
+	padding: 0;
+	text-decoration: underline;
+}
+
+.relevant-forms-modal {
+	align-items: center;
+	background: rgba(0, 0, 0, 0.5);
+	display: flex;
+	inset: 0;
+	justify-content: center;
+	padding: 1em;
+	position: fixed;
+	z-index: 100000;
+}
+
+.relevant-forms-modal__panel {
+	background: #fff;
+	border-radius: 6px;
+	box-shadow: 0 10px 40px rgba(0, 0, 0, 0.25);
+	color: #1d2327;
+	max-width: 26em;
+	padding: 1.25em;
+	width: 100%;
+}
+
+.relevant-forms-modal__title {
+	font-size: 1.1em;
+	margin: 0 0 0.5em;
+}
+
+.relevant-forms-modal__intro,
+.relevant-forms-modal__message {
+	font-size: 0.9em;
+	margin: 0 0 0.75em;
+}
+
+.relevant-forms-modal__label {
+	display: block;
+	font-size: 0.9em;
+	font-weight: 600;
+	margin-bottom: 1em;
+}
+
+.relevant-forms-modal__input {
+	display: block;
+	font-size: 1rem;
+	margin-top: 0.35em;
+	padding: 0.5em;
+	width: 100%;
+}
+
+.relevant-forms-modal__actions {
+	display: flex;
+	gap: 0.75em;
+	justify-content: flex-end;
+}
+
+.relevant-forms-modal__cancel {
+	background: none;
+	border: 0;
+	color: #2271b1;
+	cursor: pointer;
+	font: inherit;
+	padding: 0.5em 0;
+}

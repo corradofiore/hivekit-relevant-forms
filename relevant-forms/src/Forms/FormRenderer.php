@@ -9,6 +9,8 @@ declare(strict_types=1);
 
 namespace RelevantForms\Forms;
 
+use RelevantForms\Entries\Entry;
+use RelevantForms\Entries\Resume\ResumeRequest;
 use RelevantForms\Forms\Fields\ChoiceFieldType;
 use RelevantForms\Forms\Fields\FieldTypeRegistry;
 use RelevantForms\Forms\Fields\PaymentField;
@@ -68,12 +70,25 @@ final class FormRenderer {
 	public static function renderForm( Form $form, ?array $errors = null, ?array $values = null ): string {
 		do_action( 'relevant_forms_before_form_output', $form );
 
+		$hasFeedback = null !== $errors || null !== $values;
+
 		if ( null === $errors ) {
 			$errors = SubmissionFeedback::errors( (int) $form->id );
 		}
 
 		if ( null === $values ) {
 			$values = SubmissionFeedback::values( (int) $form->id );
+		}
+
+		// Save and Resume: resolve a resume link and restore the saved values
+		// — unless this request already carries submission feedback (a failed
+		// POST is the most recent input and wins).
+		$resumeConfig = $form->schema->saveResume();
+		$saveResumeOn = (bool) apply_filters( 'relevant_forms_save_resume_enabled', $resumeConfig['enabled'], $form );
+		$resume       = $saveResumeOn ? ResumeRequest::resolve( $form ) : [ 'status' => 'none' ];
+
+		if ( ! $hasFeedback && 'resolved' === $resume['status'] && is_array( $resume['values'] ?? null ) ) {
+			$values = $resume['values'];
 		}
 
 		wp_enqueue_style( 'relevant-forms' );
@@ -116,6 +131,12 @@ final class FormRenderer {
 			}
 		}
 
+		// Enqueued before the other feature scripts: the browser-draft restore
+		// must run before the wizard boots so it can reopen the saved page.
+		if ( $saveResumeOn ) {
+			wp_enqueue_script( 'relevant-forms-save-resume' );
+		}
+
 		if ( $hasFileField ) {
 			wp_enqueue_script( 'relevant-forms-upload' );
 		}
@@ -155,11 +176,33 @@ final class FormRenderer {
 				/* translators: 1: current page number, 2: total number of pages. */
 				esc_attr__( 'Step %1$d of %2$d', 'relevant-forms' )
 			);
+		$resumeAttr = '';
+
+		if ( $saveResumeOn ) {
+			$resumeAttr = sprintf(
+				' data-rf-save-resume-nonce="%s" data-rf-resume-expiry="%d" data-rf-drafts="%d"',
+				esc_attr( wp_create_nonce( 'relevant_save_resume_' . $form->id ) ),
+				(int) $resumeConfig['expiry_days'],
+				empty( $resumeConfig['drafts_in_browser'] ) ? 0 : 1
+			);
+
+			if ( 'resolved' === $resume['status'] ) {
+				$resumeAttr .= sprintf( ' data-rf-resume-token="%s"', esc_attr( (string) ( $resume['token'] ?? '' ) ) );
+
+				$savedPage = $resume['entry'] instanceof Entry ? (int) $resume['entry']->resumePage : 0;
+
+				if ( $savedPage > 1 ) {
+					$resumeAttr .= sprintf( ' data-rf-initial-page="%d"', $savedPage );
+				}
+			}
+		}
+
 		$output[] = sprintf(
-			'<form class="relevant-forms" data-form-id="%d" data-upload-nonce="%s"%s method="post" action="" novalidate>',
+			'<form class="relevant-forms" data-form-id="%d" data-upload-nonce="%s"%s%s method="post" action="" novalidate>',
 			$form->id,
 			esc_attr( wp_create_nonce( 'relevant_upload_' . $form->id ) ),
-			$pagesAttr
+			$pagesAttr,
+			$resumeAttr
 		);
 		$output[] = '<input type="hidden" name="action" value="relevant_forms_submit">';
 		$output[] = sprintf( '<input type="hidden" name="_relevant_form_id" value="%d">', $form->id );
@@ -230,9 +273,82 @@ final class FormRenderer {
 			);
 			$output[] = '</div>';
 		}
+
+		$output[] = self::resumeNotice( $resume, $saveResumeOn );
+
+		if ( $saveResumeOn ) {
+			$output[] = self::saveResumeRow( $resumeConfig );
+		}
+
 		$output[] = '</form>';
 
 		return implode( "\n", $output );
+	}
+
+	/**
+	 * Resume notice: restored-progress confirmation, or the invalid-link
+	 * warning when a stale token was presented.
+	 *
+	 * @param array<string, mixed> $resume       Resume resolution result.
+	 * @param bool                 $saveResumeOn Whether Save and Resume is active.
+	 */
+	private static function resumeNotice( array $resume, bool $saveResumeOn ): string {
+		$status = (string) ( $resume['status'] ?? 'none' );
+
+		if ( ! $saveResumeOn || 'none' === $status ) {
+			return '';
+		}
+
+		if ( 'invalid' === $status ) {
+			return sprintf(
+				'<div class="relevant-forms-notice relevant-forms-notice--warning" role="status">%s</div>',
+				esc_html__( 'This resume link is no longer valid — please fill in the form again.', 'relevant-forms' )
+			);
+		}
+
+		$entry    = $resume['entry'] ?? null;
+		$savedAt  = $entry instanceof Entry ? get_date_from_gmt( (string) $entry->updatedAt, 'M j, Y H:i' ) : '';
+		$restored = '' !== $savedAt
+			? sprintf(
+				/* translators: %s: date and time the progress was saved */
+				__( 'Welcome back — we restored the progress you saved on %s.', 'relevant-forms' ),
+				$savedAt
+			)
+			: __( 'Welcome back — we restored your saved progress.', 'relevant-forms' );
+
+		return sprintf(
+			'<div class="relevant-forms-notice relevant-forms-notice--info" data-rf-resume-notice role="status">%s <button type="button" class="relevant-forms-notice__action" data-rf-resume-discard>%s</button></div>',
+			esc_html( $restored ),
+			esc_html__( 'Start fresh', 'relevant-forms' )
+		);
+	}
+
+	/**
+	 * Save and Resume row: the button plus status lines. Rendered hidden;
+	 * without JavaScript the button stays hidden and nothing is stored.
+	 *
+	 * @param array<string, mixed> $config Save and Resume configuration.
+	 */
+	private static function saveResumeRow( array $config ): string {
+		$label = trim( (string) ( $config['label'] ?? '' ) );
+
+		if ( '' === $label ) {
+			$label = __( 'Save and Resume', 'relevant-forms' );
+		}
+
+		return implode(
+			"\n",
+			[
+				'<div class="relevant-forms-save-resume" data-rf-save-resume-row hidden>',
+				sprintf(
+					'<button type="button" class="relevant-forms-save-resume__button" data-rf-save-resume-button>%s</button>',
+					esc_html( $label )
+				),
+				'<p class="relevant-forms-save-resume__status" data-rf-save-resume-status role="status" aria-live="polite" hidden></p>',
+				'<p class="relevant-forms-save-resume__draft" data-rf-draft-indicator role="status" aria-live="polite" hidden></p>',
+				'</div>',
+			]
+		);
 	}
 
 	/**
