@@ -100,6 +100,10 @@ final class AdminAssets {
 				'fieldStrings'        => [
 					'untitled' => __( 'Untitled field', 'relevant-forms' ),
 				],
+				'fieldEditorStrings'  => [
+					'noDefault'    => __( '— No default —', 'relevant-forms' ),
+					'notInChoices' => __( 'not in the choices', 'relevant-forms' ),
+				],
 				'visibilityStrings'   => [
 					/* translators: %s: condition summary ("Email is not empty"). */
 					'shown'       => __( 'Shown when: %s', 'relevant-forms' ),

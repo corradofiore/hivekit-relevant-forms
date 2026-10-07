@@ -85,6 +85,9 @@
 	var fieldStrings = window.relevantFormsAdmin && window.relevantFormsAdmin.fieldStrings
 		? window.relevantFormsAdmin.fieldStrings
 		: {};
+	var fieldEditorStrings = window.relevantFormsAdmin && window.relevantFormsAdmin.fieldEditorStrings
+		? window.relevantFormsAdmin.fieldEditorStrings
+		: { noDefault: '— No default —', notInChoices: 'not in the choices' };
 	var visibilityStrings = window.relevantFormsAdmin && window.relevantFormsAdmin.visibilityStrings
 		? window.relevantFormsAdmin.visibilityStrings
 		: { shown: 'Shown when: %s', hidden: 'Hidden when: %s', and: 'and', or: 'or', notAbove: 'not above', selectField: '', selectValue: '' };
@@ -633,6 +636,9 @@
 
 		if ( choicesInput ) {
 			rebuildSampleChoices( wrapper, baseId, type, editor.getAttribute( 'data-for' ), parseChoiceLines( choicesInput.value, isChoiceSource( type ) ) );
+
+			// Radio buttons pick their default from the same choice list.
+			refreshDefaultChoiceOptions( editor, choicesInput );
 		}
 
 		// The preview must never join the save form, or browser validation
@@ -721,6 +727,42 @@
 			option.textContent = item.label;
 			select.appendChild( option );
 		} );
+	}
+
+	/**
+	 * Rebuild the default-value dropdown of a radio field from its choices.
+	 *
+	 * @param {Element} editor       Field editor panel.
+	 * @param {Element} choicesInput Choices textarea.
+	 */
+	function refreshDefaultChoiceOptions( editor, choicesInput ) {
+		var select = editor.querySelector( 'select[name$="[default_value]"]' );
+
+		if ( ! select ) {
+			return;
+		}
+
+		var current = select.value;
+		var items = [ { value: '', label: fieldEditorStrings.noDefault } ];
+		var known = { '': true };
+
+		parseChoiceLines( choicesInput.value, true ).forEach( function ( choice ) {
+			if ( known[ choice.value ] ) {
+				return;
+			}
+
+			known[ choice.value ] = true;
+			items.push( { value: choice.value, label: choice.label } );
+		} );
+
+		// Keep a stored default that no longer matches a choice, so saving
+		// never silently drops it.
+		if ( current && ! known[ current ] ) {
+			items.push( { value: current, label: current + ' (' + fieldEditorStrings.notInChoices + ')' } );
+		}
+
+		setSelectOptions( select, items );
+		select.value = current;
 	}
 
 	/**
