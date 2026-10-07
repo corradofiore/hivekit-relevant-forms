@@ -41,15 +41,19 @@ final class EntryRepository {
 		$this->wpdb->insert(
 			$table,
 			[
-				'form_id'         => $entry->formId,
-				'form_version_id' => $entry->formVersionId,
-				'status'          => $entry->status,
-				'source_url'      => '' !== $entry->sourceUrl ? $entry->sourceUrl : null,
-				'referrer'        => '' !== $entry->referrer ? $entry->referrer : null,
-				'user_agent_hash' => '' !== $entry->userAgentHash ? $entry->userAgentHash : null,
-				'ip_hash'         => '' !== $entry->ipHash ? $entry->ipHash : null,
-				'created_at'      => $now,
-				'updated_at'      => $now,
+				'form_id'           => $entry->formId,
+				'form_version_id'   => $entry->formVersionId,
+				'status'            => $entry->status,
+				'source_url'        => '' !== $entry->sourceUrl ? $entry->sourceUrl : null,
+				'referrer'          => '' !== $entry->referrer ? $entry->referrer : null,
+				'user_agent_hash'   => '' !== $entry->userAgentHash ? $entry->userAgentHash : null,
+				'ip_hash'           => '' !== $entry->ipHash ? $entry->ipHash : null,
+				'resume_token_hash' => $entry->resumeTokenHash,
+				'resume_email'      => $entry->resumeEmail,
+				'resume_expires_at' => $entry->resumeExpiresAt,
+				'resume_page'       => $entry->resumePage,
+				'created_at'        => $now,
+				'updated_at'        => $now,
 			]
 		);
 
@@ -226,6 +230,135 @@ final class EntryRepository {
 	}
 
 	/**
+	 * Update a partial entry in place: resume state and saved values.
+	 *
+	 * @param Entry $entry Entry with id set; resume fields carry the new state.
+	 */
+	public function updatePartial( Entry $entry ): bool {
+		if ( null === $entry->id ) {
+			return false;
+		}
+
+		$table = $this->wpdb->prefix . 'relevant_entries';
+
+		$updated = $this->wpdb->update(
+			$table,
+			[
+				'resume_token_hash' => $entry->resumeTokenHash,
+				'resume_email'      => $entry->resumeEmail,
+				'resume_expires_at' => $entry->resumeExpiresAt,
+				'resume_page'       => $entry->resumePage,
+				'source_url'        => '' !== $entry->sourceUrl ? $entry->sourceUrl : null,
+				'updated_at'        => current_time( 'mysql', true ),
+			],
+			[ 'id' => $entry->id ]
+		);
+
+		if ( false === $updated ) {
+			return false;
+		}
+
+		$this->replaceMeta( (int) $entry->id, $entry->meta );
+
+		return true;
+	}
+
+	/**
+	 * Find the partial entry behind a resume token hash.
+	 *
+	 * @param string $hash SHA-256 token hash.
+	 */
+	public function findPartialByResumeHash( string $hash ): ?Entry {
+		$wpdb = $this->wpdb;
+
+		$row = $wpdb->get_row(
+			$wpdb->prepare(
+				'SELECT * FROM ' . $wpdb->prefix . 'relevant_entries WHERE resume_token_hash = %s AND status = %s LIMIT 1',
+				$hash,
+				Entry::STATUS_PARTIAL
+			)
+		);
+
+		if ( ! $row instanceof \stdClass ) {
+			return null;
+		}
+
+		return Entry::fromRow( $row, $this->meta( (int) $row->id ) );
+	}
+
+	/**
+	 * Newest active partial for a form + email pair (save de-duplication).
+	 *
+	 * @param int    $formId Form ID.
+	 * @param string $email  Requested email address.
+	 */
+	public function findPartialByEmail( int $formId, string $email ): ?Entry {
+		$wpdb = $this->wpdb;
+
+		$row = $wpdb->get_row(
+			$wpdb->prepare(
+				'SELECT * FROM ' . $wpdb->prefix . 'relevant_entries WHERE form_id = %d AND resume_email = %s AND status = %s ORDER BY id DESC LIMIT 1',
+				$formId,
+				$email,
+				Entry::STATUS_PARTIAL
+			)
+		);
+
+		if ( ! $row instanceof \stdClass ) {
+			return null;
+		}
+
+		return Entry::fromRow( $row, $this->meta( (int) $row->id ) );
+	}
+
+	/**
+	 * Record when the resume link was last emailed.
+	 *
+	 * @param int $id Entry ID.
+	 */
+	public function markResumeEmailSent( int $id ): void {
+		$this->wpdb->update(
+			$this->wpdb->prefix . 'relevant_entries',
+			[
+				'resume_email_sent_at' => current_time( 'mysql', true ),
+				'updated_at'           => current_time( 'mysql', true ),
+			],
+			[ 'id' => $id ],
+			[ '%s', '%s' ],
+			[ '%d' ]
+		);
+	}
+
+	/**
+	 * Delete partial entries whose resume link expired (cron cleanup).
+	 *
+	 * @param string $now UTC datetime cutoff.
+	 * @return int Rows deleted.
+	 */
+	public function pruneExpiredPartials( string $now ): int {
+		$wpdb      = $this->wpdb;
+		$table     = $wpdb->prefix . 'relevant_entries';
+		$metaTable = $wpdb->prefix . 'relevant_entry_meta';
+
+		$ids = $wpdb->get_col(
+			$wpdb->prepare(
+				'SELECT id FROM ' . $table . ' WHERE status = %s AND resume_expires_at IS NOT NULL AND resume_expires_at < %s',
+				Entry::STATUS_PARTIAL,
+				$now
+			)
+		);
+
+		$ids = array_map( 'intval', (array) $ids );
+
+		foreach ( $ids as $id ) {
+			$wpdb->delete( $table, [ 'id' => $id ], [ '%d' ] );
+			$wpdb->delete( $metaTable, [ 'entry_id' => $id ], [ '%d' ] );
+		}
+
+		return count( $ids );
+	}
+
+	/**
 	 * Meta values for an entry, decoded from JSON where needed.
 	 *
 	 * @param int $entryId Entry ID.
@@ -254,6 +387,8 @@ final class EntryRepository {
 	 */
 	private function replaceMeta( int $entryId, array $meta ): void {
 		$table = $this->wpdb->prefix . 'relevant_entry_meta';
+
+		$this->wpdb->delete( $table, [ 'entry_id' => $entryId ], [ '%d' ] );
 
 		foreach ( $meta as $key => $value ) {
 			$stored = is_scalar( $value ) ? (string) $value : wp_json_encode( $value );
