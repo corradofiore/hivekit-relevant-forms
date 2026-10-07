@@ -264,6 +264,47 @@ final class EntryRepository {
 	}
 
 	/**
+	 * Convert a partial entry into the final submission: replace its values,
+	 * set the workflow status, refresh the schema version and clear the
+	 * resume state. The original created_at is kept.
+	 *
+	 * @param int                  $id        Entry ID.
+	 * @param int                  $versionId Schema version snapshot ID.
+	 * @param string               $status    Final workflow status.
+	 * @param array<string, mixed> $meta      Final meta (values plus markers).
+	 * @param string               $sourceUrl Page the submission came from.
+	 * @param string               $referrer  HTTP referer.
+	 */
+	public function completePartial( int $id, int $versionId, string $status, array $meta, string $sourceUrl = '', string $referrer = '' ): bool {
+		$table = $this->wpdb->prefix . 'relevant_entries';
+
+		$updated = $this->wpdb->update(
+			$table,
+			[
+				'form_version_id'      => $versionId,
+				'status'               => $status,
+				'source_url'           => '' !== $sourceUrl ? $sourceUrl : null,
+				'referrer'             => '' !== $referrer ? $referrer : null,
+				'resume_token_hash'    => null,
+				'resume_email'         => null,
+				'resume_expires_at'    => null,
+				'resume_page'          => null,
+				'resume_email_sent_at' => null,
+				'updated_at'           => current_time( 'mysql', true ),
+			],
+			[ 'id' => $id ]
+		);
+
+		if ( false === $updated ) {
+			return false;
+		}
+
+		$this->replaceMeta( $id, $meta );
+
+		return true;
+	}
+
+	/**
 	 * Find the partial entry behind a resume token hash.
 	 *
 	 * @param string $hash SHA-256 token hash.

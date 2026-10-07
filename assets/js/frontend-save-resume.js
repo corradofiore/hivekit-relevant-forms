@@ -592,6 +592,12 @@
 				clearDraft( form );
 				form.removeAttribute( 'data-rf-resume-token' );
 
+				var tokenField = form.querySelector( 'input[name="_relevant_resume_token"]' );
+
+				if ( tokenField ) {
+					tokenField.remove();
+				}
+
 				var notice = discard.closest( '[data-rf-resume-notice]' );
 
 				if ( notice ) {
