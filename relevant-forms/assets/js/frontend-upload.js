@@ -47,7 +47,10 @@
 		body.append('content_type', file.type || 'application/octet-stream');
 		body.append('size', String(file.size));
 
-		// nosemgrep: sameOrigin() pins the target to this site's own origin.
+		// sameOrigin() throws unless the target is this site's own origin, so the
+		// request cannot be aimed at a third party; the rule cannot see through
+		// the guard, hence the directive.
+		// nosemgrep
 		return fetch(sameOrigin(baseUrl), { method: 'POST', body: body, credentials: 'same-origin' }).then(function (response) {
 			return response.json();
 		});
@@ -60,7 +63,9 @@
 		body.append('token', token);
 		body.append('file', file);
 
-		// nosemgrep: sameOrigin() pins the target to this site's own origin.
+		// The server authorizes a same-origin admin-post URL; sameOrigin() enforces
+		// that, and the directive matches the guarded line above only.
+		// nosemgrep
 		return fetch(sameOrigin(authorization.url), { method: 'POST', body: body, credentials: 'same-origin' }).then(function (response) {
 			return response.json();
 		}).then(function (payload) {
