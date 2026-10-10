@@ -25,7 +25,7 @@ final class CloudConfig {
 	/**
 	 * Production Cloud service origin.
 	 */
-	public const DEFAULT_URL = 'https://api.relevantcloud.com';
+	public const DEFAULT_URL = 'https://app.relevantforms.com';
 
 	/**
 	 * API version path. The single source of the service URL structure:

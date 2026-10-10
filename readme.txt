@@ -93,7 +93,7 @@ This plugin works fully without contacting any external service. The services be
 
 = Relevant Cloud =
 
-Relevant Cloud provides the paid managed functionality described above (semantic classification, managed SMS alerts, managed private storage, malware scanning and payment brokering). Core sends only the information needed by the capability the administrator has enabled and connected, to the Relevant Cloud service (api.relevantcloud.com).
+Relevant Cloud provides the paid managed functionality described above (semantic classification, managed SMS alerts, managed private storage, malware scanning and payment brokering). Core sends only the information needed by the capability the administrator has enabled and connected, to the Relevant Cloud service (app.relevantforms.com).
 
 Service terms: [INSERT RELEVANT CLOUD TERMS URL]
 Privacy policy: [INSERT RELEVANT PRIVACY POLICY URL]
