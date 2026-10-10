@@ -9,6 +9,8 @@ declare(strict_types=1);
 
 namespace RelevantForms\Forms\Fields;
 
+use RelevantForms\Validation\EmailDeliverability;
+
 /**
  * email input.
  */
@@ -42,7 +44,15 @@ final class EmailField implements FieldType {
 			return __( 'Please enter a valid email address.', 'relevant-forms' );
 		}
 
-		return null;
+		if ( ! EmailDeliverability::enabled() ) {
+			return null;
+		}
+
+		// Domain check: only a definitive "this domain cannot receive mail"
+		// blocks, everything else is inconclusive (see the class docblock).
+		$check = EmailDeliverability::check( $value );
+
+		return $check->isBlocking() ? $check->message() : null;
 	}
 
 	/**

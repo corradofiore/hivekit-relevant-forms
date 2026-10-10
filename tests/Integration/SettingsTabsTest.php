@@ -32,10 +32,10 @@ final class SettingsTabsTest extends TestCase {
 	}
 
 	/**
-	 * The screen renders two tabs with the Cloud subscription first; the
+	 * The screen renders its tabs with the Cloud subscription first; the
 	 * payments configuration lives on its own Accept payments page now.
 	 */
-	public function testTheScreenRendersTwoTabsWithTheCloudPanelFirst(): void {
+	public function testTheScreenRendersTheCloudPanelFirst(): void {
 		update_option( 'relevant_forms_settings', [] );
 
 		$html = $this->renderSettings();

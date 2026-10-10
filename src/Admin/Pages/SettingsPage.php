@@ -11,6 +11,7 @@ namespace RelevantForms\Admin\Pages;
 
 use RelevantForms\Cloud\CloudConnection;
 use RelevantForms\Support\Logger;
+use RelevantForms\Validation\EmailDeliverability;
 
 /**
  * General settings: file storage and the Relevant Cloud connection.
@@ -65,6 +66,20 @@ final class SettingsPage {
 			$debugLogging = empty( $input['debug_logging'] ) ? 0 : 1;
 		}
 
+		// The checkbox is only sent when ticked; an absent select (a save from
+		// another screen sharing this option) keeps the stored mode.
+		$emailCheckMode = (string) ( $input['email_check_mode'] ?? ( $current['email_check_mode'] ?? EmailDeliverability::MODE_OFF ) );
+
+		if ( ! in_array( $emailCheckMode, EmailDeliverability::modes(), true ) ) {
+			$emailCheckMode = EmailDeliverability::MODE_OFF;
+		}
+
+		// Cached answers were collected under the previous policy: drop them so
+		// the new one takes effect on the next submission.
+		if ( $emailCheckMode !== (string) ( $current['email_check_mode'] ?? '' ) ) {
+			EmailDeliverability::flush();
+		}
+
 		// Per-form settings (notification sender, AI purpose/priorities/
 		// unwanted/privacy, SMS recipient) live in the form schema now; the
 		// legacy option keys are intentionally dropped from the rebuilt array
@@ -73,6 +88,8 @@ final class SettingsPage {
 			'debug_logging'                     => $debugLogging,
 			'storage_provider'                  => $storageProvider,
 			'storage_block_unscanned_downloads' => empty( $input['storage_block_unscanned_downloads'] ) ? 0 : 1,
+			'email_check_mode'                  => $emailCheckMode,
+			'email_check_reject_unreachable'    => empty( $input['email_check_reject_unreachable'] ) ? 0 : 1,
 			// Legacy stored service URL: preserved for pre-1.0 installs; the settings screen no longer asks for it.
 			'cloud_url'                         => esc_url_raw( (string) ( $current['cloud_url'] ?? '' ) ),
 			// Keep the previous key when the field is left blank (never echoed back).

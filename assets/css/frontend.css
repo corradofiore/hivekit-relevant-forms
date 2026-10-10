@@ -61,6 +61,30 @@
 	margin: 0.25rem 0 0;
 }
 
+/*
+ * Real-time email check (frontend-email-check.js): sits under the email field
+ * and is replaced in place, so it reserves nothing when empty.
+ */
+.relevant-forms-email-hint {
+	color: #555;
+	font-size: 0.9em;
+	margin: 0.25rem 0 0;
+}
+
+.relevant-forms-email-hint--warning {
+	color: #8a6116;
+}
+
+.relevant-forms-email-hint--error {
+	color: #b32d2e;
+	font-weight: 600;
+}
+
+.relevant-forms-email-hint--checking {
+	color: #555;
+	font-style: italic;
+}
+
 .relevant-forms-success {
 	background: #edfaef;
 	border: 1px solid #46b450;

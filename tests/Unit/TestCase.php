@@ -31,6 +31,18 @@ abstract class TestCase extends PhpUnitTestCase {
 			static fn ( string $single, string $plural, int $number ): string => 1 === $number ? $single : $plural
 		);
 		Monkey\Functions\when( 'wp_parse_url' )->alias( 'parse_url' );
+
+		/*
+		 * Email field validation delegates to the domain checker, which reads
+		 * its mode from the settings. Unit tests run with the check off so they
+		 * stay pure — EmailDeliverabilityTest enables it through the DNS and
+		 * SMTP seams. A test that needs other stored options overrides this.
+		 */
+		Monkey\Functions\when( 'get_option' )->alias(
+			static function ( string $name, mixed $fallback = false ): mixed {
+				return 'relevant_forms_settings' === $name ? [ 'email_check_mode' => 'off' ] : $fallback;
+			}
+		);
 	}
 
 	/**

@@ -9,7 +9,9 @@ declare(strict_types=1);
 
 namespace RelevantForms\Assets;
 
+use RelevantForms\Http\EmailCheckController;
 use RelevantForms\Support\AssetVersion;
+use RelevantForms\Validation\EmailDeliverability;
 
 /**
  * Registers the public form stylesheet. Enqueued lazily by the renderer so
@@ -18,7 +20,19 @@ use RelevantForms\Support\AssetVersion;
 final class FrontendAssets {
 
 	/**
-	 * Register asset handles.
+	 * Whether the assets were registered in this request.
+	 *
+	 * WordPress registers a handle once but *appends* localize data on every
+	 * call, and this method runs more than once per request (the block editor
+	 * integration registers on `init`, before `wp_enqueue_scripts`). Without
+	 * the guard every localized payload would be printed twice.
+	 *
+	 * @var bool
+	 */
+	private static bool $registered = false;
+
+	/**
+	 * Register hooks.
 	 */
 	public static function register(): void {
 		add_action( 'wp_enqueue_scripts', [ self::class, 'registerAssets' ] );
@@ -28,6 +42,12 @@ final class FrontendAssets {
 	 * Register (not enqueue) front-end assets.
 	 */
 	public static function registerAssets(): void {
+		if ( self::$registered ) {
+			return;
+		}
+
+		self::$registered = true;
+
 		wp_register_style(
 			'relevant-forms',
 			RELEVANT_FORMS_URL . 'assets/css/frontend.css',
@@ -48,6 +68,14 @@ final class FrontendAssets {
 			RELEVANT_FORMS_URL . 'assets/js/frontend-counter.js',
 			[],
 			AssetVersion::get( 'assets/js/frontend-counter.js' ),
+			true
+		);
+
+		wp_register_script(
+			'relevant-forms-email-check',
+			RELEVANT_FORMS_URL . 'assets/js/frontend-email-check.js',
+			[],
+			AssetVersion::get( 'assets/js/frontend-email-check.js' ),
 			true
 		);
 
@@ -89,6 +117,20 @@ final class FrontendAssets {
 			[],
 			AssetVersion::get( 'assets/js/frontend-save-resume.js' ),
 			true
+		);
+
+		wp_localize_script(
+			'relevant-forms-email-check',
+			'relevantFormsEmailCheck',
+			[
+				'endpoint' => admin_url( 'admin-ajax.php' ),
+				'action'   => EmailCheckController::ACTION,
+				'nonce'    => wp_create_nonce( EmailCheckController::NONCE ),
+				'mode'     => EmailDeliverability::mode(),
+				'strings'  => [
+					'checking' => __( 'Checking this address…', 'relevant-forms' ),
+				],
+			]
 		);
 
 		wp_localize_script(

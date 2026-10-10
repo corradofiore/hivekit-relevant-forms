@@ -17,6 +17,7 @@ use RelevantForms\Forms\Fields\PaymentField;
 use RelevantForms\Forms\Fields\TextareaField;
 use RelevantForms\Forms\Visibility\VisibilityRules;
 use RelevantForms\Payments\Money;
+use RelevantForms\Validation\EmailDeliverability;
 
 /**
  * Renders published forms as accessible markup and registers the shortcode.
@@ -128,12 +129,17 @@ final class FormRenderer {
 		$hasVisibility      = false;
 		$hasPaymentFields   = false;
 		$hasEntryPreview    = false;
+		$hasEmailField      = false;
 
 		foreach ( $definitions as $definition ) {
 			$fieldType = (string) ( $definition['type'] ?? '' );
 
 			if ( 'file' === $fieldType ) {
 				$hasFileField = true;
+			}
+
+			if ( 'email' === $fieldType ) {
+				$hasEmailField = true;
 			}
 
 			if ( 'textarea' === $fieldType && TextareaField::limit( $definition ) > 0 ) {
@@ -181,6 +187,11 @@ final class FormRenderer {
 
 		if ( $hasEntryPreview ) {
 			wp_enqueue_script( 'relevant-forms-preview' );
+		}
+
+		// Real-time domain check for email fields.
+		if ( $hasEmailField && EmailDeliverability::enabled() ) {
+			wp_enqueue_script( 'relevant-forms-email-check' );
 		}
 
 		$output   = [];

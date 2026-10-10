@@ -32,6 +32,7 @@ use RelevantForms\Entries\Cleanup\PartialEntryCleanup;
 use RelevantForms\Forms\FormRenderer;
 use RelevantForms\Forms\FormUsage;
 use RelevantForms\Http\CloudBillingController;
+use RelevantForms\Http\EmailCheckController;
 use RelevantForms\Http\PaymentReturnHandler;
 use RelevantForms\Http\SaveResumeController;
 use RelevantForms\Http\SubmissionHandler;
@@ -71,6 +72,7 @@ final class Plugin {
 		SubmissionHandler::register();
 		UploadController::register();
 		SaveResumeController::register();
+		EmailCheckController::register();
 		CloudController::register();
 		CloudBillingController::register();
 		FormSaveController::register();
