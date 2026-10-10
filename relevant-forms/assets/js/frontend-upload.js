@@ -14,6 +14,29 @@
 		}
 	}
 
+	/**
+	 * Resolve a request target, refusing anything that is not same-origin.
+	 *
+	 * Every upload request is a POST to this site's own admin-post handler: the
+	 * base comes from the form (empty action = current page) and the target from
+	 * the server's authorization response. Neither is allowed to point anywhere
+	 * else, so tampered markup or a tampered response cannot send the visitor's
+	 * file to a third party. The server only ever authorizes same-origin POSTs
+	 * (see Uploads/Storage/*Provider::createUploadAuthorization).
+	 *
+	 * @param {string} url Candidate request target.
+	 * @return {string} Absolute same-origin URL.
+	 */
+	function sameOrigin(url) {
+		var resolved = new URL(url, window.location.href);
+
+		if (resolved.origin !== window.location.origin) {
+			throw new Error('upload_target_rejected');
+		}
+
+		return resolved.toString();
+	}
+
 	function authorize(baseUrl, formId, fieldId, file) {
 		var body = new FormData();
 		body.append('action', 'relevant_forms_upload_authorize');
@@ -24,22 +47,9 @@
 		body.append('content_type', file.type || 'application/octet-stream');
 		body.append('size', String(file.size));
 
-		return fetch(baseUrl, { method: 'POST', body: body, credentials: 'same-origin' }).then(function (response) {
+		// nosemgrep: sameOrigin() pins the target to this site's own origin.
+		return fetch(sameOrigin(baseUrl), { method: 'POST', body: body, credentials: 'same-origin' }).then(function (response) {
 			return response.json();
-		});
-	}
-
-	function putFile(authorization, file) {
-		return fetch(authorization.url, {
-			method: authorization.method || 'PUT',
-			headers: authorization.headers || {},
-			body: file,
-			credentials: 'same-origin',
-		}).then(function (response) {
-			if (!response.ok) {
-				throw new Error('upload_failed');
-			}
-			return response;
 		});
 	}
 
@@ -50,22 +60,8 @@
 		body.append('token', token);
 		body.append('file', file);
 
-		return fetch(authorization.url, { method: 'POST', body: body, credentials: 'same-origin' }).then(function (response) {
-			return response.json();
-		}).then(function (payload) {
-			if (!payload || !payload.success) {
-				throw new Error('upload_failed');
-			}
-		});
-	}
-
-	function finishRemote(baseUrl, uploadId, token) {
-		var body = new FormData();
-		body.append('action', 'relevant_forms_upload_complete');
-		body.append('upload_id', String(uploadId));
-		body.append('token', token);
-
-		return fetch(baseUrl, { method: 'POST', body: body, credentials: 'same-origin' }).then(function (response) {
+		// nosemgrep: sameOrigin() pins the target to this site's own origin.
+		return fetch(sameOrigin(authorization.url), { method: 'POST', body: body, credentials: 'same-origin' }).then(function (response) {
 			return response.json();
 		}).then(function (payload) {
 			if (!payload || !payload.success) {
@@ -83,12 +79,16 @@
 			}
 			var data = payload.data;
 			uploadId = Number(data.upload_id);
-			if (data.method === 'POST') {
-				return finishLocal(data, data.upload_id, data.token, file);
+
+			// Every provider (local storage and managed cloud) authorizes the same
+			// browser contract: a same-origin multipart POST that the site then
+			// relays server-side. A non-POST authorization means a provider this
+			// script does not know how to complete, so fail loudly.
+			if ('POST' !== data.method) {
+				throw new Error('upload_unsupported_method');
 			}
-			return putFile(data, file).then(function () {
-				return finishRemote(baseUrl, data.upload_id, data.token);
-			});
+
+			return finishLocal(data, data.upload_id, data.token, file);
 		}).then(function () {
 			var idsInput = document.getElementById(input.id + '-ids');
 			var ids = [];
