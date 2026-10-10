@@ -1,7 +1,7 @@
 <?php
 /**
- * Settings template: Cloud subscription and file storage sections under
- * two tabs sharing one options form.
+ * Settings template: Cloud subscription, file storage and email validation
+ * sections under three tabs sharing one options form.
  *
  * The nonced action buttons inside the panels (connect/disconnect) submit
  * forms declared after the options form: HTML forbids nested forms, so
@@ -21,6 +21,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 use RelevantForms\Cloud\CloudConfig;
 use RelevantForms\Cloud\CloudConnection;
+use RelevantForms\Validation\EmailDeliverability;
 ?>
 <div class="wrap">
 	<h1><?php esc_html_e( 'Relevant Cloud', 'relevant-forms' ); ?></h1>
@@ -57,6 +58,7 @@ use RelevantForms\Cloud\CloudConnection;
 		<nav class="nav-tab-wrapper relevant-forms-tabs" aria-label="<?php esc_attr_e( 'Settings sections', 'relevant-forms' ); ?>">
 			<a class="nav-tab nav-tab-active relevant-forms-tabs__tab" href="<?php echo esc_url( '#rf-panel-cloud' ); ?>"><?php esc_html_e( 'Relevant Cloud subscription', 'relevant-forms' ); ?></a>
 			<a class="nav-tab relevant-forms-tabs__tab" href="<?php echo esc_url( '#rf-panel-storage' ); ?>"><?php esc_html_e( 'File storage', 'relevant-forms' ); ?></a>
+			<a class="nav-tab relevant-forms-tabs__tab" href="<?php echo esc_url( '#rf-panel-email' ); ?>"><?php esc_html_e( 'Email validation', 'relevant-forms' ); ?></a>
 		</nav>
 
 		<div id="rf-panel-cloud" class="relevant-forms-tabs__panel">
@@ -259,6 +261,74 @@ use RelevantForms\Cloud\CloudConnection;
 
 			<?php submit_button(); ?>
 		</div><!-- #rf-panel-storage -->
+
+		<div id="rf-panel-email" class="relevant-forms-tabs__panel">
+			<p class="description">
+				<?php esc_html_e( 'Every email field is checked against its domain before the entry is stored: an address whose domain cannot receive mail is rejected, so typos and dead domains do not fill your inbox and your lists.', 'relevant-forms' ); ?>
+			</p>
+			<?php $emailCapabilities = EmailDeliverability::capabilities(); ?>
+			<table class="form-table" role="presentation">
+				<tr>
+					<th scope="row"><label for="relevant-email-check-mode"><?php esc_html_e( 'Check', 'relevant-forms' ); ?></label></th>
+					<td>
+						<select id="relevant-email-check-mode" name="relevant_forms_settings[email_check_mode]">
+							<option value="<?php echo esc_attr( EmailDeliverability::MODE_OFF ); ?>" <?php selected( $emailCapabilities['mode'], EmailDeliverability::MODE_OFF ); ?>><?php esc_html_e( 'Off', 'relevant-forms' ); ?></option>
+							<option value="<?php echo esc_attr( EmailDeliverability::MODE_MX ); ?>" <?php selected( $emailCapabilities['mode'], EmailDeliverability::MODE_MX ); ?>><?php esc_html_e( 'Domain mail records (recommended)', 'relevant-forms' ); ?></option>
+							<option value="<?php echo esc_attr( EmailDeliverability::MODE_MX_SMTP ); ?>" <?php selected( $emailCapabilities['mode'], EmailDeliverability::MODE_MX_SMTP ); ?>><?php esc_html_e( 'Domain mail records + mail server reachability', 'relevant-forms' ); ?></option>
+						</select>
+						<p class="description">
+							<?php esc_html_e( 'Domain mail records: rejects domains that publish neither MX records nor an address record, and domains that publish a null MX record. Adding reachability also connects to the mail server on port 25.', 'relevant-forms' ); ?>
+						</p>
+					</td>
+				</tr>
+				<tr>
+					<th scope="row"><?php esc_html_e( 'Unreachable mail server', 'relevant-forms' ); ?></th>
+					<td>
+						<label>
+							<input type="checkbox" name="relevant_forms_settings[email_check_reject_unreachable]" value="1" <?php checked( $emailCapabilities['reject_unreachable'] ); ?>>
+							<?php esc_html_e( 'Reject addresses whose mail server does not answer', 'relevant-forms' ); ?>
+						</label>
+						<p class="description">
+							<?php esc_html_e( 'A mail server that does not answer is not proof that the address does not exist: greylisting and catch-all servers refuse these connections, and many hosts block outbound port 25, which makes every domain look unreachable. Leave this off unless your host allows outbound port 25.', 'relevant-forms' ); ?>
+						</p>
+					</td>
+				</tr>
+				<tr>
+					<th scope="row"><?php esc_html_e( 'This server', 'relevant-forms' ); ?></th>
+					<td>
+						<ul>
+							<li>
+								<?php if ( $emailCapabilities['dns'] ) : ?>
+									<?php esc_html_e( 'DNS lookups are available (MX, A and AAAA records are read).', 'relevant-forms' ); ?>
+								<?php elseif ( $emailCapabilities['simple_dns'] ) : ?>
+									<?php esc_html_e( 'DNS lookups are available but simplified: a domain can only be confirmed, not rejected, when it publishes no mail records.', 'relevant-forms' ); ?>
+								<?php else : ?>
+									<strong><?php esc_html_e( 'DNS lookups are disabled on this server, so the check cannot run.', 'relevant-forms' ); ?></strong>
+								<?php endif; ?>
+							</li>
+							<li>
+								<?php if ( $emailCapabilities['sockets'] ) : ?>
+									<?php esc_html_e( 'Outbound connections are allowed, so the reachability probe can run.', 'relevant-forms' ); ?>
+								<?php else : ?>
+									<?php esc_html_e( 'Outbound connections are disabled on this server, so the reachability probe cannot run.', 'relevant-forms' ); ?>
+								<?php endif; ?>
+							</li>
+							<li>
+								<?php
+								printf(
+									/* translators: %d: number of cached results. */
+									esc_html__( '%d domain results are cached; saving these settings clears them.', 'relevant-forms' ),
+									(int) EmailDeliverability::cachedCount()
+								);
+								?>
+							</li>
+						</ul>
+					</td>
+				</tr>
+			</table>
+
+			<?php submit_button(); ?>
+		</div><!-- #rf-panel-email -->
 	</form>
 
 	<?php /* Nonced action forms for the panel buttons, declared outside the options form (HTML forbids nested forms); each button targets its form by id. */ ?>
