@@ -51,6 +51,7 @@
         "platform": {
             "php": "8.3.0"
         },
+        "process-timeout": 900,
         "allow-plugins": {
             "automattic/jetpack-autoloader": true,
             "dealerdirect/phpcodesniffer-composer-installer": true,
