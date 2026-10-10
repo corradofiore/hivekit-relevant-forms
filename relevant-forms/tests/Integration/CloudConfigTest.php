@@ -25,8 +25,8 @@ final class CloudConfigTest extends TestCase {
 	public function testUrlDefaultsToTheServiceHostWithTheVersionedApiBase(): void {
 		update_option( 'relevant_forms_settings', [] );
 
-		$this->assertSame( 'https://api.relevantcloud.com', CloudConfig::url() );
-		$this->assertSame( 'https://api.relevantcloud.com/api/v1', CloudConfig::apiBase() );
+		$this->assertSame( 'https://app.relevantforms.com', CloudConfig::url() );
+		$this->assertSame( 'https://app.relevantforms.com/api/v1', CloudConfig::apiBase() );
 	}
 
 	/**

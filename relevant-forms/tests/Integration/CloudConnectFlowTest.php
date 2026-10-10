@@ -273,7 +273,7 @@ final class CloudConnectFlowTest extends TestCase {
 		$url = $this->connect();
 
 		$this->assertStringContainsString( 'cloud=connected', $url );
-		$this->assertSame( 'https://api.relevantcloud.com/api/v1/sites/connect', $requested[0] ?? '' );
+		$this->assertSame( 'https://app.relevantforms.com/api/v1/sites/connect', $requested[0] ?? '' );
 	}
 
 	/**
