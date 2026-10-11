@@ -38,7 +38,7 @@ final class EntryRepository {
 		$table = $this->wpdb->prefix . 'relevant_entries';
 		$now   = current_time( 'mysql', true );
 
-		$this->wpdb->insert(
+		$result = $this->wpdb->insert(
 			$table,
 			[
 				'form_id'           => $entry->formId,
@@ -58,6 +58,8 @@ final class EntryRepository {
 		);
 
 		$entryId = (int) $this->wpdb->insert_id;
+
+		$this->assertInserted( $result, $entryId, $table );
 
 		$this->replaceMeta( $entryId, $entry->meta );
 
@@ -434,7 +436,7 @@ final class EntryRepository {
 		foreach ( $meta as $key => $value ) {
 			$stored = is_scalar( $value ) ? (string) $value : wp_json_encode( $value );
 
-			$this->wpdb->insert(
+			$result = $this->wpdb->insert(
 				$table,
 				[
 					'entry_id'   => $entryId,
@@ -442,6 +444,48 @@ final class EntryRepository {
 					'meta_value' => $stored,
 				]
 			);
+
+			$this->assertInserted( $result, (int) $this->wpdb->insert_id, $table );
 		}
+	}
+
+	/**
+	 * Whether a `$wpdb::insert()` call really wrote a row.
+	 *
+	 * `insert()` returns false on failure and leaves `insert_id` at whatever the
+	 * previous query left there, so the id alone cannot be trusted either.
+	 *
+	 * @param mixed $result   Value returned by `$wpdb::insert()`.
+	 * @param int   $insertId Value of `$wpdb->insert_id` afterwards.
+	 */
+	public static function insertSucceeded( mixed $result, int $insertId ): bool {
+		return false !== $result && $insertId > 0;
+	}
+
+	/**
+	 * Refuse to continue when an insert did not write.
+	 *
+	 * The alternative — reading `insert_id` and carrying on — is how a submission
+	 * used to be lost silently: the entries row was rejected (the qa schema was one
+	 * migration behind, so the table had no resume columns), the id came back 0, its
+	 * field meta was written anyway at `entry_id` 0, and the visitor was shown the
+	 * confirmation page while the entries list stayed empty. The submission handler
+	 * turns this into an explicit "could not be stored" response, so a schema that
+	 * cannot accept the row is loud instead of lossy.
+	 *
+	 * @param mixed  $result   Value returned by `$wpdb::insert()`.
+	 * @param int    $insertId Value of `$wpdb->insert_id` afterwards.
+	 * @param string $table    Table that was written to.
+	 *
+	 * @throws \RuntimeException When the insert did not write a row.
+	 */
+	private function assertInserted( mixed $result, int $insertId, string $table ): void {
+		if ( self::insertSucceeded( $result, $insertId ) ) {
+			return;
+		}
+
+		throw new \RuntimeException(
+			'Could not write to ' . $table . ': ' . (string) $this->wpdb->last_error // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- plain-text message for the error log; it is never rendered to a visitor.
+		);
 	}
 }
