@@ -62,3 +62,69 @@ it(
 		expect( $classification->reasonCode )->toBe( 'unknown' );
 	}
 );
+it(
+	'keeps the two summaries apart and caps the short one',
+	function () {
+		$classification = Classification::fromArray(
+			[
+				'spam_probability' => 0.02,
+				'relevance'        => 0.9,
+				'urgency'          => 0.9,
+				'summary'          => 'Burst pipe in the basement.',
+				'sms_summary'      => 'Burst pipe basement.',
+				'reason_code'      => 'relevant_enquiry',
+			]
+		);
+
+		expect( $classification->summary )->toBe( 'Burst pipe in the basement.' );
+		expect( $classification->smsSummary )->toBe( 'Burst pipe basement.' );
+		expect( $classification->toArray()['sms_summary'] )->toBe( 'Burst pipe basement.' );
+
+		$long = Classification::fromArray(
+			[
+				'spam_probability' => 0.02,
+				'relevance'        => 0.9,
+				'urgency'          => 0.9,
+				'sms_summary'      => str_repeat( 'a', 200 ),
+			]
+		);
+
+		expect( mb_strlen( $long->smsSummary ) )->toBe( 60 );
+	}
+);
+
+/*
+ * A Cloud older than the two-summary contract sends one phrase. The SMS alert
+ * and the entries list column both read `smsSummary`, so the fallback has to
+ * live in the parser: otherwise the text message would lose its context, or the
+ * column would show a phrase the alert never sends.
+ */
+it(
+	'reuses the email summary when the Cloud sends only one',
+	function () {
+		$classification = Classification::fromArray(
+			[
+				'spam_probability' => 0.02,
+				'relevance'        => 0.9,
+				'urgency'          => 0.9,
+				'summary'          => 'Burst pipe in the basement.',
+				'reason_code'      => 'relevant_enquiry',
+			]
+		);
+
+		expect( $classification->smsSummary )->toBe( 'Burst pipe in the basement.' );
+		expect( $classification->toArray()['sms_summary'] )->toBe( 'Burst pipe in the basement.' );
+
+		$blank = Classification::fromArray(
+			[
+				'spam_probability' => 0.02,
+				'relevance'        => 0.9,
+				'urgency'          => 0.9,
+				'summary'          => 'Quote request',
+				'sms_summary'      => '   ',
+			]
+		);
+
+		expect( $blank->smsSummary )->toBe( 'Quote request' );
+	}
+);

@@ -44,14 +44,26 @@ if ( ! defined( 'ABSPATH' ) ) {
 					<th scope="col"><?php esc_html_e( 'Date', 'relevant-forms' ); ?></th>
 					<th scope="col"><?php esc_html_e( 'Form', 'relevant-forms' ); ?></th>
 					<th scope="col"><?php esc_html_e( 'Status', 'relevant-forms' ); ?></th>
+					<th scope="col"><?php esc_html_e( 'SMS summary', 'relevant-forms' ); ?></th>
 					<th scope="col"><?php esc_html_e( 'Preview', 'relevant-forms' ); ?></th>
 				</tr>
 			</thead>
 			<tbody>
 				<?php foreach ( $entries as $entry ) : ?>
 					<?php
-					$form          = ( new \RelevantForms\Forms\FormRepository() )->find( $entry->formId );
-					$entry_preview = '';
+					$form                 = ( new \RelevantForms\Forms\FormRepository() )->find( $entry->formId );
+					$entry_preview        = '';
+					$entry_classification = is_array( $entry->meta['_classification'] ?? null ) ? $entry->meta['_classification'] : [];
+
+					/*
+					 * The short summary the SMS alert sends, falling back to the email
+					 * phrase for entries classified before the Cloud returned it — the
+					 * same rule `Classification::fromArray()` applies.
+					 */
+					$entry_sms_summary = trim(
+						(string) ( $entry_classification['sms_summary'] ?? ( $entry_classification['summary'] ?? '' ) )
+					);
+
 					foreach ( $entry->meta as $value ) {
 						if ( is_string( $value ) && trim( $value ) !== '' ) {
 							$entry_preview = wp_trim_words( $value, 12 );
@@ -67,6 +79,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 								<?php echo esc_html( ucwords( str_replace( '_', ' ', $entry->status ) ) ); ?>
 							</span>
 						</td>
+						<td><?php echo esc_html( '' !== $entry_sms_summary ? $entry_sms_summary : '—' ); ?></td>
 						<td><?php echo esc_html( $entry_preview ); ?></td>
 					</tr>
 				<?php endforeach; ?>
