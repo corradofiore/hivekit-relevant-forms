@@ -63,4 +63,44 @@ final class MigrationRunner {
 			}
 		}
 	}
+
+	/**
+	 * Apply pending migrations when the code is ahead of the stored version.
+	 *
+	 * WordPress fires the activation hook once, so a site that *updates* the
+	 * plugin in place — which is how every customer gets a new release — never
+	 * ran the migrator again. A stale schema here is not a degraded feature, it is
+	 * lost data: the entries table was missing the resume columns for a release,
+	 * and every submission was written into a table that could not accept it
+	 * (see `EntryRepository::assertInserted()`). One autoloaded option read per
+	 * request, and the work only happens when the stored version is behind.
+	 */
+	public static function runIfBehind(): void {
+		if ( version_compare( self::targetVersion(), (string) get_option( self::OPTION, '0' ), '>' ) ) {
+			self::run();
+		}
+	}
+
+	/**
+	 * Highest version among the migrations.
+	 *
+	 * MIGRATIONS is listed in dependency order, which is not version order — the
+	 * logs table is 1.0.5 yet comes after the 1.1.0 uploads table — so the target is
+	 * the maximum, not the last entry. (A unit test pins that they differ, which is
+	 * what makes reading the last entry a latent bug rather than a shortcut.)
+	 */
+	public static function targetVersion(): string {
+		$target = '0';
+
+		foreach ( self::MIGRATIONS as $migrationClass ) {
+			$migration = new $migrationClass();
+			$version   = $migration->version();
+
+			if ( version_compare( $version, $target, '>' ) ) {
+				$target = $version;
+			}
+		}
+
+		return $target;
+	}
 }
