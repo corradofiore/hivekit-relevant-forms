@@ -1,6 +1,7 @@
 <?php
 /**
- * Entries list AI column (doc §24): the short summary the SMS alert carries.
+ * Entries admin surfaces (doc §24): the short summary the SMS alert carries,
+ * shown in the entries list column and in the entry view.
  *
  * @package RelevantForms
  */
@@ -10,6 +11,7 @@ declare(strict_types=1);
 namespace RelevantForms\Tests\Integration;
 
 use RelevantForms\Admin\Pages\EntryListPage;
+use RelevantForms\Admin\Pages\EntryViewPage;
 use RelevantForms\Entries\Entry;
 use RelevantForms\Entries\EntryRepository;
 use RelevantForms\Forms\FormRepository;
@@ -20,7 +22,7 @@ use RelevantForms\Forms\FormSchema;
  *
  * @group integration
  */
-final class EntriesListSummaryTest extends TestCase {
+final class EntriesSummaryDisplayTest extends TestCase {
 
 	/**
 	 * Sign in as an administrator.
@@ -88,6 +90,34 @@ final class EntriesListSummaryTest extends TestCase {
 
 		$this->assertStringContainsString( 'Linus', $row );
 		$this->assertStringContainsString( '—', $row );
+	}
+
+	/**
+	 * The entry view names both phrases, so the screen that shows the whole
+	 * classification cannot be read as if the email phrase were the SMS one.
+	 */
+	public function testTheEntryViewNamesBothSummaries(): void {
+		$formId = $this->form();
+
+		$entryId = $this->entry(
+			$formId,
+			[
+				'f_name'          => 'Ada',
+				'_classification' => [
+					'summary'     => 'Burst pipe in the basement',
+					'sms_summary' => 'Burst pipe basement',
+				],
+			]
+		);
+
+		$_GET['entry_id'] = $entryId;
+
+		ob_start();
+		EntryViewPage::render();
+		$html = (string) ob_get_clean();
+
+		$this->assertStringContainsString( '<th scope="row">Summary</th><td>Burst pipe in the basement', $html );
+		$this->assertStringContainsString( '<th scope="row">SMS summary</th><td>Burst pipe basement</td>', $html );
 	}
 
 	/**
