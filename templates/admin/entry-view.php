@@ -115,6 +115,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 				<tr><th scope="row"><?php esc_html_e( 'Attention score', 'relevant-forms' ); ?></th><td><code><?php echo esc_html( (string) ( $classification['attention_score'] ?? '0' ) ); ?></code></td></tr>
 				<tr><th scope="row"><?php esc_html_e( 'Reason code', 'relevant-forms' ); ?></th><td><code><?php echo esc_html( (string) ( $classification['reason_code'] ?? 'unknown' ) ); ?></code></td></tr>
 				<tr><th scope="row"><?php esc_html_e( 'Summary', 'relevant-forms' ); ?></th><td><?php echo esc_html( (string) ( $classification['summary'] ?? '' ) ); ?></td></tr>
+				<tr><th scope="row"><?php esc_html_e( 'SMS summary', 'relevant-forms' ); ?></th><td><?php echo esc_html( (string) ( $classification['sms_summary'] ?? ( $classification['summary'] ?? '' ) ) ); ?></td></tr>
 			</tbody>
 		</table>
 		<?php if ( [] !== $correction ) : ?>
