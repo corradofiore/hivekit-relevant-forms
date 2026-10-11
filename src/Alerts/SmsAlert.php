@@ -19,8 +19,8 @@ use RelevantForms\Support\Logger;
 
 /**
  * Interrupts the operator only when the message deserves it: sends the
- * minimal alert payload (AI summary + secure entry link) to the Cloud,
- * which renders and routes the SMS (v2 §4).
+ * minimal alert payload (AI summary in its shortest form + secure entry
+ * link) to the Cloud, which renders and routes the SMS (v2 §4).
  *
  * Consent-gated: without the explicitly enabled capability no HTTP
  * request is made (v2 §7–8, hard constraint).
@@ -118,7 +118,7 @@ final class SmsAlert {
 	 * @return array<string, mixed>|null
 	 */
 	public function send( Form $form, int $entryId, Classification $classification ): ?array {
-		$summary = trim( $classification->summary );
+		$summary = trim( $classification->smsSummary );
 
 		$payload = [
 			'recipient' => $this->recipient( $form ),

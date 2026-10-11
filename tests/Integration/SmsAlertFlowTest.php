@@ -52,6 +52,7 @@ final class SmsAlertFlowTest extends TestCase {
 			'relevance'        => 0.9,
 			'urgency'          => 0.9,
 			'summary'          => 'Burst pipe in the basement.',
+			'sms_summary'      => 'Burst pipe',
 			'reason_code'      => 'relevant_enquiry',
 		];
 		$this->requests       = [];
@@ -123,7 +124,8 @@ final class SmsAlertFlowTest extends TestCase {
 
 		$payload = json_decode( (string) $alerts[0]['args']['body'], true );
 		$this->assertSame( '+3912345', $payload['recipient'] );
-		$this->assertSame( 'Burst pipe in the basement.', $payload['alert']['summary'] );
+		// The message carries the short summary; the email carries the longer one.
+		$this->assertSame( 'Burst pipe', $payload['alert']['summary'] );
 		$this->assertStringContainsString(
 			'page=relevant-entry&entry_id=' . (string) $entry->id,
 			(string) $payload['alert']['entry_url']

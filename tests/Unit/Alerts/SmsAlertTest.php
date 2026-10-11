@@ -97,6 +97,7 @@ function rf_sms_classification( float $spam, float $relevance, float $urgency ):
 			'relevance'        => $relevance,
 			'urgency'          => $urgency,
 			'summary'          => 'Burst pipe in the basement.',
+			'sms_summary'      => 'Burst pipe',
 			'reason_code'      => 'relevant_enquiry',
 		]
 	);
@@ -228,7 +229,8 @@ it(
 		$payload = json_decode( (string) $captured['args']['body'], true );
 
 		expect( $payload['recipient'] )->toBe( '+3912345' );
-		expect( $payload['alert']['summary'] )->toBe( 'Burst pipe in the basement.' );
+		// The text message carries the short summary, not the email phrase.
+		expect( $payload['alert']['summary'] )->toBe( 'Burst pipe' );
 		expect( $payload['alert']['entry_url'] )->toBe( 'https://site.example/wp-admin/admin.php?page=relevant-entry&entry_id=12' );
 		expect( $payload['alert']['attention_score'] )->toBeGreaterThanOrEqual( 85 );
 	}

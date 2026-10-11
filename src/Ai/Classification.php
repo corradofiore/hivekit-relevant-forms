@@ -44,6 +44,7 @@ final class Classification {
 		public readonly string $intent,
 		public readonly string $category,
 		public readonly string $summary,
+		public readonly string $smsSummary,
 		public readonly string $reasonCode,
 		public readonly int $attentionScore,
 		public readonly array $raw,
@@ -77,14 +78,30 @@ final class Classification {
 		$relevance = round( (float) $data['relevance'], 4 );
 		$urgency   = round( (float) $data['urgency'], 4 );
 
+		// A 5-7 word subject phrase for the email; the cap is the safety net.
+		$summary = mb_substr( trim( (string) ( $data['summary'] ?? '' ) ), 0, 120 );
+
+		/*
+		 * The shorter phrase the SMS alert uses, capped so it always fits beside the
+		 * headline and the entry link. A Cloud that predates the field sends only
+		 * `summary`; the SMS then reuses the email phrase instead of losing its
+		 * context, and because the fallback lives here the alert and the entries
+		 * list column cannot disagree about what a text message would say.
+		 */
+		$smsSummary = mb_substr( trim( (string) ( $data['sms_summary'] ?? '' ) ), 0, 60 );
+
+		if ( '' === $smsSummary ) {
+			$smsSummary = $summary;
+		}
+
 		return new self(
 			$spam,
 			$relevance,
 			$urgency,
 			mb_substr( trim( (string) ( $data['intent'] ?? '' ) ), 0, 64 ),
 			mb_substr( trim( (string) ( $data['category'] ?? '' ) ), 0, 64 ),
-			// A 5-7 word subject phrase; the cap is the safety net.
-			mb_substr( trim( (string) ( $data['summary'] ?? '' ) ), 0, 120 ),
+			$summary,
+			$smsSummary,
 			$reasonCode,
 			AttentionScore::calculate( $spam, $relevance, $urgency ),
 			$data,
@@ -107,6 +124,7 @@ final class Classification {
 				'intent'           => $this->intent,
 				'category'         => $this->category,
 				'summary'          => $this->summary,
+				'sms_summary'      => $this->smsSummary,
 				'reason_code'      => $this->reasonCode,
 				'attention_score'  => $this->attentionScore,
 			]
