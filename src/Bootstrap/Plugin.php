@@ -57,6 +57,14 @@ final class Plugin {
 	 * Register plugin services on plugins_loaded.
 	 */
 	public static function boot(): void {
+		/*
+		 * Before anything else can query the schema: an in-place plugin update
+		 * never fires the activation hook, so a release that adds a migration
+		 * would otherwise run against the previous schema. Costs one autoloaded
+		 * option read per request and does nothing while the schema is current.
+		 */
+		MigrationRunner::runIfBehind();
+
 		AdminMenu::register();
 		AdminAssets::register();
 		FrontendAssets::register();
