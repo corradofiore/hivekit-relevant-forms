@@ -45,7 +45,30 @@ rsync -a --delete \
 	--exclude 'phpstan.neon.dist' \
 	--exclude 'phpunit.xml.dist' \
 	--exclude 'phpunit.integration.xml.dist' \
+	--exclude 'storage/' \
 	./ "$STAGE/"
+
+# The artifact must carry runtime files only. Copying the tree with an
+# exclude list means the next stray file that appears here — a QA helper, a
+# scratch script, a fixture corpus — ships to WordPress.org unnoticed, so the
+# staged tree is checked against the allowlist instead.
+unexpected="$(
+	cd "$STAGE"
+	find . -type f \
+		! -path './assets/*' \
+		! -path './src/*' \
+		! -path './templates/*' \
+		! -name 'relevant-forms.php' \
+		! -name 'readme.txt' \
+		-print
+)"
+
+if [ -n "$unexpected" ]; then
+	echo "Unexpected files in the release artifact:" >&2
+	echo "$unexpected" >&2
+	echo "Runtime files are assets/, src/, templates/, relevant-forms.php and readme.txt." >&2
+	exit 1
+fi
 
 (
 	cd "$DIST"
