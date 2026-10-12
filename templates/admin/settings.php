@@ -146,6 +146,10 @@ use RelevantForms\Validation\EmailDeliverability;
 									?>
 								</p>
 							<?php endif; ?>
+							<p class="relevant-forms-cloud-actions">
+								<button type="submit" form="rf-cloud-refresh-form" class="button"><?php esc_html_e( 'Refresh plan & capabilities', 'relevant-forms' ); ?></button>
+								<span class="description"><?php esc_html_e( 'Shown from the last check with Relevant Cloud. Run this after subscribing or changing your plan in the dashboard.', 'relevant-forms' ); ?></span>
+							</p>
 						</td>
 					</tr>
 					<tr>
@@ -341,6 +345,14 @@ use RelevantForms\Validation\EmailDeliverability;
 			<?php wp_nonce_field( 'relevant_cloud_connect' ); ?>
 		<?php endif; ?>
 	</form>
+
+	<?php if ( ! $cloudDisconnected ) : ?>
+		<?php /* Subscription refresh: re-reads the cached plan and capabilities from the API. */ ?>
+		<form id="rf-cloud-refresh-form" method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" hidden>
+			<input type="hidden" name="action" value="relevant_forms_cloud_refresh">
+			<?php wp_nonce_field( 'relevant_cloud_refresh' ); ?>
+		</form>
+	<?php endif; ?>
 
 	<?php if ( ! defined( 'RELEVANT_CLOUD_API_KEY' ) ) : ?>
 		<?php /* The key field saves on change: its input targets this nonced form. */ ?>
