@@ -37,6 +37,7 @@ stored, notified or paid
 * Entry storage in your own WordPress database
 * Entries inbox with statuses and spam/suspicious triage
 * Email notifications
+* Confirmations: show a confirmation message (it replaces the form once the visitor has submitted, so the form cannot be sent twice) or redirect to a URL or a page
 * Shortcode and template function embedding: `[relevant_form id="123"]` and `relevant_forms_render( 123 )`
 * Local anti-abuse controls: honeypot, timing checks, rate limiting, duplicate detection and spam signals
 * Local secure-upload fallback: files are stored privately with strict validation and a scan-before-download policy

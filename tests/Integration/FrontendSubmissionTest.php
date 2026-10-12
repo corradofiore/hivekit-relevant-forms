@@ -113,6 +113,73 @@ final class FrontendSubmissionTest extends TestCase {
 	}
 
 	/**
+	 * The confirmation replaces the form: the visitor no longer sees (or can
+	 * re-submit) the form they just sent, matching WPForms.
+	 */
+	public function testTheConfirmationReplacesTheFormAfterSuccess(): void {
+		$form = $this->makePublishedForm();
+
+		$_GET['relevant_form_success'] = (string) $form->id;
+
+		$html = FormRenderer::renderForm( $form );
+
+		unset( $_GET['relevant_form_success'] );
+
+		$this->assertStringContainsString( 'relevant-forms-success', $html );
+		$this->assertStringNotContainsString( '<form', $html );
+		$this->assertStringNotContainsString( 'relevant-forms-hp', $html );
+	}
+
+	/**
+	 * Without the marker the form renders as usual: it only exists on the
+	 * redirect that follows the visitor's own submission.
+	 */
+	public function testTheFormStillRendersWithoutASuccessMarker(): void {
+		$form = $this->makePublishedForm();
+
+		$html = FormRenderer::renderForm( $form );
+
+		$this->assertStringContainsString( '<form', $html );
+		$this->assertStringNotContainsString( 'relevant-forms-success', $html );
+	}
+
+	/**
+	 * A redirect confirmation sends the visitor elsewhere, so nothing is
+	 * replaced even if a marker is present.
+	 */
+	public function testARedirectConfirmationKeepsTheForm(): void {
+		$repository = new FormRepository();
+		$schema     = FormSchema::empty( 'Redirecting' )
+			->withConfirmation( '', 'https://example.com/thanks', 0, 'url' );
+		$form       = $repository->find( $repository->create( 'Redirecting', $schema, 'published' ) );
+
+		$_GET['relevant_form_success'] = (string) $form->id;
+
+		$html = FormRenderer::renderForm( $form );
+
+		unset( $_GET['relevant_form_success'] );
+
+		$this->assertStringContainsString( '<form', $html );
+		$this->assertStringContainsString( 'relevant-forms-hp', $html );
+	}
+
+	/**
+	 * An incomplete payment keeps the form so the visitor can try again.
+	 */
+	public function testAFailedPaymentKeepsTheForm(): void {
+		$form = $this->makePublishedForm();
+
+		$_GET['relevant_payment_failed'] = (string) $form->id;
+
+		$html = FormRenderer::renderForm( $form );
+
+		unset( $_GET['relevant_payment_failed'] );
+
+		$this->assertStringContainsString( 'relevant-forms-payment-notice', $html );
+		$this->assertStringContainsString( '<form', $html );
+	}
+
+	/**
 	 * A triggered honeypot pretends success but stores nothing.
 	 */
 	public function testFrontEndHoneypotPretendsSuccessWithoutStoring(): void {
