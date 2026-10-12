@@ -441,11 +441,100 @@ final class CloudConnectFlowTest extends TestCase {
 	}
 
 	/**
+	 * A replacement key addresses a different Cloud site, so the cached
+	 * binding (site id, plan, capabilities, dashboard link) and the consent
+	 * granted for the previous site must not survive the swap.
+	 */
+	public function testReplacingTheKeyReleasesThePreviousBinding(): void {
+		update_option( 'relevant_forms_settings', [ 'cloud_api_key' => 'sfk_previous_key_1234567890' ] );
+
+		$connection = new CloudConnection();
+		$connection->connect(
+			'site-uuid-1',
+			'https://a.example',
+			'Acme',
+			[
+				'semantic_classification' => true,
+				'priority_sms'            => true,
+			],
+			'https://cloud.example.com/app/sites/site-uuid-1/billing'
+		);
+		$connection->updateSubscription(
+			[
+				'plan'     => 'cloud',
+				'status'   => 'active',
+				'entitled' => true,
+			]
+		);
+		$connection->enableCapability( CloudConnection::CAP_SMS );
+
+		$url = $this->saveKey( 'sfk_replacement_key_0987654321' );
+
+		$this->assertStringContainsString( 'cloud=key_changed', $url );
+
+		$settings = (array) get_option( SettingsPage::OPTION, [] );
+		$this->assertSame( 'sfk_replacement_key_0987654321', $settings['cloud_api_key'] ?? '' );
+
+		$reloaded = new CloudConnection();
+		$this->assertNull( $reloaded->siteId() );
+		$this->assertSame( CloudConnection::STATE_DISCONNECTED, $reloaded->state() );
+		$this->assertSame( [], $reloaded->serverCapabilities() );
+		$this->assertSame( [], $reloaded->subscription() );
+		$this->assertNull( $reloaded->dashboardUrl() );
+		$this->assertFalse( $reloaded->capabilityEnabled( CloudConnection::CAP_SMS ) );
+	}
+
+	/**
+	 * Re-submitting the stored key is not a swap: the binding survives.
+	 */
+	public function testResavingTheSameKeyKeepsTheBinding(): void {
+		update_option( 'relevant_forms_settings', [ 'cloud_api_key' => 'sfk_same_key_1234567890' ] );
+
+		$connection = new CloudConnection();
+		$connection->connect( 'site-uuid-1', 'https://a.example', 'Acme', [ 'priority_sms' => true ] );
+		$connection->enableCapability( CloudConnection::CAP_SMS );
+
+		$url = $this->saveKey( 'sfk_same_key_1234567890' );
+
+		$this->assertStringContainsString( 'cloud=key_saved', $url );
+
+		$reloaded = new CloudConnection();
+		$this->assertSame( 'site-uuid-1', $reloaded->siteId() );
+		$this->assertTrue( $reloaded->capabilityEnabled( CloudConnection::CAP_SMS ) );
+	}
+
+	/**
+	 * The first key, saved while nothing is bound, is not reported as a
+	 * replacement.
+	 */
+	public function testSavingTheFirstKeyIsNotReportedAsAReplacement(): void {
+		update_option( 'relevant_forms_settings', [] );
+
+		$url = $this->saveKey( 'sfk_first_key_1234567890' );
+
+		$this->assertStringContainsString( 'cloud=key_saved', $url );
+		$this->assertSame( CloudConnection::STATE_DISCONNECTED, ( new CloudConnection() )->state() );
+	}
+
+	/**
 	 * Simulate the connect admin action with a nonce.
 	 */
 	private function connect(): string {
 		$_POST                = [ 'action' => 'relevant_forms_cloud_connect' ];
 		$_REQUEST['_wpnonce'] = wp_create_nonce( 'relevant_cloud_connect' );
+
+		return $this->invokeController();
+	}
+
+	/**
+	 * Simulate the save-key admin action with a nonce.
+	 */
+	private function saveKey( string $key ): string {
+		$_POST                = [
+			'action'        => 'relevant_forms_cloud_save_key',
+			'cloud_api_key' => $key,
+		];
+		$_REQUEST['_wpnonce'] = wp_create_nonce( 'relevant_cloud_save_key' );
 
 		return $this->invokeController();
 	}
@@ -490,6 +579,8 @@ final class CloudConnectFlowTest extends TestCase {
 				CloudController::disconnect();
 			} elseif ( 'relevant_forms_cloud_refresh' === $action ) {
 				CloudController::refresh();
+			} elseif ( 'relevant_forms_cloud_save_key' === $action ) {
+				CloudController::saveKey();
 			} else {
 				CloudController::connect();
 			}
