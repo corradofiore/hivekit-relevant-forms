@@ -102,6 +102,10 @@ final class SettingsTabsTest extends TestCase {
 		$this->assertStringContainsString( 'name="cloud_api_key"', $main );
 		$this->assertStringContainsString( 'id="rf-cloud-key-form"', $html );
 		$this->assertStringContainsString( 'value="relevant_forms_cloud_save_key"', $html );
+
+		// Refreshing needs a site record, so the disconnected screen has no
+		// refresh action (the controller redirects to `not_connected`).
+		$this->assertStringNotContainsString( 'rf-cloud-refresh-form', $html );
 	}
 
 	/**
@@ -127,7 +131,13 @@ final class SettingsTabsTest extends TestCase {
 		$this->assertStringContainsString( 'Current plan', $cloud );
 		$this->assertStringContainsString( 'href="https://cloud.example.com/billing?email=owner%40example.com"', $cloud );
 		$this->assertStringNotContainsString( 'rf-cloud-billing-form', $html );
-		$this->assertStringNotContainsString( 'rf-cloud-refresh-form', $html );
+
+		// The plan row offers the refresh action: after subscribing in the
+		// dashboard the cached plan would otherwise stay stale until the site
+		// was disconnected and reconnected.
+		$this->assertStringContainsString( 'form="rf-cloud-refresh-form"', $cloud );
+		$this->assertStringContainsString( 'id="rf-cloud-refresh-form"', $html );
+		$this->assertStringContainsString( 'value="relevant_forms_cloud_refresh"', $html );
 
 		// Then the Connection section: state + disconnect button in the
 		// same value column, key field below.
