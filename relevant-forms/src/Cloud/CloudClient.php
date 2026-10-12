@@ -325,7 +325,10 @@ final class CloudClient {
 		}
 
 		// cURL streams the file handle straight from disk; wp_remote_* would load
-		// the whole upload into PHP memory.
+		// the whole upload into PHP memory. CURLOPT_UPLOAD selects the streaming
+		// read path but implies PUT, so the method is forced back to POST to
+		// match the API route (CURLOPT_UPLOAD + CURLOPT_CUSTOMREQUEST still
+		// streams INFILE and sends Content-Length).
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.curl_curl_init -- streaming relay, not a buffered request.
 		$request = curl_init( $this->baseUrl . '/uploads' );
 
@@ -334,6 +337,7 @@ final class CloudClient {
 			$request,
 			[
 				CURLOPT_UPLOAD         => true,
+				CURLOPT_CUSTOMREQUEST  => 'POST',
 				CURLOPT_INFILE         => $handle,
 				CURLOPT_INFILESIZE     => $size,
 				CURLOPT_RETURNTRANSFER => true,
