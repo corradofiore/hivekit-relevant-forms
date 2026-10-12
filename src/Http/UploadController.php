@@ -26,6 +26,14 @@ final class UploadController {
 		add_action( 'admin_post_nopriv_relevant_forms_upload_authorize', [ self::class, 'authorize' ] );
 		add_action( 'admin_post_relevant_forms_upload_authorize', [ self::class, 'authorize' ] );
 		add_action( 'admin_post_nopriv_relevant_forms_local_upload', [ self::class, 'localUpload' ] );
+
+		/*
+		 * Logged-in submissions need this variant: admin-post.php dispatches
+		 * admin_post_{action} for authenticated users, and answers 400 when no
+		 * handler is registered. Without it, uploads fail for any logged-in
+		 * visitor — including the editor's own form preview.
+		 */
+		add_action( 'admin_post_relevant_forms_local_upload', [ self::class, 'localUpload' ] );
 		add_action( 'admin_post_nopriv_relevant_forms_upload_complete', [ self::class, 'complete' ] );
 		add_action( 'admin_post_relevant_forms_upload_complete', [ self::class, 'complete' ] );
 		add_action( 'admin_post_relevant_forms_download_upload', [ self::class, 'download' ] );
