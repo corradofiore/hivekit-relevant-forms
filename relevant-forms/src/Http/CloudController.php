@@ -140,9 +140,26 @@ final class CloudController {
 
 		$settings = (array) get_option( SettingsPage::OPTION, [] );
 
+		/*
+		 * A different key addresses a different Cloud site, and the cached
+		 * binding (site id, plan, capabilities, dashboard link) all describe
+		 * the previous one. Releasing it here keeps the operator from seeing
+		 * the old site's entitlement after the swap; consent goes with it,
+		 * because it was granted for the site being replaced.
+		 */
+		$replaced = (string) ( $settings['cloud_api_key'] ?? '' ) !== $key;
+
 		$settings['cloud_api_key'] = $key;
 
 		update_option( SettingsPage::OPTION, $settings );
+
+		$connection = new CloudConnection();
+
+		if ( $replaced && null !== $connection->siteId() ) {
+			$connection->disconnect();
+
+			self::redirect( 'key_changed' );
+		}
 
 		self::redirect( 'key_saved' );
 	}

@@ -67,6 +67,7 @@ use RelevantForms\Validation\EmailDeliverability;
 				[
 					'connected'      => [ 'success', __( 'Connected to Relevant Cloud.', 'relevant-forms' ) ],
 					'key_saved'      => [ 'success', __( 'Cloud API key saved.', 'relevant-forms' ) ],
+					'key_changed'    => [ 'info', __( 'New Cloud API key saved. The previous connection was released: click Connect to Cloud to bind this site and load its plan.', 'relevant-forms' ) ],
 					'disconnected'   => [ 'info', __( 'Disconnected from Relevant Cloud. Core features continue to work.', 'relevant-forms' ) ],
 					'failed'         => [ 'error', __( 'Could not connect to Relevant Cloud. Check the URL and API key.', 'relevant-forms' ) ],
 					'not_configured' => [ 'error', __( 'A Cloud API key is required before connecting.', 'relevant-forms' ) ],
