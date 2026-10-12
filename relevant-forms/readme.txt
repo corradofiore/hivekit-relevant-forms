@@ -59,6 +59,8 @@ The sender may be human, but the message is unrelated unsolicited marketing.
 
 When explicitly enabled, Relevant Cloud returns validated signals such as spam probability, relevance, urgency, intent, category and a short summary. Core uses these results to help prioritize entries.
 
+A request that fails for a transient reason — the model answering unusably, a network or provider hiccup — is queued on your site and retried until it succeeds, so a submission is never left unclassified because of one bad response.
+
 = Optional priority SMS alerts =
 
 Important submissions should not look identical to every other email. When managed SMS is configured, a high-priority submission can trigger a short SMS alert while ordinary submissions continue through normal email and inbox handling. Each form has its own alert toggle and verified mobile number. Alerts contain the classification summary and a secure link to the entry (WordPress login required) – never the full submission.
@@ -143,6 +145,10 @@ Payment fields are free and fully local; no payment provider is contacted until 
 = What is Relevant Cloud? =
 
 Relevant Cloud is an optional paid external service that performs remote functions such as semantic classification, managed SMS, managed private storage, malware scanning and payment brokering through Stripe.
+
+= What happens if the AI service cannot classify a submission? =
+
+The submission is stored and the visitor is confirmed as usual, and the classification request is queued and retried until it succeeds. A verdict that arrives late still updates the entry and still sends the priority SMS alert it earned. If every attempt fails for 8 hours (the window can be filtered), the entry is marked as unclassified in the admin so a person reviews it — a paid classification is never dropped silently.
 
 = Does my form stop working if Relevant Cloud is unavailable or my subscription ends? =
 

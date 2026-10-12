@@ -74,21 +74,58 @@ final class AiClassifier {
 	 * @param array<string, mixed> $protection Local anti-spam evaluation.
 	 */
 	public function classify( Form $form, array $values, array $protection ): ?Classification {
+		return $this->classifyOutcome( $form, $values, $protection )['classification'];
+	}
+
+	/**
+	 * Classify a submission, reporting whether a failure is worth
+	 * repeating and carrying back the context that was sent, so the caller
+	 * can queue the request instead of dropping the work.
+	 *
+	 * @param Form                 $form       Form entity.
+	 * @param array<string, mixed> $values     Sanitized values.
+	 * @param array<string, mixed> $protection Local anti-spam evaluation.
+	 * @return array{classification: Classification|null, context: array<string, mixed>, retryable: bool, error: string}
+	 */
+	public function classifyOutcome( Form $form, array $values, array $protection ): array {
 		if ( ! $this->isEnabled( $form ) ) {
-			return null;
+			return [
+				'classification' => null,
+				'context'        => [],
+				'retryable'      => false,
+				'error'          => 'disabled',
+			];
 		}
 
 		$context = $this->builder->build( $form, $values, $protection );
 
-		$client = new CloudClient( CloudConfig::apiBase(), CloudConfig::key() );
-		$data   = $client->classify( $context );
+		$client  = new CloudClient( CloudConfig::apiBase(), CloudConfig::key() );
+		$outcome = $client->classifyOutcome( $context );
 
-		if ( null === $data || ! is_array( $data['classification'] ?? null ) ) {
-			Logger::warning( 'Classification request failed', [ 'form_id' => $form->id ] );
+		if ( ! $outcome['ok'] || ! is_array( $outcome['data']['classification'] ?? null ) ) {
+			Logger::warning(
+				'Classification request failed',
+				[
+					'form_id'   => $form->id,
+					'code'      => $outcome['code'],
+					'error'     => $outcome['error'],
+					'retryable' => $outcome['retryable'],
+				]
+			);
 
-			return null;
+			return [
+				'classification' => null,
+				'context'        => $context,
+				'retryable'      => (bool) $outcome['retryable'],
+				'error'          => (string) $outcome['error'],
+			];
 		}
 
-		return Classification::fromArray( (array) $data['classification'] );
+		return [
+			'classification' => Classification::fromArray( (array) $outcome['data']['classification'] ),
+			'context'        => $context,
+			'retryable'      => false,
+			'error'          => '',
+		];
 	}
 }

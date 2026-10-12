@@ -102,10 +102,39 @@ if ( ! defined( 'ABSPATH' ) ) {
 	<?php
 	$classification = is_array( $entry->meta['_classification'] ?? null ) ? $entry->meta['_classification'] : [];
 	$correction     = is_array( $entry->meta['_classification_correction'] ?? null ) ? $entry->meta['_classification_correction'] : [];
+	$deferred       = is_array( $entry->meta['_classification_deferred'] ?? null ) ? $entry->meta['_classification_deferred'] : [];
+	$deferredState  = (string) ( $deferred['state'] ?? '' );
 	?>
 	<h2><?php esc_html_e( 'AI classification', 'relevant-forms' ); ?></h2>
 	<?php if ( [] === $classification ) : ?>
-		<p><?php esc_html_e( 'No classification recorded for this entry.', 'relevant-forms' ); ?></p>
+		<?php if ( 'queued' === $deferredState ) : ?>
+			<?php /* The verdict is late, not lost: the retry queue is still chasing it. */ ?>
+			<p>
+				<strong><?php esc_html_e( 'Classification is still being retried.', 'relevant-forms' ); ?></strong>
+				<?php
+				printf(
+					/* translators: %s: the reason the last attempt failed. */
+					esc_html__( 'The last attempt failed (%s). The service keeps retrying and will update this entry when it succeeds.', 'relevant-forms' ),
+					esc_html( (string) ( $deferred['error'] ?? '' ) )
+				);
+				?>
+			</p>
+		<?php elseif ( 'failed' === $deferredState ) : ?>
+			<?php /* Out of retries: say so rather than showing a bare "no classification". */ ?>
+			<div class="notice notice-warning inline">
+				<p>
+					<?php
+					printf(
+						/* translators: %s: the reason the last attempt failed. */
+						esc_html__( 'This entry was never classified: every attempt failed (%s) until the retry window closed. Review it manually.', 'relevant-forms' ),
+						esc_html( (string) ( $deferred['error'] ?? '' ) )
+					);
+					?>
+				</p>
+			</div>
+		<?php else : ?>
+			<p><?php esc_html_e( 'No classification recorded for this entry.', 'relevant-forms' ); ?></p>
+		<?php endif; ?>
 	<?php else : ?>
 		<table class="widefat striped">
 			<tbody>

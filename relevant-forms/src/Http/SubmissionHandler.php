@@ -10,11 +10,12 @@ declare(strict_types=1);
 namespace RelevantForms\Http;
 
 use RelevantForms\Entries\Entry;
+use RelevantForms\Entries\StatusResolver;
 use RelevantForms\Entries\EntryRepository;
 use RelevantForms\Entries\Resume\ResumeTokens;
 use RelevantForms\Ai\AiClassifier;
-use RelevantForms\Ai\AttentionScore;
 use RelevantForms\Ai\Classification;
+use RelevantForms\Ai\ClassificationRetry;
 use RelevantForms\Events\EventRecorder;
 use RelevantForms\Forms\Form;
 use RelevantForms\Forms\FormRenderer;
@@ -338,9 +339,10 @@ final class SubmissionHandler {
 
 			$classifier       = new AiClassifier();
 			$classificationOn = $classifier->isEnabled( $form );
-			$classification   = $classificationOn ? $classifier->classify( $form, $values, $protection ) : null;
+			$outcome          = $classificationOn ? $classifier->classifyOutcome( $form, $values, $protection ) : null;
+			$classification   = $outcome['classification'] ?? null;
 
-			$entryStatus = self::resolveStatus( $protection['status'], $classification );
+			$entryStatus = StatusResolver::resolve( $protection['status'], $classification );
 
 			// Payment forms hold the entry (and its notifications) until the
 			// checkout completes; purely local spam never reaches checkout.
@@ -441,6 +443,19 @@ final class SubmissionHandler {
 				);
 			} else {
 				EventRecorder::record( $entryId, 'classification_failed', [ 'form_id' => $form->id ] );
+
+				// A paid classification is never dropped just because the
+				// provider hiccupped: queue it and replay until it lands
+				// (v2 §4 — the verdict is owed to the entry either way).
+				if ( null !== $outcome && $outcome['retryable'] ) {
+					ClassificationRetry::enqueue(
+						$entryId,
+						$form->id,
+						$outcome['context'],
+						(string) $protection['status'],
+						(string) $outcome['error']
+					);
+				}
 			}
 		}
 
@@ -527,35 +542,6 @@ final class SubmissionHandler {
 			]
 		);
 		EventRecorder::record( $entryId, 'payment_session_failed', [ 'form_id' => $formId ] );
-	}
-
-	/**
-	 * Resolve the stored entry status from the local evaluation and the
-	 * (optional) Cloud classification (doc §20). Classification can only
-	 * escalate: spam >= 0.95 becomes spam, >= 0.70 suspicious, attention
-	 * >= 85 priority. Local spam is never downgraded.
-	 *
-	 * @param string              $localStatus    Local anti-spam status.
-	 * @param Classification|null $classification Cloud classification.
-	 */
-	private static function resolveStatus( string $localStatus, ?Classification $classification ): string {
-		if ( Entry::STATUS_SPAM === $localStatus || null === $classification ) {
-			return $localStatus;
-		}
-
-		if ( $classification->spamProbability >= 0.95 ) {
-			return Entry::STATUS_SPAM;
-		}
-
-		if ( $classification->spamProbability >= 0.70 ) {
-			return Entry::STATUS_SUSPICIOUS;
-		}
-
-		$status = AttentionScore::isPriority( $classification->attentionScore )
-			? Entry::STATUS_PRIORITY
-			: $localStatus;
-
-		return (string) apply_filters( 'relevant_forms_entry_status', $status, $classification, $localStatus );
 	}
 
 	/**

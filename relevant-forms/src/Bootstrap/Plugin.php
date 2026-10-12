@@ -26,6 +26,7 @@ use RelevantForms\Admin\Controllers\ResumeLinkController;
 use RelevantForms\Admin\Controllers\SmsVerificationController;
 use RelevantForms\Admin\Controllers\TestEmailController;
 use RelevantForms\Admin\Pages\SettingsPage;
+use RelevantForms\Ai\ClassificationRetry;
 use RelevantForms\Assets\FrontendAssets;
 use RelevantForms\Database\MigrationRunner;
 use RelevantForms\Entries\Cleanup\PartialEntryCleanup;
@@ -101,6 +102,7 @@ final class Plugin {
 
 		add_action( 'relevant_forms_scan_upload', [ ScanService::class, 'handleScheduled' ], 10, 1 );
 		add_action( 'relevant_forms_poll_scan_results', [ ScanService::class, 'pollBackendScans' ] );
+		add_action( ClassificationRetry::HOOK, [ ClassificationRetry::class, 'run' ] );
 		UploadCleanup::register();
 		PartialEntryCleanup::register();
 
@@ -125,6 +127,12 @@ final class Plugin {
 
 		if ( false === wp_next_scheduled( 'relevant_forms_cleanup_partials' ) ) {
 			wp_schedule_event( time() + DAY_IN_SECONDS, 'daily', 'relevant_forms_cleanup_partials' );
+		}
+
+		// Queued classifications are replayed until they land; the recurring
+		// sweep is what keeps that promise when a single event is missed.
+		if ( false === wp_next_scheduled( ClassificationRetry::HOOK ) ) {
+			wp_schedule_event( time() + 5 * MINUTE_IN_SECONDS, 'relevant_fifteen_minutes', ClassificationRetry::HOOK );
 		}
 
 		do_action( 'relevant_forms_activated' );
