@@ -121,7 +121,7 @@ use RelevantForms\Validation\EmailDeliverability;
 									</p>
 								<?php endif; ?>
 							<?php else : ?>
-								<code><?php echo esc_html( (string) ( $subscription['plan'] ?? 'none' ) ); ?></code>
+								<code><?php echo esc_html( (string) ( $subscription['plan_name'] ?? $subscription['plan'] ?? 'none' ) ); ?></code>
 								&middot; <code><?php echo esc_html( (string) ( $subscription['status'] ?? 'unknown' ) ); ?></code>
 								<?php if ( ! empty( $subscription['ends_at'] ) ) : ?>
 									<p class="description">
