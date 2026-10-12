@@ -271,6 +271,36 @@ final class SettingsTabsTest extends TestCase {
 	}
 
 	/**
+	 * The plan row shows the provider's display name when the server
+	 * sends one, and falls back to the plan key for payloads without it.
+	 */
+	public function testTheCurrentPlanRowPrefersThePlanDisplayName(): void {
+		$this->connectCloud();
+
+		$connection = new CloudConnection();
+		$connection->updateSubscription(
+			[
+				'plan'      => 'cloud',
+				'plan_name' => 'Relevant Cloud',
+				'status'    => 'active',
+				'active'    => true,
+			]
+		);
+
+		$this->assertStringContainsString( '<code>Relevant Cloud</code>', $this->panel( $this->renderSettings(), 'rf-panel-cloud' ) );
+
+		$connection->updateSubscription(
+			[
+				'plan'   => 'cloud',
+				'status' => 'active',
+				'active' => true,
+			]
+		);
+
+		$this->assertStringContainsString( '<code>cloud</code>', $this->panel( $this->renderSettings(), 'rf-panel-cloud' ) );
+	}
+
+	/**
 	 * Bind the site so the Cloud is connected (state ≠ disconnected).
 	 */
 	private function connectCloud(): void {
