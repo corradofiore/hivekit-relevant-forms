@@ -232,6 +232,27 @@ final class EntryRepository {
 	}
 
 	/**
+	 * Remove a single meta value.
+	 *
+	 * @param int    $entryId Entry ID.
+	 * @param string $key     Meta key.
+	 */
+	public function deleteMeta( int $entryId, string $key ): bool {
+		$table = $this->wpdb->prefix . 'relevant_entry_meta';
+
+		$deleted = $this->wpdb->delete(
+			$table,
+			[
+				'entry_id' => $entryId,
+				'meta_key' => $key,
+			],
+			[ '%d', '%s' ]
+		);
+
+		return false !== $deleted;
+	}
+
+	/**
 	 * Update a partial entry in place: resume state and saved values.
 	 *
 	 * @param Entry $entry Entry with id set; resume fields carry the new state.

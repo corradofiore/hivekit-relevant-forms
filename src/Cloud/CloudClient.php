@@ -111,6 +111,21 @@ final class CloudClient {
 	 * @return array<string, mixed>|null
 	 */
 	public function classify( array $context ): ?array {
+		$outcome = $this->classifyOutcome( $context );
+
+		return $outcome['ok'] ? $outcome['data'] : null;
+	}
+
+	/**
+	 * POST /v1/classifications, reporting whether the failure is worth
+	 * repeating. A paid classification is never dropped because the
+	 * provider (or the hop to it) hiccupped: the caller queues the request
+	 * and replays it instead.
+	 *
+	 * @param array<string, mixed> $context Redacted classification context.
+	 * @return array{ok: bool, retryable: bool, code: int, error: string, data: array<string, mixed>|null}
+	 */
+	public function classifyOutcome( array $context ): array {
 		$response = wp_remote_post(
 			$this->baseUrl . '/classifications',
 			[
@@ -120,7 +135,7 @@ final class CloudClient {
 			]
 		);
 
-		return $this->decode( $response, [ 200 ] );
+		return $this->outcome( $response, [ 200 ] );
 	}
 
 	/**
@@ -637,6 +652,99 @@ final class CloudClient {
 		$payload = json_decode( (string) wp_remote_retrieve_body( $response ), true );
 
 		return is_array( $payload ) && is_array( $payload['data'] ?? null ) ? $payload['data'] : null;
+	}
+
+	/**
+	 * Normalize a response, keeping enough detail to decide whether
+	 * repeating the request could succeed.
+	 *
+	 * @param array<string, mixed>|\WP_Error $response HTTP response or transport error.
+	 * @param array<int, int>                $accepted Accepted status codes.
+	 * @return array{ok: bool, retryable: bool, code: int, error: string, data: array<string, mixed>|null}
+	 */
+	private function outcome( array|\WP_Error $response, array $accepted ): array {
+		if ( is_wp_error( $response ) ) {
+			$error = (string) $response->get_error_message();
+			Logger::warning( 'Cloud API request failed', [ 'message' => $error ] );
+
+			return [
+				'ok'        => false,
+				'retryable' => true,
+				'code'      => 0,
+				'error'     => $error,
+				'data'      => null,
+			];
+		}
+
+		$code = (int) wp_remote_retrieve_response_code( $response );
+
+		if ( ! in_array( $code, $accepted, true ) ) {
+			$error = $this->errorCode( (string) wp_remote_retrieve_body( $response ) );
+
+			Logger::warning(
+				'Cloud API request rejected',
+				[
+					'code'  => $code,
+					'error' => $error,
+				]
+			);
+
+			return [
+				'ok'        => false,
+				'retryable' => self::isRetryable( $code ),
+				'code'      => $code,
+				'error'     => '' !== $error ? $error : 'http_' . $code,
+				'data'      => null,
+			];
+		}
+
+		$payload = json_decode( (string) wp_remote_retrieve_body( $response ), true );
+
+		if ( ! is_array( $payload ) || ! is_array( $payload['data'] ?? null ) ) {
+			// A success we cannot read is worth another attempt, not a drop.
+			return [
+				'ok'        => false,
+				'retryable' => true,
+				'code'      => $code,
+				'error'     => 'unreadable_response',
+				'data'      => null,
+			];
+		}
+
+		return [
+			'ok'        => true,
+			'retryable' => false,
+			'code'      => $code,
+			'error'     => '',
+			'data'      => $payload['data'],
+		];
+	}
+
+	/**
+	 * Whether repeating a request that failed this way could succeed.
+	 * Entitlement and credential answers are final; the rest is transient.
+	 *
+	 * @param int $code HTTP status.
+	 */
+	private static function isRetryable( int $code ): bool {
+		return $code >= 500 || 429 === $code || 408 === $code;
+	}
+
+	/**
+	 * Machine-readable error code from an error body, when it carries one.
+	 *
+	 * @param string $body Response body.
+	 */
+	private function errorCode( string $body ): string {
+		$decoded = json_decode( $body, true );
+
+		if ( ! is_array( $decoded ) ) {
+			return '';
+		}
+
+		$code = $decoded['error']['code'] ?? null;
+
+		return is_string( $code ) ? $code : '';
 	}
 
 	/**

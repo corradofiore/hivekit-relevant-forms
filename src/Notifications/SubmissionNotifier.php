@@ -39,7 +39,7 @@ final class SubmissionNotifier {
 	 */
 	public function notify( Form $form, int $entryId, ?Classification $classification, array $values ): void {
 		if ( null !== $classification ) {
-			$this->notifySmsIfNeeded( $form, $entryId, $classification );
+			$this->notifyPriorityAlert( $form, $entryId, $classification );
 		}
 
 		( new EmailNotification() )->send( $form, $values, $entryId, $classification );
@@ -51,11 +51,15 @@ final class SubmissionNotifier {
 	 * minimal payload (summary + secure entry link); failures only leave
 	 * a recorded event — entry and email remain unaffected (doc §57).
 	 *
+	 * Public because a verdict can arrive after the submission was stored:
+	 * a queued classification that succeeds later still owes the operator
+	 * the same interrupt.
+	 *
 	 * @param Form           $form           Form entity.
 	 * @param int            $entryId        Stored entry ID.
 	 * @param Classification $classification Validated classification.
 	 */
-	private function notifySmsIfNeeded( Form $form, int $entryId, Classification $classification ): void {
+	public function notifyPriorityAlert( Form $form, int $entryId, Classification $classification ): void {
 		$alert = new SmsAlert();
 
 		if ( ! $alert->shouldSend( $classification, $form ) ) {
