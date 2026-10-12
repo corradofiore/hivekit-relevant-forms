@@ -74,6 +74,20 @@ final class FormRenderer {
 	 *                                              uses its own control ids.
 	 */
 	public static function renderForm( Form $form, ?array $errors = null, ?array $values = null, bool $preview = false ): string {
+		/*
+		 * Once the visitor's own redirect carries the success marker for a
+		 * message confirmation, the form is replaced by the confirmation rather
+		 * than rendered again — re-rendering it invites a duplicate submission
+		 * and leaves the visitor looking at a form that was already sent.
+		 * Redirect confirmations leave the page, so nothing is replaced there,
+		 * and a failed payment keeps the form so the visitor can try again.
+		 */
+		if ( ! $preview && 'message' === $form->schema->confirmationMode() && self::confirmed( $form ) ) {
+			wp_enqueue_script( 'relevant-forms-confirmation' );
+
+			return self::successMessage( $form );
+		}
+
 		// Front-end integrations hook this to render alongside the live form;
 		// the editor preview leaves them out rather than running visitor-side
 		// code inside wp-admin.
@@ -729,11 +743,19 @@ final class FormRenderer {
 	}
 
 	/**
+	 * Whether the request carries the success marker for this form, set by our
+	 * own post-submission redirect.
+	 */
+	private static function confirmed( Form $form ): bool {
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only success marker set by our own redirect.
+		return isset( $_GET['relevant_form_success'] ) && (int) $_GET['relevant_form_success'] === $form->id;
+	}
+
+	/**
 	 * Confirmation message when the URL carries a success marker for this form.
 	 */
 	private static function successMessage( Form $form ): string {
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only success marker set by our own redirect.
-		if ( ! isset( $_GET['relevant_form_success'] ) || (int) $_GET['relevant_form_success'] !== $form->id ) {
+		if ( ! self::confirmed( $form ) ) {
 			return '';
 		}
 

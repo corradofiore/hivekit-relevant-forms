@@ -119,6 +119,19 @@ final class FrontendAssets {
 			true
 		);
 
+		/*
+		 * Enqueued only on the confirmation view (the renderer returns the
+		 * message instead of the form); it drops the success marker from the
+		 * URL so a reload shows the form again.
+		 */
+		wp_register_script(
+			'relevant-forms-confirmation',
+			RELEVANT_FORMS_URL . 'assets/js/frontend-confirmation.js',
+			[],
+			AssetVersion::get( 'assets/js/frontend-confirmation.js' ),
+			true
+		);
+
 		wp_localize_script(
 			'relevant-forms-email-check',
 			'relevantFormsEmailCheck',
