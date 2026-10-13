@@ -13,6 +13,10 @@ declare(strict_types=1);
 
 namespace RelevantForms\Integrations\Bricks;
 
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 // Defence in depth: the autoloader may reach this file on sites without Bricks.
 if ( ! class_exists( '\Bricks\Element' ) ) {
 	return;

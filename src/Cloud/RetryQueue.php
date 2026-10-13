@@ -144,10 +144,11 @@ final class RetryQueue {
 
 		$now = current_time( 'mysql', true );
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- plugin-owned queue table, values bound below.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- plugin-owned queue table, values bound below.
 		$rows = $wpdb->get_results(
 			$wpdb->prepare(
-				"SELECT * FROM {$this->table} WHERE status = %s AND next_attempt_at <= %s ORDER BY next_attempt_at ASC LIMIT %d",
+				'SELECT * FROM %i WHERE status = %s AND next_attempt_at <= %s ORDER BY next_attempt_at ASC LIMIT %d',
+				$this->table,
 				self::STATUS_PENDING,
 				$now,
 				max( 1, $limit )
@@ -169,10 +170,11 @@ final class RetryQueue {
 
 		$now = current_time( 'mysql', true );
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- plugin-owned queue table, values bound below.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- plugin-owned queue table, values bound below.
 		$rows = $wpdb->get_results(
 			$wpdb->prepare(
-				"SELECT * FROM {$this->table} WHERE status = %s AND expires_at <= %s ORDER BY expires_at ASC LIMIT %d",
+				'SELECT * FROM %i WHERE status = %s AND expires_at <= %s ORDER BY expires_at ASC LIMIT %d',
+				$this->table,
 				self::STATUS_PENDING,
 				$now,
 				max( 1, $limit )
@@ -191,9 +193,9 @@ final class RetryQueue {
 
 		$now = current_time( 'mysql', true );
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- plugin-owned queue table, value bound below.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- plugin-owned queue table, value bound below.
 		$next = $wpdb->get_var(
-			$wpdb->prepare( "SELECT MIN(next_attempt_at) FROM {$this->table} WHERE status = %s", self::STATUS_PENDING )
+			$wpdb->prepare( 'SELECT MIN(next_attempt_at) FROM %i WHERE status = %s', $this->table, self::STATUS_PENDING )
 		);
 
 		if ( ! is_string( $next ) || '' === $next ) {
@@ -209,9 +211,9 @@ final class RetryQueue {
 	public function pendingCount(): int {
 		global $wpdb;
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- plugin-owned queue table, value bound below.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- plugin-owned queue table, value bound below.
 		$count = $wpdb->get_var(
-			$wpdb->prepare( "SELECT COUNT(*) FROM {$this->table} WHERE status = %s", self::STATUS_PENDING )
+			$wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE status = %s', $this->table, self::STATUS_PENDING )
 		);
 
 		return (int) $count;
@@ -294,9 +296,9 @@ final class RetryQueue {
 	public function forEntry( int $entryId ): array {
 		global $wpdb;
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- plugin-owned queue table, value bound below.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- plugin-owned queue table, value bound below.
 		$rows = $wpdb->get_results(
-			$wpdb->prepare( "SELECT * FROM {$this->table} WHERE entry_id = %d ORDER BY id DESC", $entryId ),
+			$wpdb->prepare( 'SELECT * FROM %i WHERE entry_id = %d ORDER BY id DESC', $this->table, $entryId ),
 			ARRAY_A
 		);
 
@@ -312,10 +314,11 @@ final class RetryQueue {
 	public function prune( string $cutoff ): int {
 		global $wpdb;
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- plugin-owned queue table, values bound below.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- plugin-owned queue table, values bound below.
 		$deleted = $wpdb->query(
 			$wpdb->prepare(
-				"DELETE FROM {$this->table} WHERE status IN (%s, %s) AND completed_at IS NOT NULL AND completed_at < %s",
+				'DELETE FROM %i WHERE status IN (%s, %s) AND completed_at IS NOT NULL AND completed_at < %s',
+				$this->table,
 				self::STATUS_DONE,
 				self::STATUS_ABANDONED,
 				$cutoff
