@@ -64,10 +64,14 @@ final class EmailNotification {
 			$headers[] = $from;
 		}
 
+		$failure = new MailFailure();
+
 		try {
 			$sent = wp_mail( $recipients, $subject, $body, $headers );
 		} catch ( \Throwable $exception ) {
 			$sent = false;
+			$failure->record( $exception->getMessage() );
+
 			Logger::error(
 				'Email notification threw',
 				[
@@ -75,6 +79,8 @@ final class EmailNotification {
 					'exception' => $exception->getMessage(),
 				]
 			);
+		} finally {
+			$failure->stop();
 		}
 
 		$event   = $sent ? 'notification_sent' : 'notification_failed';
@@ -84,6 +90,21 @@ final class EmailNotification {
 			'recipients' => $recipients,
 			'subject'    => $subject,
 		];
+
+		if ( ! $sent ) {
+			// A recorded failure without a reason tells an operator nothing
+			// about whether the mailer is misconfigured or the address bounced.
+			$context['error'] = $failure->reason();
+
+			Logger::warning(
+				'Email notification failed',
+				[
+					'form_id'    => $form->id,
+					'recipients' => $recipients,
+					'error'      => $failure->reason(),
+				]
+			);
+		}
 
 		EventRecorder::record( $entryId, $event, $context );
 

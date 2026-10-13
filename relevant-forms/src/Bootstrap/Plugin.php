@@ -11,6 +11,7 @@ namespace RelevantForms\Bootstrap;
 
 use RelevantForms\Admin\AdminMenu;
 use RelevantForms\Admin\Assets\AdminAssets;
+use RelevantForms\Admin\Notices;
 use RelevantForms\Admin\Controllers\ApiStatusController;
 use RelevantForms\Admin\Controllers\EntryCorrectionController;
 use RelevantForms\Admin\Controllers\EntryStatusController;
@@ -68,6 +69,7 @@ final class Plugin {
 
 		AdminMenu::register();
 		AdminAssets::register();
+		Notices::register();
 		FrontendAssets::register();
 		SettingsPage::register();
 		FormRenderer::register();

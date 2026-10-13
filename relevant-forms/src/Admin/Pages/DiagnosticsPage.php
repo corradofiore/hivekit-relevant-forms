@@ -10,6 +10,7 @@ declare(strict_types=1);
 namespace RelevantForms\Admin\Pages;
 
 use RelevantForms\Admin\Controllers\ApiStatusController;
+use RelevantForms\Notifications\MailTransport;
 
 /**
  * Environment overview and on-demand API status test.
@@ -38,6 +39,9 @@ final class DiagnosticsPage {
 
 		$dbVersion = (string) get_option( 'relevant_forms_db_version', '0' );
 		$settings  = (array) get_option( 'relevant_forms_settings', [] );
+
+		$mailConfigured = MailTransport::isConfigured();
+		$mailAdvice     = MailTransport::advice();
 
 		$apiAction = ApiStatusController::ACTION;
 		$apiNonce  = wp_create_nonce( ApiStatusController::ACTION );

@@ -11,6 +11,7 @@ namespace RelevantForms\Admin\Controllers;
 
 use RelevantForms\Forms\Form;
 use RelevantForms\Forms\FormRepository;
+use RelevantForms\Notifications\MailFailure;
 use RelevantForms\Notifications\SenderIdentity;
 use RelevantForms\Support\Ajax;
 use RelevantForms\Support\Logger;
@@ -94,10 +95,14 @@ final class TestEmailController {
 			$headers[] = $from;
 		}
 
+		$failure = new MailFailure();
+
 		try {
 			$sent = wp_mail( $recipients, $subject, $body, $headers );
 		} catch ( \Throwable $exception ) {
 			$sent = false;
+			$failure->record( $exception->getMessage() );
+
 			Logger::error(
 				'Test email threw',
 				[
@@ -105,10 +110,20 @@ final class TestEmailController {
 					'exception' => $exception->getMessage(),
 				]
 			);
+		} finally {
+			$failure->stop();
 		}
 
 		if ( ! $sent ) {
-			Ajax::fail( 'send_failed', __( 'WordPress could not send the test email. Check the site\'s mail configuration.', 'relevant-forms' ), 502 );
+			Ajax::fail(
+				'send_failed',
+				sprintf(
+					/* translators: %s: reason reported by the mailer. */
+					__( 'WordPress could not send the test email: %s', 'relevant-forms' ),
+					$failure->reason()
+				),
+				502
+			);
 		}
 
 		wp_send_json_success( [ 'recipients' => $recipients ] );

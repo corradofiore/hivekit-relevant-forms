@@ -66,6 +66,39 @@ final class ApiStatusTest extends TestCase {
 	}
 
 	/**
+	 * The Diagnostics screen reports the outbound mail transport, and warns
+	 * when nothing owns it.
+	 */
+	public function testTheDiagnosticsScreenReportsTheMailTransport(): void {
+		ob_start();
+		DiagnosticsPage::render();
+
+		$html = (string) ob_get_clean();
+
+		$this->assertStringContainsString( 'Outbound email', $html );
+		$this->assertStringContainsString( 'No SMTP transport detected', $html );
+		$this->assertStringContainsString( 'notice-warning', $html );
+
+		$configure = static function ( $phpmailer ): void {
+			$phpmailer->isSMTP();
+		};
+
+		add_action( 'phpmailer_init', $configure );
+
+		try {
+			ob_start();
+			DiagnosticsPage::render();
+
+			$html = (string) ob_get_clean();
+		} finally {
+			remove_action( 'phpmailer_init', $configure );
+		}
+
+		$this->assertStringContainsString( 'An SMTP or relay mailer is active.', $html );
+		$this->assertStringNotContainsString( 'notice-warning', $html );
+	}
+
+	/**
 	 * The test reports an online API with its version and round trip.
 	 */
 	public function testTheStatusTestReportsAnOnlineApi(): void {

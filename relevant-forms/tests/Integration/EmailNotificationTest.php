@@ -117,6 +117,70 @@ final class EmailNotificationTest extends TestCase {
 		$rows = $wpdb->get_results( 'SELECT event FROM ' . $wpdb->prefix . 'relevant_events ORDER BY id DESC LIMIT 5' );
 
 		$this->assertContains( 'notification_failed', array_column( (array) $rows, 'event' ) );
+
+		// A silent mailer (no exception, no wp_mail_failed) still says why the
+		// send is marked failed, so the event is not a dead end.
+		$this->assertSame(
+			'The mailer reported a failure without an error message.',
+			$this->latestEventContext( 'notification_failed' )['error'] ?? null
+		);
+	}
+
+	/**
+	 * A mailer that throws is recorded with the reason it gave.
+	 */
+	public function testMailerExceptionIsRecordedWithItsReason(): void {
+		$repository = new FormRepository();
+		$id         = $repository->create( 'Throwing', FormSchema::empty( 'Throwing' ), 'published' );
+		$form       = $repository->find( $id );
+
+		/*
+		 * Point PHPMailer at a closed port. A refused connection is the only
+		 * way to reach core's catch block, and that block is where the reason
+		 * behind a failed wp_mail() actually lives.
+		 */
+		$refuse = static function ( $phpmailer ): void {
+			$phpmailer->isSMTP();
+			$phpmailer->Host    = '127.0.0.1';
+			$phpmailer->Port    = 9;
+			$phpmailer->Timeout = 2;
+		};
+
+		add_action( 'phpmailer_init', $refuse );
+
+		try {
+			$result = ( new EmailNotification() )->send( $form, [], null );
+		} finally {
+			remove_action( 'phpmailer_init', $refuse );
+		}
+
+		$this->assertFalse( $result );
+
+		$reason = (string) ( $this->latestEventContext( 'notification_failed' )['error'] ?? '' );
+
+		$this->assertNotSame( '', $reason );
+
+		// The mailer's own words, not the silent-failure placeholder.
+		$this->assertStringNotContainsString( 'without an error message', $reason );
+	}
+
+	/**
+	 * Context of the most recent event of a kind.
+	 *
+	 * @param string $event Event name.
+	 * @return array<string, mixed>
+	 */
+	private function latestEventContext( string $event ): array {
+		global $wpdb;
+
+		$context = $wpdb->get_var(
+			$wpdb->prepare(
+				'SELECT context FROM ' . $wpdb->prefix . 'relevant_events WHERE event = %s ORDER BY id DESC LIMIT 1',
+				$event
+			)
+		);
+
+		return (array) json_decode( (string) $context, true );
 	}
 
 	/**
