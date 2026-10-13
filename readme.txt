@@ -132,6 +132,13 @@ Subprocessors (including Stripe): [INSERT RELEVANT SUBPROCESSORS URL]
 5. Submit a test entry and verify local storage and email behavior.
 6. Optionally, connect Relevant Cloud from **Relevant Forms → Relevant Cloud** to enable semantic classification, managed SMS alerts or managed secure uploads, then configure each form's sender, AI guidance and alert recipient in the form editor.
 
+== Screenshots ==
+
+1. The forms list: every form with its entries, views and submission count.
+2. A published form on the site, with conditional fields, file upload and Save and Resume.
+3. The entries inbox: status filters, and the AI summary beside each submission.
+4. An entry: the AI classification (spam probability, relevance, urgency, attention score) with the operator's correction buttons — a correction also teaches the site profile used for later classifications.
+
 == Frequently Asked Questions ==
 
 = Is Relevant Forms Core free? =
