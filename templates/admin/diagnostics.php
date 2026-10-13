@@ -7,6 +7,9 @@
  * @var array<string, string|null> $tables         Table existence checks.
  * @var string                     $dbVersion      Applied schema version.
  * @var array<string, mixed>       $settings       Current settings.
+ * @var string                     $serviceUrl     Resolved Cloud service origin.
+ * @var string                     $channel        Build channel (production, qa).
+ * @var bool                       $isPreRelease   Whether this is a non-production build.
  * @var bool                       $mailConfigured Whether a mailer owns the outbound transport.
  * @var string                     $mailAdvice     What to do when none does.
  * @var string                     $apiAction      API status test AJAX action.
@@ -44,6 +47,57 @@ if ( ! defined( 'ABSPATH' ) ) {
 			<tr>
 				<td><?php esc_html_e( 'Debug logging', 'relevant-forms' ); ?></td>
 				<td><?php echo empty( $settings['debug_logging'] ) ? esc_html__( 'Off', 'relevant-forms' ) : esc_html__( 'On', 'relevant-forms' ); ?></td>
+			</tr>
+		</tbody>
+	</table>
+
+	<h2><?php esc_html_e( 'Service', 'relevant-forms' ); ?></h2>
+	<?php if ( $isPreRelease ) : ?>
+		<div class="notice notice-warning inline">
+			<p>
+				<strong><?php esc_html_e( 'This is a pre-release build.', 'relevant-forms' ); ?></strong>
+				<?php
+				printf(
+					/* translators: %s: build channel, e.g. qa. */
+					esc_html__( 'It was built for the %s channel', 'relevant-forms' ),
+					esc_html( $channel )
+				);
+				?>
+			</p>
+		</div>
+	<?php endif; ?>
+	<table class="widefat striped">
+		<tbody>
+			<tr>
+				<td><?php esc_html_e( 'Build channel', 'relevant-forms' ); ?></td>
+				<td>
+					<?php if ( $isPreRelease ) : ?>
+						<strong><?php echo esc_html( strtoupper( $channel ) ); ?></strong>
+						<?php
+						printf(
+							/* translators: %s: plugin version, e.g. 1.0.0-qa. */
+							esc_html__( '— %s (pre-release)', 'relevant-forms' ),
+							esc_html( RELEVANT_FORMS_VERSION )
+						);
+						?>
+					<?php else : ?>
+						<?php esc_html_e( 'Production', 'relevant-forms' ); ?>
+						<?php
+						printf(
+							/* translators: %s: plugin version, e.g. 1.0.0. */
+							esc_html__( '— %s', 'relevant-forms' ),
+							esc_html( RELEVANT_FORMS_VERSION )
+						);
+						?>
+					<?php endif; ?>
+				</td>
+			</tr>
+			<tr>
+				<td><?php esc_html_e( 'Service endpoint', 'relevant-forms' ); ?></td>
+				<td>
+					<code><?php echo esc_html( $serviceUrl ); ?></code>
+					<p class="description"><?php esc_html_e( 'Built into this build. Sites can override it with the RELEVANT_CLOUD_URL constant in wp-config.php.', 'relevant-forms' ); ?></p>
+				</td>
 			</tr>
 		</tbody>
 	</table>

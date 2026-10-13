@@ -23,9 +23,23 @@ final class CloudConfig {
 	private const OPTION = 'relevant_forms_settings';
 
 	/**
-	 * Production Cloud service origin.
+	 * Production Cloud service origin. The service URL is built in, so
+	 * this is what a distributed build talks to unless a site overrides
+	 * it in wp-config.php.
 	 */
 	public const DEFAULT_URL = 'https://app.relevantforms.com';
+
+	/**
+	 * Channel a build was cut for. A release build defines
+	 * RELEVANT_FORMS_CHANNEL ('production' when absent); the QA build
+	 * defines it as 'qa' together with RELEVANT_FORMS_CHANNEL_URL.
+	 */
+	public const CHANNEL_PRODUCTION = 'production';
+
+	/**
+	 * Alpha/beta channel, cut for internal and tester use.
+	 */
+	public const CHANNEL_QA = 'qa';
 
 	/**
 	 * API version path. The single source of the service URL structure:
@@ -38,30 +52,79 @@ final class CloudConfig {
 	 * Cloud service origin. Precedence: the RELEVANT_CLOUD_URL constant
 	 * (staging/dev override in wp-config.php), the
 	 * `relevant_forms_cloud_url` filter, a stored legacy URL from
-	 * pre-1.0 installs, then the production default.
+	 * pre-1.0 installs, the channel origin a build pinned
+	 * (RELEVANT_FORMS_CHANNEL_URL, set by the QA build), then the
+	 * production default.
 	 */
 	public static function url(): string {
-		$constant = defined( 'RELEVANT_CLOUD_URL' ) ? (string) RELEVANT_CLOUD_URL : '';
-
-		if ( '' !== $constant ) {
-			return untrailingslashit( $constant );
-		}
-
-		/**
-		 * Filters the Relevant Cloud service origin.
-		 *
-		 * @param string $url Override URL; empty string when not overridden.
-		 */
-		$filtered = (string) apply_filters( 'relevant_forms_cloud_url', '' );
-
-		if ( '' !== $filtered ) {
-			return untrailingslashit( $filtered );
-		}
-
 		$settings = (array) get_option( self::OPTION, [] );
-		$legacy   = untrailingslashit( (string) ( $settings['cloud_url'] ?? '' ) );
 
-		return '' !== $legacy ? $legacy : self::DEFAULT_URL;
+		return self::resolveOrigin(
+			defined( 'RELEVANT_CLOUD_URL' ) ? (string) RELEVANT_CLOUD_URL : '',
+			/**
+			 * Filters the Relevant Cloud service origin.
+			 *
+			 * @param string $url Override URL; empty string when not overridden.
+			 */
+			(string) apply_filters( 'relevant_forms_cloud_url', '' ),
+			(string) ( $settings['cloud_url'] ?? '' ),
+			self::channelUrl(),
+			self::DEFAULT_URL
+		);
+	}
+
+	/**
+	 * First non-empty candidate wins, in precedence order, with a trailing
+	 * slash trimmed so callers can concatenate API_PATH safely.
+	 *
+	 * @param string $constant Site override (RELEVANT_CLOUD_URL).
+	 * @param string $filtered Filter override.
+	 * @param string $legacy   URL stored by a pre-1.0 install.
+	 * @param string $channel  Origin the build pinned (QA builds only).
+	 * @param string $fallback Production default.
+	 */
+	public static function resolveOrigin(
+		string $constant,
+		string $filtered,
+		string $legacy,
+		string $channel,
+		string $fallback
+	): string {
+		foreach ( [ $constant, $filtered, $legacy, $channel ] as $candidate ) {
+			$candidate = untrailingslashit( trim( $candidate ) );
+
+			if ( '' !== $candidate ) {
+				return $candidate;
+			}
+		}
+
+		return untrailingslashit( $fallback );
+	}
+
+	/**
+	 * The channel this build was cut for ('production' unless a release
+	 * build said otherwise). Diagnostics shows it so testers can tell at a
+	 * glance which service an install talks to.
+	 */
+	public static function channel(): string {
+		$channel = defined( 'RELEVANT_FORMS_CHANNEL' ) ? (string) RELEVANT_FORMS_CHANNEL : '';
+
+		return '' !== $channel ? $channel : self::CHANNEL_PRODUCTION;
+	}
+
+	/**
+	 * Whether this is a non-production build.
+	 */
+	public static function isPreReleaseChannel(): bool {
+		return self::CHANNEL_PRODUCTION !== self::channel();
+	}
+
+	/**
+	 * Service origin the build pinned, if any. Only the QA build defines
+	 * it, so a production artifact carries no other origin at all.
+	 */
+	private static function channelUrl(): string {
+		return defined( 'RELEVANT_FORMS_CHANNEL_URL' ) ? (string) RELEVANT_FORMS_CHANNEL_URL : '';
 	}
 
 	/**
