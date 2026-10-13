@@ -1,0 +1,60 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# The plugin's own commands, run the same way a contributor would run them, so
+# a green check here means the checkout is genuinely usable.
+jobs:
+  test:
+    name: PHP ${{ matrix.php }}
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        # Matches the plugin header's requirement and the versions the release
+        # is tested against.
+        php: ['8.3', '8.4', '8.5']
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          coverage: none
+          tools: composer:v2
+
+      - name: Install dependencies
+        run: composer install --no-interaction --no-progress --prefer-dist
+
+      - name: Coding standards
+        run: composer lint
+
+      - name: PHP compatibility
+        run: composer lint:compat
+
+      - name: Static analysis
+        run: composer phpstan
+
+      - name: Unit tests
+        run: composer test:unit
+
+  guard:
+    name: Nothing but the plugin
+    runs-on: ubuntu-latest
+
+    # The repository is a subset of a larger private one, and this is the job
+    # that keeps it that way: no backend code, no internal references, no
+    # credentials, anywhere in the history.
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check every commit for content that must stay private
+        run: bash scripts/guard.sh

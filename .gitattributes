@@ -1,0 +1,23 @@
+# Keep development files out of the tarballs GitHub builds, so a copied
+# archive is the plugin and nothing else.
+.editorconfig       export-ignore
+.gitattributes      export-ignore
+.gitignore          export-ignore
+.github/            export-ignore
+.wp-env.json        export-ignore
+.wp-env.test.json   export-ignore
+bin/                export-ignore
+composer.json       export-ignore
+composer.lock       export-ignore
+phpcs.xml.dist      export-ignore
+phpstan.neon.dist   export-ignore
+phpunit.xml.dist    export-ignore
+phpunit.integration.xml.dist export-ignore
+tests/              export-ignore
+
+# Normalise the working tree across platforms and keep diffs readable.
+* text=auto eol=lf
+*.png binary
+*.jpg binary
+*.gif binary
+*.zip binary
