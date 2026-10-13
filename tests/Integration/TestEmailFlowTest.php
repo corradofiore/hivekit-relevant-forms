@@ -110,6 +110,12 @@ final class TestEmailFlowTest extends TestCase {
 
 		$this->assertFalse( $body['success'] );
 		$this->assertSame( 'send_failed', $body['data']['code'] );
+
+		// The operator gets the reason, not just a verdict.
+		$this->assertStringContainsString(
+			'The mailer reported a failure without an error message.',
+			(string) $body['data']['message']
+		);
 	}
 
 	/**

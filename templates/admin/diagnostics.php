@@ -4,11 +4,13 @@
  *
  * @package RelevantForms
  *
- * @var array<string, string|null> $tables    Table existence checks.
- * @var string                     $dbVersion Applied schema version.
- * @var array<string, mixed>       $settings  Current settings.
- * @var string                     $apiAction API status test AJAX action.
- * @var string                     $apiNonce  Nonce for the API status test.
+ * @var array<string, string|null> $tables         Table existence checks.
+ * @var string                     $dbVersion      Applied schema version.
+ * @var array<string, mixed>       $settings       Current settings.
+ * @var bool                       $mailConfigured Whether a mailer owns the outbound transport.
+ * @var string                     $mailAdvice     What to do when none does.
+ * @var string                     $apiAction      API status test AJAX action.
+ * @var string                     $apiNonce       Nonce for the API status test.
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -45,6 +47,27 @@ if ( ! defined( 'ABSPATH' ) ) {
 			</tr>
 		</tbody>
 	</table>
+
+	<h2><?php esc_html_e( 'Outbound email', 'relevant-forms' ); ?></h2>
+	<table class="widefat striped">
+		<tbody>
+			<tr>
+				<td><?php esc_html_e( 'Mail transport', 'relevant-forms' ); ?></td>
+				<td>
+					<?php if ( $mailConfigured ) : ?>
+						<?php esc_html_e( 'An SMTP or relay mailer is active.', 'relevant-forms' ); ?>
+					<?php else : ?>
+						<strong><?php esc_html_e( 'No SMTP transport detected — mail is handed to PHP mail().', 'relevant-forms' ); ?></strong>
+					<?php endif; ?>
+				</td>
+			</tr>
+		</tbody>
+	</table>
+	<?php if ( ! $mailConfigured ) : ?>
+		<div class="notice notice-warning inline">
+			<p><?php echo esc_html( $mailAdvice ); ?></p>
+		</div>
+	<?php endif; ?>
 
 	<h2><?php esc_html_e( 'Database tables', 'relevant-forms' ); ?></h2>
 	<table class="widefat striped">

@@ -158,6 +158,10 @@ No. Core form rendering, local entry storage and ordinary local functionality co
 
 No. External semantic classification must be explicitly configured and enabled by an administrator, and submissions are only classified for forms that opted in.
 
+= Why am I not receiving notification emails? =
+
+WordPress hands email to PHP mail() unless something else takes over, and most hosts block that or drop it into spam, so a notification can vanish without any error. Relevant Forms warns you on its own admin screens when it cannot detect an SMTP transport, and when a notification does fail the entry records the reason the mailer gave. Configure an SMTP plugin (or a transactional mailer for the site) and use "Send test email" in the form editor to confirm delivery.
+
 = Is Relevant Pro included in this plugin? =
 
 No. Relevant Pro, if offered, is a separate add-on distributed outside WordPress.org. This plugin does not automatically download or install it.
@@ -197,6 +201,7 @@ Relevant Forms is an independent product and is not affiliated with or endorsed 
 * Security: honeypot, timing checks, rate limiting, duplicate detection, spam signals, local spam triage.
 * Uploads: local private quarantine with strict validation and a scan-before-download policy.
 * Migration: WPForms compatibility scanner and draft importer (field types including page breaks, dividers, entry previews, content blocks and custom HTML code blocks, notifications, confirmations and conditional logic converted to visibility rules), plus a Tier 1 hook compatibility layer that runs only while WPForms itself is not active. Imported forms keep the original WPForms form ID, so integrations with per-form mappings — e.g. Newsletter subscription sources — keep working after the switch.
+* Email delivery: Diagnostics reports whether an SMTP or relay mailer owns the outbound transport, an admin notice warns on the plugin's screens when nothing does, and a failed notification records the reason the mailer gave on the entry and in the Logs screen.
 * Payments: Stripe Connect card payments (fixed items, priced choices, donation-style amounts, live total), hosted Stripe Checkout on the site owner's own Stripe account, 2% platform fee, admin refunds and WPForms payment-field import with amounts preserved.
 * Save and Resume (per form): visitors can store partial progress and receive an emailed link that restores their answers and the step they were on; a browser-local draft keeps progress across visits without leaving the device. Uploads are not kept, partial entries appear in the Entries inbox with their own status, can be re-emailed from the entry screen, and expire automatically.
 * Editor: a "Form preview" tab renders the live form inside the editor, so a
