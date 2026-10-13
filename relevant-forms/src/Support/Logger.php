@@ -152,7 +152,10 @@ final class Logger {
 		 */
 		$wpdb->query(
 			$wpdb->prepare(
-				'DELETE FROM ' . $table . ' WHERE id <= ( SELECT id FROM ( SELECT id FROM ' . $table . ' ORDER BY id DESC LIMIT 1 OFFSET %d ) AS older_entries )',
+				'DELETE FROM %i WHERE id <= ( SELECT id FROM ( SELECT id FROM %i'
+				. ' ORDER BY id DESC LIMIT 1 OFFSET %d ) AS older_entries )',
+				$table,
+				$table,
 				$max
 			)
 		);

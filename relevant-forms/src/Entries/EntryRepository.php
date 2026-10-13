@@ -406,7 +406,8 @@ final class EntryRepository {
 
 		$ids = $wpdb->get_col(
 			$wpdb->prepare(
-				'SELECT id FROM ' . $table . ' WHERE status = %s AND resume_expires_at IS NOT NULL AND resume_expires_at < %s',
+				'SELECT id FROM %i WHERE status = %s AND resume_expires_at IS NOT NULL AND resume_expires_at < %s',
+				$table,
 				Entry::STATUS_PARTIAL,
 				$now
 			)

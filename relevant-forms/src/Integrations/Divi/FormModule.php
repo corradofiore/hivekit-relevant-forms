@@ -13,6 +13,10 @@ declare(strict_types=1);
 
 namespace RelevantForms\Integrations\Divi;
 
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 // Defence in depth: the autoloader may reach this file on sites without Divi.
 if ( ! class_exists( '\ET_Builder_Module' ) ) {
 	return;

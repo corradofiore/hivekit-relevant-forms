@@ -56,13 +56,13 @@ final class LogsPage {
 		$like = '%' . $wpdb->esc_like( $search ) . '%';
 
 		if ( '' !== $level && '' !== $search ) {
-			$total = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM ' . $table . ' WHERE level = %s AND message LIKE %s', $level, $like ) );
+			$total = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE level = %s AND message LIKE %s', $table, $level, $like ) );
 		} elseif ( '' !== $level ) {
-			$total = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM ' . $table . ' WHERE level = %s', $level ) );
+			$total = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE level = %s', $table, $level ) );
 		} elseif ( '' !== $search ) {
-			$total = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM ' . $table . ' WHERE message LIKE %s', $like ) );
+			$total = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE message LIKE %s', $table, $like ) );
 		} else {
-			$total = (int) $wpdb->get_var( 'SELECT COUNT(*) FROM ' . $table );
+			$total = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i', $table ) );
 		}
 
 		$pages  = max( 1, (int) ceil( $total / self::PER_PAGE ) );
@@ -70,13 +70,13 @@ final class LogsPage {
 		$offset = ( $paged - 1 ) * self::PER_PAGE;
 
 		if ( '' !== $level && '' !== $search ) {
-			$rows = $wpdb->get_results( $wpdb->prepare( 'SELECT id, level, message, context, created_at FROM ' . $table . ' WHERE level = %s AND message LIKE %s ORDER BY id DESC LIMIT %d OFFSET %d', $level, $like, self::PER_PAGE, $offset ) );
+			$rows = $wpdb->get_results( $wpdb->prepare( 'SELECT id, level, message, context, created_at FROM %i WHERE level = %s AND message LIKE %s ORDER BY id DESC LIMIT %d OFFSET %d', $table, $level, $like, self::PER_PAGE, $offset ) );
 		} elseif ( '' !== $level ) {
-			$rows = $wpdb->get_results( $wpdb->prepare( 'SELECT id, level, message, context, created_at FROM ' . $table . ' WHERE level = %s ORDER BY id DESC LIMIT %d OFFSET %d', $level, self::PER_PAGE, $offset ) );
+			$rows = $wpdb->get_results( $wpdb->prepare( 'SELECT id, level, message, context, created_at FROM %i WHERE level = %s ORDER BY id DESC LIMIT %d OFFSET %d', $table, $level, self::PER_PAGE, $offset ) );
 		} elseif ( '' !== $search ) {
-			$rows = $wpdb->get_results( $wpdb->prepare( 'SELECT id, level, message, context, created_at FROM ' . $table . ' WHERE message LIKE %s ORDER BY id DESC LIMIT %d OFFSET %d', $like, self::PER_PAGE, $offset ) );
+			$rows = $wpdb->get_results( $wpdb->prepare( 'SELECT id, level, message, context, created_at FROM %i WHERE message LIKE %s ORDER BY id DESC LIMIT %d OFFSET %d', $table, $like, self::PER_PAGE, $offset ) );
 		} else {
-			$rows = $wpdb->get_results( $wpdb->prepare( 'SELECT id, level, message, context, created_at FROM ' . $table . ' ORDER BY id DESC LIMIT %d OFFSET %d', self::PER_PAGE, $offset ) );
+			$rows = $wpdb->get_results( $wpdb->prepare( 'SELECT id, level, message, context, created_at FROM %i ORDER BY id DESC LIMIT %d OFFSET %d', $table, self::PER_PAGE, $offset ) );
 		}
 
 		$settings = (array) get_option( 'relevant_forms_settings', [] );

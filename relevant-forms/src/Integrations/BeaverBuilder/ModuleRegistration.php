@@ -14,6 +14,10 @@ declare(strict_types=1);
 
 namespace RelevantForms\Integrations\BeaverBuilder;
 
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 // Defence in depth: the autoloader may reach this file on sites without Beaver Builder.
 if ( ! class_exists( '\FLBuilderModuleType' ) ) {
 	return;
