@@ -66,6 +66,30 @@ final class ApiStatusTest extends TestCase {
 	}
 
 	/**
+	 * The Diagnostics screen names the service this build talks to, and the
+	 * channel it came from.
+	 */
+	public function testTheDiagnosticsScreenReportsTheServiceAndChannel(): void {
+		ob_start();
+		DiagnosticsPage::render();
+
+		$html = (string) ob_get_clean();
+
+		$this->assertStringContainsString( 'Service endpoint', $html );
+		$this->assertStringContainsString( CloudConfig::url(), $html );
+
+		// The versioned path stays internal: the status section below
+		// deliberately keeps the full API base off the page.
+		$this->assertStringNotContainsString( CloudConfig::apiBase(), $html );
+
+		// A shipped source tree is the production channel; only a QA build
+		// stamps itself otherwise, and then it says so loudly.
+		$this->assertStringContainsString( 'Build channel', $html );
+		$this->assertStringContainsString( 'Production', $html );
+		$this->assertStringNotContainsString( 'pre-release', $html );
+	}
+
+	/**
 	 * The Diagnostics screen reports the outbound mail transport, and warns
 	 * when nothing owns it.
 	 */

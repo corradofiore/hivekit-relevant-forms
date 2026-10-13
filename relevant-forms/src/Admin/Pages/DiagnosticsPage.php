@@ -10,6 +10,7 @@ declare(strict_types=1);
 namespace RelevantForms\Admin\Pages;
 
 use RelevantForms\Admin\Controllers\ApiStatusController;
+use RelevantForms\Cloud\CloudConfig;
 use RelevantForms\Notifications\MailTransport;
 
 /**
@@ -42,6 +43,13 @@ final class DiagnosticsPage {
 
 		$mailConfigured = MailTransport::isConfigured();
 		$mailAdvice     = MailTransport::advice();
+
+		// Which service this install talks to, and which build it came from.
+		// The settings screen deliberately has no URL field (the endpoint is
+		// built in), so this is the one place an operator can see it.
+		$serviceUrl   = CloudConfig::url();
+		$channel      = CloudConfig::channel();
+		$isPreRelease = CloudConfig::isPreReleaseChannel();
 
 		$apiAction = ApiStatusController::ACTION;
 		$apiNonce  = wp_create_nonce( ApiStatusController::ACTION );

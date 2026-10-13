@@ -45,6 +45,7 @@
         "test:integration:stop": "npx --yes @wordpress/env stop --config=.wp-env.test.json",
         "test:integration": "npx --yes @wordpress/env run --config=.wp-env.test.json tests-wordpress bash -c 'cd /var/www/html/wp-content/plugins/relevant-forms/tests/Integration && composer install --no-interaction --no-progress && php vendor/bin/phpunit --configuration /var/www/html/wp-content/plugins/relevant-forms/phpunit.integration.xml.dist'",
         "build:release": "bash bin/build-release.sh",
+        "build:release:qa": "bash bin/build-release.sh --channel=qa",
         "i18n": "wp i18n make-pot . languages/relevant-forms.pot --slug=relevant-forms --domain=relevant-forms --exclude=vendor,tests"
     },
     "config": {
