@@ -77,7 +77,15 @@ fi
 
 STAGE="$DIST/relevant-forms"
 
-rm -rf "$DIST"
+# Only this channel's output is cleared. Removing all of dist/ would delete the
+# other channel's artifact, so running the two builds in the other order would
+# silently drop one of them.
+#
+# The zip is removed rather than updated: `zip` rewrites the entries it is given
+# but keeps ones the tree no longer has, which would ship files deleted since
+# the last build.
+rm -rf "$STAGE"
+rm -f "$DIST/$ZIP_NAME"
 mkdir -p "$STAGE"
 
 rsync -a --delete \
