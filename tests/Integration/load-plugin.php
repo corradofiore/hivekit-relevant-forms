@@ -14,9 +14,9 @@ declare(strict_types=1);
 $pluginRoot = dirname( __DIR__, 2 );
 
 define( 'RELEVANT_FORMS_VERSION', '1.0.0' );
-define( 'RELEVANT_FORMS_FILE', $pluginRoot . '/relevant-forms.php' );
+define( 'RELEVANT_FORMS_FILE', $pluginRoot . '/hivekit-relevant-forms.php' );
 define( 'RELEVANT_FORMS_PATH', $pluginRoot . '/' );
-define( 'RELEVANT_FORMS_URL', 'https://example.org/wp-content/plugins/relevant-forms/' );
+define( 'RELEVANT_FORMS_URL', 'https://example.org/wp-content/plugins/hivekit-relevant-forms/' );
 
 require_once $pluginRoot . '/src/Support/functions.php';
 

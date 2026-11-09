@@ -230,7 +230,7 @@ final class BeaverIntegrationTest extends TestCase {
 	}
 
 	/**
-	 * Button style values are emitted as one scoped rule targeting the
+	 * Button style values are enqueued as one scoped rule targeting the
 	 * form's buttons (`.relevant-forms .wp-element-button`), and they render
 	 * without any field style being set.
 	 */
@@ -252,11 +252,14 @@ final class BeaverIntegrationTest extends TestCase {
 			]
 		);
 
-		$this->assertMatchesRegularExpression( '/\.rf-bb-[0-9a-f]{12} \.relevant-forms \.wp-element-button\{/', $html );
-		$this->assertStringContainsString( 'background-color:#112233;', $html );
-		$this->assertStringContainsString( 'color:rgba(255, 255, 255, 0.9);', $html );
-		$this->assertStringContainsString( 'border-radius:8px;', $html );
-		$this->assertStringContainsString( 'padding:12px 24px 12px 24px;', $html );
+		$css = $this->inlineStyles();
+
+		$this->assertStringNotContainsString( '<style>', $html );
+		$this->assertMatchesRegularExpression( '/\.rf-bb-[0-9a-f]{12} \.relevant-forms \.wp-element-button\{/', $css );
+		$this->assertStringContainsString( 'background-color:#112233;', $css );
+		$this->assertStringContainsString( 'color:rgba(255, 255, 255, 0.9);', $css );
+		$this->assertStringContainsString( 'border-radius:8px;', $css );
+		$this->assertStringContainsString( 'padding:12px 24px 12px 24px;', $css );
 		$this->assertStringContainsString( 'relevant-forms-field', $html );
 	}
 
@@ -276,8 +279,12 @@ final class BeaverIntegrationTest extends TestCase {
 			]
 		);
 
-		$this->assertStringContainsString( 'border-radius:8px;', $html );
-		$this->assertStringNotContainsString( 'background-color:', $html );
+		$css = $this->inlineStyles();
+
+		$this->assertStringNotContainsString( '<style>', $html );
+		$this->assertStringContainsString( 'border-radius:8px;', $css );
+		$this->assertStringNotContainsString( 'background-color:', $css );
+		$this->assertStringNotContainsString( '.evil', $css );
 		$this->assertStringNotContainsString( '.evil', $html );
 	}
 
@@ -332,21 +339,24 @@ final class BeaverIntegrationTest extends TestCase {
 			]
 		);
 
+		$css = $this->inlineStyles();
+
+		$this->assertStringNotContainsString( '<style>', $html );
 		$this->assertMatchesRegularExpression(
 			'/\.rf-bb-[0-9a-f]{12} ' . preg_quote( FieldSelectors::LABELS, '/' ) . '\{color:#112233;font-size:18px;font-weight:600;\}/',
-			$html
+			$css
 		);
 		$this->assertMatchesRegularExpression(
 			'/\.rf-bb-[0-9a-f]{12} ' . preg_quote( FieldSelectors::CAPTIONS, '/' ) . '\{color:#777777;font-size:13px;\}/',
-			$html
+			$css
 		);
 		$this->assertMatchesRegularExpression(
 			'/\.rf-bb-[0-9a-f]{12} ' . preg_quote( FieldSelectors::OPTIONS, '/' ) . '\{color:#0a7d34;font-weight:400;\}/',
-			$html
+			$css
 		);
 
 		// The field rule is separate: the controls are not styled here.
-		$this->assertStringNotContainsString( FieldSelectors::FIELDS . '{', $html );
+		$this->assertStringNotContainsString( FieldSelectors::FIELDS . '{', $css );
 	}
 
 	/**

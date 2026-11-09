@@ -315,6 +315,8 @@ final class FormEditorPreviewTest extends TestCase {
 	 * A removed html field is not rendered in the editor preview.
 	 */
 	public function testRemovedHtmlFieldsDoNotAppearInThePreview(): void {
+		wp_set_current_user( self::factory()->user->create( [ 'role' => 'administrator' ] ) );
+
 		$formId = $this->form(
 			'HTML preview',
 			[
