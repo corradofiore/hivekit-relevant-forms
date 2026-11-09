@@ -122,9 +122,9 @@ final class BeaverIntegrationTest extends TestCase {
 	}
 
 	/**
-	 * With style values set the module output is a scoped `<style>` block
-	 * targeting the form's input fields (not the module wrapper) plus the
-	 * wrapped form markup.
+	 * With style values set the scoped CSS is enqueued as an inline style
+	 * targeting the form's input fields (not the module wrapper), and the
+	 * output is only the wrapped form markup.
 	 */
 	public function testTheModuleRendersScopedFieldStyles(): void {
 		$formId = $this->createFormWithOneTextField();
@@ -149,34 +149,38 @@ final class BeaverIntegrationTest extends TestCase {
 			]
 		);
 
-		// A deterministic per-instance scope wraps the form.
+		// A deterministic per-instance scope wraps the form; the CSS is
+		// enqueued as an inline style, never printed as a <style> tag.
+		$this->assertStringNotContainsString( '<style>', $html );
 		$this->assertMatchesRegularExpression( '/<div class="rf-bb-[0-9a-f]{12}">/', $html );
 		$this->assertStringContainsString( 'relevant-forms-field', $html );
 
+		$css = $this->inlineStyles();
+
 		// The CSS targets the input fields, not the wrapper.
-		$this->assertStringContainsString( '<style>', $html );
-		$this->assertStringContainsString( '.rf-bb-', $html );
-		$this->assertStringContainsString( FieldSelectors::FIELDS, $html );
-		$this->assertStringContainsString( 'background-color:#f5f5f5;', $html );
-		$this->assertStringContainsString( 'color:#222222;', $html );
-		$this->assertStringContainsString( 'border-width:2px;border-style:solid;border-color:#333333;', $html );
-		$this->assertStringContainsString( 'border-radius:16px;', $html );
-		$this->assertStringContainsString( 'padding:8px 10px 8px 10px;', $html );
-		$this->assertStringContainsString( 'font-size:15px;', $html );
-		$this->assertStringContainsString( FieldSelectors::FIELDS_PLACEHOLDER, $html );
-		$this->assertStringContainsString( 'color:rgba(34, 34, 34, 0.6);', $html );
+		$this->assertStringContainsString( '.rf-bb-', $css );
+		$this->assertStringContainsString( FieldSelectors::FIELDS, $css );
+		$this->assertStringContainsString( 'background-color:#f5f5f5;', $css );
+		$this->assertStringContainsString( 'color:#222222;', $css );
+		$this->assertStringContainsString( 'border-width:2px;border-style:solid;border-color:#333333;', $css );
+		$this->assertStringContainsString( 'border-radius:16px;', $css );
+		$this->assertStringContainsString( 'padding:8px 10px 8px 10px;', $css );
+		$this->assertStringContainsString( 'font-size:15px;', $css );
+		$this->assertStringContainsString( FieldSelectors::FIELDS_PLACEHOLDER, $css );
+		$this->assertStringContainsString( 'color:rgba(34, 34, 34, 0.6);', $css );
 	}
 
 	/**
 	 * Without any style value the module still renders the form — just no
-	 * `<style>` block.
+	 * inline stylesheet.
 	 */
-	public function testTheStyleBlockIsOmittedWithoutStyleValues(): void {
+	public function testTheInlineStyleIsOmittedWithoutStyleValues(): void {
 		$formId = $this->createFormWithOneTextField();
 
 		$html = ModuleStyles::render( (object) [ 'form_id' => $formId ] );
 
 		$this->assertStringNotContainsString( '<style>', $html );
+		$this->assertSame( '', $this->inlineStyles() );
 		$this->assertMatchesRegularExpression( '/<div class="rf-bb-[0-9a-f]{12}">/', $html );
 		$this->assertStringContainsString( 'relevant-forms-field', $html );
 	}
@@ -196,6 +200,7 @@ final class BeaverIntegrationTest extends TestCase {
 		);
 
 		$this->assertStringNotContainsString( '<style>', $html );
+		$this->assertSame( '', $this->inlineStyles() );
 		$this->assertStringNotContainsString( '.evil', $html );
 		$this->assertStringContainsString( 'relevant-forms-field', $html );
 	}
@@ -359,6 +364,7 @@ final class BeaverIntegrationTest extends TestCase {
 		);
 
 		$this->assertStringNotContainsString( '<style>', $html );
+		$this->assertSame( '', $this->inlineStyles() );
 		$this->assertStringNotContainsString( '.evil', $html );
 		$this->assertStringContainsString( 'relevant-forms-field', $html );
 	}

@@ -112,9 +112,11 @@ final class ButtonStyleCssTest extends TestCase {
 
 		$wrapped = ButtonStyleCss::scopedHtml( $html, [ 'background' => '#112233' ], 'rf-x-' );
 
+		$this->assertStringNotContainsString( '<style>', $wrapped );
+		$this->assertMatchesRegularExpression( '/^<div class="rf-x-[0-9a-f]{12}">/', $wrapped );
 		$this->assertMatchesRegularExpression(
-			'/^<style>\.rf-x-[0-9a-f]{12} \.relevant-forms \.wp-element-button\{background-color:#112233;\}<\/style><div class="rf-x-[0-9a-f]{12}">/',
-			$wrapped
+			'/^\.rf-x-[0-9a-f]{12} \.relevant-forms \.wp-element-button\{background-color:#112233;\}$/',
+			$this->inlineStyles()
 		);
 		$this->assertStringContainsString( $html, $wrapped );
 

@@ -122,13 +122,12 @@ final class TextStyleCssTest extends TestCase {
 
 		$wrapped = TextStyleCss::scopedHtml( $html, $groups, 'rf-x-' );
 
-		$this->assertSame( 1, substr_count( $wrapped, '<style>' ) );
+		$this->assertStringNotContainsString( '<style>', $wrapped );
 		$this->assertSame( 1, substr_count( $wrapped, '<div class="rf-x-' ) );
 		$this->assertMatchesRegularExpression(
-			'/^<style>\.rf-x-[0-9a-f]{12} ' . preg_quote( FieldSelectors::LABELS, '/' ) . '\{color:#112233;\}'
-			. '\.rf-x-[0-9a-f]{12} ' . preg_quote( FieldSelectors::OPTIONS, '/' ) . '\{font-weight:400;\}<\/style>'
-			. '<div class="rf-x-[0-9a-f]{12}">/',
-			$wrapped
+			'/^\.rf-x-[0-9a-f]{12} ' . preg_quote( FieldSelectors::LABELS, '/' ) . '\{color:#112233;\}'
+			. '\.rf-x-[0-9a-f]{12} ' . preg_quote( FieldSelectors::OPTIONS, '/' ) . '\{font-weight:400;\}$/',
+			$this->inlineStyles()
 		);
 		$this->assertStringContainsString( $html, $wrapped );
 

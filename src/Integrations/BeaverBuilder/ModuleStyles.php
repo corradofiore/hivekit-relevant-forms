@@ -4,7 +4,7 @@
  * scoped CSS it produces.
  *
  * Beaver Builder renders modules through the settings object; there is no
- * stylesheet step for declarative modules, so the CSS is emitted at render
+ * stylesheet step for declarative modules, so the CSS is enqueued at render
  * time and scoped to the module instance through a generated class. The
  * controls mirror the Divi design groups: rounded corners, padding, border,
  * colors and font size — all targeting the form's input fields, not the
@@ -19,6 +19,7 @@ namespace RelevantForms\Integrations\BeaverBuilder;
 
 use RelevantForms\Integrations\Support\ButtonStyleCss;
 use RelevantForms\Integrations\Support\FieldSelectors;
+use RelevantForms\Integrations\Support\StyleCss;
 use RelevantForms\Integrations\Support\TextStyleCss;
 
 /**
@@ -70,9 +71,9 @@ final class ModuleStyles {
 	}
 
 	/**
-	 * Render the module: the form markup wrapped in a scope class plus the
-	 * scoped `<style>` block. Returns '' when no form is selected or the
-	 * form is not published, mirroring the shortcode.
+	 * Render the module: the form markup wrapped in a scope class, with the
+	 * scoped CSS enqueued as an inline style. Returns '' when no form is
+	 * selected or the form is not published, mirroring the shortcode.
 	 *
 	 * @param object $settings Module settings object.
 	 * @return string Module output.
@@ -88,9 +89,10 @@ final class ModuleStyles {
 
 		$scope_class = self::scopeClass( $values );
 		$css         = self::css( $values, '.' . $scope_class );
-		$style       = '' === $css ? '' : '<style>' . $css . '</style>';
 
-		return $style . '<div class="' . esc_attr( $scope_class ) . '">' . $form_html . '</div>';
+		StyleCss::enqueue( $css );
+
+		return '<div class="' . esc_attr( $scope_class ) . '">' . $form_html . '</div>';
 	}
 
 	/**

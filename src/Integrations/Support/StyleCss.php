@@ -21,6 +21,14 @@ namespace RelevantForms\Integrations\Support;
 final class StyleCss {
 
 	/**
+	 * Handle used for the per-instance dynamic CSS.
+	 *
+	 * It is registered without a stylesheet file: WordPress prints only the
+	 * inline block attached with wp_add_inline_style().
+	 */
+	public const HANDLE = 'relevant-forms-inline';
+
+	/**
 	 * One CSS rule from a selector and its already-sanitized declarations.
 	 *
 	 * @param string       $selector     Full selector (already scoped to the instance).
@@ -33,6 +41,27 @@ final class StyleCss {
 		}
 
 		return $selector . '{' . implode( '', $declarations ) . '}';
+	}
+
+	/**
+	 * Enqueue one block of already-scoped CSS.
+	 *
+	 * Builder values are per instance, so the rules cannot live in a static
+	 * stylesheet. They are attached to a file-less handle with
+	 * wp_add_inline_style() instead of being printed as a <style> tag in the
+	 * markup.
+	 */
+	public static function enqueue( string $css ): void {
+		if ( '' === $css ) {
+			return;
+		}
+
+		if ( ! wp_style_is( self::HANDLE, 'registered' ) ) {
+			wp_register_style( self::HANDLE, false, [], RELEVANT_FORMS_VERSION );
+		}
+
+		wp_enqueue_style( self::HANDLE );
+		wp_add_inline_style( self::HANDLE, $css );
 	}
 
 	/**
@@ -64,8 +93,9 @@ final class StyleCss {
 			return $html;
 		}
 
-		return '<style>' . $css . '</style>'
-			. '<div class="' . esc_attr( $scope ) . '">' . $html . '</div>';
+		self::enqueue( $css );
+
+		return '<div class="' . esc_attr( $scope ) . '">' . $html . '</div>';
 	}
 
 	/**

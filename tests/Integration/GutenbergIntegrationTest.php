@@ -156,11 +156,14 @@ final class GutenbergIntegrationTest extends TestCase {
 			'<!-- wp:relevant-forms/form-selector {"formId":' . $formId . ',"buttonBgColor":"#112233","buttonTextColor":"#ffffff","buttonRadius":"8px","buttonPadding":{"top":"12px","right":"24px","bottom":"12px","left":"24px"}} /-->'
 		);
 
-		$this->assertMatchesRegularExpression( '/<style>\.rf-gb-[0-9a-f]{12} \.relevant-forms \.wp-element-button\{/', $markup );
-		$this->assertStringContainsString( 'background-color:#112233;', $markup );
-		$this->assertStringContainsString( 'color:#ffffff;', $markup );
-		$this->assertStringContainsString( 'border-radius:8px;', $markup );
-		$this->assertStringContainsString( 'padding:12px 24px 12px 24px;', $markup );
+		$css = $this->inlineStyles();
+
+		$this->assertStringNotContainsString( '<style>', $markup );
+		$this->assertMatchesRegularExpression( '/\.rf-gb-[0-9a-f]{12} \.relevant-forms \.wp-element-button\{/', $css );
+		$this->assertStringContainsString( 'background-color:#112233;', $css );
+		$this->assertStringContainsString( 'color:#ffffff;', $css );
+		$this->assertStringContainsString( 'border-radius:8px;', $css );
+		$this->assertStringContainsString( 'padding:12px 24px 12px 24px;', $css );
 		$this->assertMatchesRegularExpression( '/<div class="rf-gb-[0-9a-f]{12}">/', $markup );
 		$this->assertStringContainsString( '<form class="relevant-forms"', $markup );
 
@@ -170,7 +173,7 @@ final class GutenbergIntegrationTest extends TestCase {
 			'<!-- wp:relevant-forms/form-selector {"formId":' . $formId . ',"buttonPadding":{"top":"12px"}} /-->'
 		);
 
-		$this->assertStringContainsString( 'padding:12px 0 0 0;', $partial );
+		$this->assertStringContainsString( 'padding:12px 0 0 0;', $this->inlineStyles() );
 	}
 
 	/**
@@ -184,6 +187,7 @@ final class GutenbergIntegrationTest extends TestCase {
 		$markup = do_blocks( '<!-- wp:relevant-forms/form-selector {"formId":' . $formId . '} /-->' );
 
 		$this->assertStringNotContainsString( '<style>', $markup );
+		$this->assertSame( '', $this->inlineStyles() );
 		$this->assertStringNotContainsString( 'rf-gb-', $markup );
 		$this->assertStringContainsString( '<form class="relevant-forms"', $markup );
 	}
@@ -200,9 +204,12 @@ final class GutenbergIntegrationTest extends TestCase {
 			'<!-- wp:relevant-forms/form-selector {"formId":' . $formId . ',"buttonBgColor":"red;} .evil{color:blue","buttonRadius":"8"} /-->'
 		);
 
-		$this->assertStringContainsString( 'border-radius:8px;', $markup );
-		$this->assertStringNotContainsString( 'background-color:', $markup );
-		$this->assertStringNotContainsString( '.evil', $markup );
+		$css = $this->inlineStyles();
+
+		$this->assertStringNotContainsString( '<style>', $markup );
+		$this->assertStringContainsString( 'border-radius:8px;', $css );
+		$this->assertStringNotContainsString( 'background-color:', $css );
+		$this->assertStringNotContainsString( '.evil', $css );
 	}
 
 	/**
@@ -221,21 +228,24 @@ final class GutenbergIntegrationTest extends TestCase {
 			. ',"optionColor":"#0a7d34","optionWeight":"400"} /-->'
 		);
 
+		$css = $this->inlineStyles();
+
+		$this->assertStringNotContainsString( '<style>', $markup );
 		$this->assertMatchesRegularExpression(
-			'/<style>\.rf-gb-[0-9a-f]{12} ' . preg_quote( FieldSelectors::LABELS, '/' ) . '\{color:#112233;font-size:18px;font-weight:600;\}/',
-			$markup
+			'/\.rf-gb-[0-9a-f]{12} ' . preg_quote( FieldSelectors::LABELS, '/' ) . '\{color:#112233;font-size:18px;font-weight:600;\}/',
+			$css
 		);
 		$this->assertMatchesRegularExpression(
 			'/\.rf-gb-[0-9a-f]{12} ' . preg_quote( FieldSelectors::CAPTIONS, '/' ) . '\{color:#777777;font-size:13px;\}/',
-			$markup
+			$css
 		);
 		$this->assertMatchesRegularExpression(
 			'/\.rf-gb-[0-9a-f]{12} ' . preg_quote( FieldSelectors::OPTIONS, '/' ) . '\{color:#0a7d34;font-weight:400;\}/',
-			$markup
+			$css
 		);
 
 		// One scope class carries every group.
-		$this->assertSame( 1, substr_count( $markup, '<style>' ) );
+		$this->assertSame( 1, substr_count( $markup, '<div class="rf-gb-' ) );
 		$this->assertMatchesRegularExpression( '/<div class="rf-gb-[0-9a-f]{12}">/', $markup );
 		$this->assertStringContainsString( '<form class="relevant-forms"', $markup );
 	}
@@ -251,6 +261,7 @@ final class GutenbergIntegrationTest extends TestCase {
 		$clean = do_blocks( '<!-- wp:relevant-forms/form-selector {"formId":' . $formId . '} /-->' );
 
 		$this->assertStringNotContainsString( '<style>', $clean );
+		$this->assertSame( '', $this->inlineStyles() );
 
 		$hostile = do_blocks(
 			'<!-- wp:relevant-forms/form-selector {"formId":' . $formId
@@ -259,6 +270,7 @@ final class GutenbergIntegrationTest extends TestCase {
 
 		$this->assertStringNotContainsString( '<style>', $hostile );
 		$this->assertStringNotContainsString( '.evil', $hostile );
+		$this->assertStringNotContainsString( '.evil', $this->inlineStyles() );
 		$this->assertStringContainsString( '<form class="relevant-forms"', $hostile );
 	}
 }

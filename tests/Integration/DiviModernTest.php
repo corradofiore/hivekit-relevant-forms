@@ -306,9 +306,11 @@ final class DiviModernTest extends TestCase {
 		);
 
 		$this->assertTrue( $response['success'] );
+		$this->assertStringNotContainsString( '<style>', $response['data'] );
+		$this->assertMatchesRegularExpression( '/^<div class="rf-divi-[0-9a-f]{12}">/', $response['data'] );
 		$this->assertMatchesRegularExpression(
-			'/^<style>\.rf-divi-[0-9a-f]{12} \.relevant-forms \.wp-element-button\{background-color:#112233;border-radius:8px;padding:12px 24px;\}<\/style><div class="rf-divi-[0-9a-f]{12}">/',
-			$response['data']
+			'/^\.rf-divi-[0-9a-f]{12} \.relevant-forms \.wp-element-button\{background-color:#112233;border-radius:8px;padding:12px 24px;\}$/',
+			$this->inlineStyles()
 		);
 		$this->assertStringContainsString( '<form class="relevant-forms"', $response['data'] );
 	}
@@ -328,6 +330,7 @@ final class DiviModernTest extends TestCase {
 		$this->assertTrue( $clean['success'] );
 		$this->assertStringNotContainsString( '<style>', $clean['data'] );
 		$this->assertStringNotContainsString( 'rf-divi-', $clean['data'] );
+		$this->assertSame( '', $this->inlineStyles() );
 
 		$response = $this->dispatchPreview(
 			$formId,
@@ -337,9 +340,12 @@ final class DiviModernTest extends TestCase {
 			]
 		);
 
-		$this->assertStringContainsString( 'border-radius:8px;', $response['data'] );
-		$this->assertStringNotContainsString( 'background-color:', $response['data'] );
-		$this->assertStringNotContainsString( '.evil', $response['data'] );
+		$css = $this->inlineStyles();
+
+		$this->assertStringNotContainsString( '<style>', $response['data'] );
+		$this->assertStringContainsString( 'border-radius:8px;', $css );
+		$this->assertStringNotContainsString( 'background-color:', $css );
+		$this->assertStringNotContainsString( '.evil', $css );
 	}
 
 	/**
@@ -456,11 +462,13 @@ final class DiviModernTest extends TestCase {
 		);
 
 		$this->assertTrue( $response['success'] );
+		$this->assertStringNotContainsString( '<style>', $response['data'] );
+		$this->assertMatchesRegularExpression( '/^<div class="rf-divi-[0-9a-f]{12}">/', $response['data'] );
 		$this->assertMatchesRegularExpression(
-			'/^<style>\.rf-divi-[0-9a-f]{12} ' . preg_quote( FieldSelectors::LABELS, '/' ) . '\{color:#112233;font-size:18px;font-weight:600;\}'
+			'/^\.rf-divi-[0-9a-f]{12} ' . preg_quote( FieldSelectors::LABELS, '/' ) . '\{color:#112233;font-size:18px;font-weight:600;\}'
 			. '\.rf-divi-[0-9a-f]{12} ' . preg_quote( FieldSelectors::CAPTIONS, '/' ) . '\{color:#777777;\}'
-			. '\.rf-divi-[0-9a-f]{12} ' . preg_quote( FieldSelectors::OPTIONS, '/' ) . '\{font-weight:400;\}<\/style><div class="rf-divi-[0-9a-f]{12}">/',
-			$response['data']
+			. '\.rf-divi-[0-9a-f]{12} ' . preg_quote( FieldSelectors::OPTIONS, '/' ) . '\{font-weight:400;\}$/',
+			$this->inlineStyles()
 		);
 
 		// Hostile values are dropped: the payload cannot break out of a
@@ -474,6 +482,7 @@ final class DiviModernTest extends TestCase {
 			]
 		);
 
+		$this->assertStringNotContainsString( '.evil', $this->inlineStyles() );
 		$this->assertStringNotContainsString( '.evil', $hostile['data'] );
 		$this->assertStringNotContainsString( '<style>', $hostile['data'] );
 	}
