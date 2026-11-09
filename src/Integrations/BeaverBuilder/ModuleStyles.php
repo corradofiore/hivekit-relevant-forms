@@ -1,0 +1,479 @@
+<?php
+/**
+ * Beaver Builder field styling: the "Field styles" settings section and the
+ * scoped CSS it produces.
+ *
+ * Beaver Builder renders modules through the settings object; there is no
+ * stylesheet step for declarative modules, so the CSS is emitted at render
+ * time and scoped to the module instance through a generated class. The
+ * controls mirror the Divi design groups: rounded corners, padding, border,
+ * colors and font size — all targeting the form's input fields, not the
+ * module wrapper.
+ *
+ * @package RelevantForms
+ */
+
+declare(strict_types=1);
+
+namespace RelevantForms\Integrations\BeaverBuilder;
+
+use RelevantForms\Integrations\Support\ButtonStyleCss;
+use RelevantForms\Integrations\Support\FieldSelectors;
+use RelevantForms\Integrations\Support\TextStyleCss;
+
+/**
+ * Settings schema and CSS builder for the module's field style controls.
+ */
+final class ModuleStyles {
+
+	/**
+	 * Units offered by the border radius control.
+	 */
+	private const RADIUS_UNITS = [ 'px', '%' ];
+
+	/**
+	 * Units offered by the length controls that accept font-relative sizes.
+	 */
+	private const TEXT_UNITS = [ 'px', 'em', 'rem' ];
+
+	/**
+	 * The style tab definition for Beaver Builder's settings form.
+	 *
+	 * @return array<string, mixed> Settings-form tab.
+	 */
+	public static function styleTab(): array {
+		return [
+			'title'    => esc_html__( 'Style', 'hivekit-relevant-forms' ),
+			'sections' => [
+				'field_styles'   => [
+					'title'  => esc_html__( 'Field styles', 'hivekit-relevant-forms' ),
+					'fields' => self::fields(),
+				],
+				'label_styles'   => [
+					'title'  => esc_html__( 'Field labels', 'hivekit-relevant-forms' ),
+					'fields' => self::textFields( 'label' ),
+				],
+				'caption_styles' => [
+					'title'  => esc_html__( 'Field captions', 'hivekit-relevant-forms' ),
+					'fields' => self::textFields( 'caption' ),
+				],
+				'option_styles'  => [
+					'title'  => esc_html__( 'Option labels', 'hivekit-relevant-forms' ),
+					'fields' => self::textFields( 'option' ),
+				],
+				'button_styles'  => [
+					'title'  => esc_html__( 'Button styles', 'hivekit-relevant-forms' ),
+					'fields' => self::buttonFields(),
+				],
+			],
+		];
+	}
+
+	/**
+	 * Render the module: the form markup wrapped in a scope class plus the
+	 * scoped `<style>` block. Returns '' when no form is selected or the
+	 * form is not published, mirroring the shortcode.
+	 *
+	 * @param object $settings Module settings object.
+	 * @return string Module output.
+	 */
+	public static function render( object $settings ): string {
+		$values = get_object_vars( $settings );
+
+		$form_html = BeaverIntegration::renderForm( (int) ( $values['form_id'] ?? 0 ) );
+
+		if ( '' === $form_html ) {
+			return '';
+		}
+
+		$scope_class = self::scopeClass( $values );
+		$css         = self::css( $values, '.' . $scope_class );
+		$style       = '' === $css ? '' : '<style>' . $css . '</style>';
+
+		return $style . '<div class="' . esc_attr( $scope_class ) . '">' . $form_html . '</div>';
+	}
+
+	/**
+	 * All settings fields for the "Field styles" section.
+	 *
+	 * @return array<string, array<string, mixed>> Settings fields.
+	 */
+	private static function fields(): array {
+		$refresh = [ 'preview' => [ 'type' => 'refresh' ] ];
+
+		return [
+			'field_bg_color'          => $refresh + [
+				'type'        => 'color',
+				'label'       => esc_html__( 'Field background', 'hivekit-relevant-forms' ),
+				'default'     => '',
+				'show_reset'  => true,
+				'show_alpha'  => true,
+				'connections' => [ 'color' ],
+			],
+			'field_text_color'        => $refresh + [
+				'type'        => 'color',
+				'label'       => esc_html__( 'Field text color', 'hivekit-relevant-forms' ),
+				'default'     => '',
+				'show_reset'  => true,
+				'show_alpha'  => true,
+				'connections' => [ 'color' ],
+			],
+			'field_placeholder_color' => $refresh + [
+				'type'        => 'color',
+				'label'       => esc_html__( 'Placeholder color', 'hivekit-relevant-forms' ),
+				'default'     => '',
+				'show_reset'  => true,
+				'show_alpha'  => true,
+				'connections' => [ 'color' ],
+			],
+			'field_border_width'      => $refresh + [
+				'type'    => 'unit',
+				'label'   => esc_html__( 'Border width', 'hivekit-relevant-forms' ),
+				'default' => '',
+				'units'   => [ 'px' ],
+			],
+			'field_border_style'      => $refresh + [
+				'type'    => 'select',
+				'label'   => esc_html__( 'Border style', 'hivekit-relevant-forms' ),
+				'default' => 'solid',
+				'options' => [
+					'solid'  => esc_html__( 'Solid', 'hivekit-relevant-forms' ),
+					'dashed' => esc_html__( 'Dashed', 'hivekit-relevant-forms' ),
+					'dotted' => esc_html__( 'Dotted', 'hivekit-relevant-forms' ),
+				],
+			],
+			'field_border_color'      => $refresh + [
+				'type'        => 'color',
+				'label'       => esc_html__( 'Border color', 'hivekit-relevant-forms' ),
+				'default'     => '',
+				'show_reset'  => true,
+				'show_alpha'  => true,
+				'connections' => [ 'color' ],
+			],
+			'field_radius'            => $refresh + [
+				'type'    => 'unit',
+				'label'   => esc_html__( 'Rounded corners', 'hivekit-relevant-forms' ),
+				'default' => '',
+				'units'   => self::RADIUS_UNITS,
+			],
+			'field_padding'           => $refresh + [
+				'type'    => 'dimension',
+				'label'   => esc_html__( 'Padding', 'hivekit-relevant-forms' ),
+				'default' => '',
+				'units'   => self::TEXT_UNITS,
+			],
+			'field_font_size'         => $refresh + [
+				'type'    => 'unit',
+				'label'   => esc_html__( 'Font size', 'hivekit-relevant-forms' ),
+				'default' => '',
+				'units'   => self::TEXT_UNITS,
+			],
+		];
+	}
+
+	/**
+	 * All settings fields for one text group: the field labels, the captions
+	 * under them or the option labels beside radio/checkbox boxes. The three
+	 * groups are styled independently — an option does not have to look like
+	 * the field name above it.
+	 *
+	 * @param string $group Group key: 'label', 'caption' or 'option'.
+	 * @return array<string, array<string, mixed>> Settings fields.
+	 */
+	private static function textFields( string $group ): array {
+		$refresh = [ 'preview' => [ 'type' => 'refresh' ] ];
+
+		return [
+			$group . '_color'  => $refresh + [
+				'type'        => 'color',
+				'label'       => esc_html__( 'Text color', 'hivekit-relevant-forms' ),
+				'default'     => '',
+				'show_reset'  => true,
+				'show_alpha'  => true,
+				'connections' => [ 'color' ],
+			],
+			$group . '_size'   => $refresh + [
+				'type'    => 'unit',
+				'label'   => esc_html__( 'Font size', 'hivekit-relevant-forms' ),
+				'default' => '',
+				'units'   => self::TEXT_UNITS,
+			],
+			$group . '_weight' => $refresh + [
+				'type'    => 'select',
+				'label'   => esc_html__( 'Font weight', 'hivekit-relevant-forms' ),
+				'default' => '',
+				'options' => self::weightOptions(),
+			],
+		];
+	}
+
+	/**
+	 * The offered font weights ('' keeps the theme's own weight). PHP turns
+	 * the numeric option keys into integers, so the map is mixed-keyed.
+	 *
+	 * @return array<int|string, string> Option value => label.
+	 */
+	private static function weightOptions(): array {
+		return [
+			''    => esc_html__( 'Default', 'hivekit-relevant-forms' ),
+			'400' => esc_html__( 'Normal (400)', 'hivekit-relevant-forms' ),
+			'500' => esc_html__( 'Medium (500)', 'hivekit-relevant-forms' ),
+			'600' => esc_html__( 'Semibold (600)', 'hivekit-relevant-forms' ),
+			'700' => esc_html__( 'Bold (700)', 'hivekit-relevant-forms' ),
+		];
+	}
+
+	/**
+	 * All settings fields for the "Button styles" section.
+	 *
+	 * @return array<string, array<string, mixed>> Settings fields.
+	 */
+	private static function buttonFields(): array {
+		$refresh = [ 'preview' => [ 'type' => 'refresh' ] ];
+
+		return [
+			'button_bg_color'   => $refresh + [
+				'type'        => 'color',
+				'label'       => esc_html__( 'Background', 'hivekit-relevant-forms' ),
+				'default'     => '',
+				'show_reset'  => true,
+				'show_alpha'  => true,
+				'connections' => [ 'color' ],
+			],
+			'button_text_color' => $refresh + [
+				'type'        => 'color',
+				'label'       => esc_html__( 'Text color', 'hivekit-relevant-forms' ),
+				'default'     => '',
+				'show_reset'  => true,
+				'show_alpha'  => true,
+				'connections' => [ 'color' ],
+			],
+			'button_radius'     => $refresh + [
+				'type'    => 'unit',
+				'label'   => esc_html__( 'Rounded corners', 'hivekit-relevant-forms' ),
+				'default' => '',
+				'units'   => self::RADIUS_UNITS,
+			],
+			'button_padding'    => $refresh + [
+				'type'    => 'dimension',
+				'label'   => esc_html__( 'Padding', 'hivekit-relevant-forms' ),
+				'default' => '',
+				'units'   => self::TEXT_UNITS,
+			],
+		];
+	}
+
+	/**
+	 * Build the scoped CSS for one module instance.
+	 *
+	 * @param array<string, mixed> $values Module settings as an array.
+	 * @param string               $scope  Instance scope selector (e.g. ".rf-bb-ab12…").
+	 * @return string CSS ('' when no style value is set).
+	 */
+	private static function css( array $values, string $scope ): string {
+		$selector = $scope . ' ' . FieldSelectors::FIELDS;
+		$css      = '';
+
+		$declarations = [];
+
+		$background = self::color( $values, 'field_bg_color' );
+		if ( '' !== $background ) {
+			$declarations[] = 'background-color:' . $background . ';';
+		}
+
+		$text = self::color( $values, 'field_text_color' );
+		if ( '' !== $text ) {
+			$declarations[] = 'color:' . $text . ';';
+		}
+
+		$border_width = self::length( $values, 'field_border_width', 'px' );
+		$border_color = self::color( $values, 'field_border_color' );
+
+		if ( '' !== $border_width ) {
+			$declarations[] = 'border-width:' . $border_width . ';';
+			$declarations[] = 'border-style:' . self::border_style( $values ) . ';';
+		}
+
+		if ( '' !== $border_color ) {
+			$declarations[] = 'border-color:' . $border_color . ';';
+		}
+
+		$radius = self::length( $values, 'field_radius', 'px' );
+		if ( '' !== $radius ) {
+			$declarations[] = 'border-radius:' . $radius . ';';
+		}
+
+		$padding = self::padding( $values, 'field_padding' );
+		if ( '' !== $padding ) {
+			$declarations[] = 'padding:' . $padding . ';';
+		}
+
+		$font_size = self::length( $values, 'field_font_size', 'px' );
+		if ( '' !== $font_size ) {
+			$declarations[] = 'font-size:' . $font_size . ';';
+		}
+
+		if ( [] !== $declarations ) {
+			$css .= $selector . '{' . implode( '', $declarations ) . '}';
+		}
+
+		$placeholder = self::color( $values, 'field_placeholder_color' );
+		if ( '' !== $placeholder ) {
+			$css .= $scope . ' ' . FieldSelectors::FIELDS_PLACEHOLDER . '{color:' . $placeholder . ';}';
+		}
+
+		$css .= ButtonStyleCss::css(
+			$scope . ' ' . FieldSelectors::BUTTONS,
+			[
+				'background' => self::color( $values, 'button_bg_color' ),
+				'text'       => self::color( $values, 'button_text_color' ),
+				'radius'     => self::length( $values, 'button_radius', 'px', self::RADIUS_UNITS ),
+				'padding'    => self::padding( $values, 'button_padding' ),
+			]
+		);
+
+		// The text outside the controls, styled per group: field labels,
+		// captions and option labels are independent (module-level text
+		// controls are not offered).
+		$css .= TextStyleCss::css(
+			$scope,
+			[
+				FieldSelectors::LABELS   => self::textGroup( $values, 'label' ),
+				FieldSelectors::CAPTIONS => self::textGroup( $values, 'caption' ),
+				FieldSelectors::OPTIONS  => self::textGroup( $values, 'option' ),
+			]
+		);
+
+		return $css;
+	}
+
+	/**
+	 * One text group's values from the module settings.
+	 *
+	 * @param array<string, mixed> $values Module settings as an array.
+	 * @param string               $group  Group key: 'label', 'caption' or 'option'.
+	 * @return array<string, string> Values for TextStyleCss.
+	 */
+	private static function textGroup( array $values, string $group ): array {
+		return [
+			'color'  => self::color( $values, $group . '_color' ),
+			// The unit lives in a separate setting ("{$key}_unit").
+			'size'   => self::length( $values, $group . '_size', 'px', self::TEXT_UNITS ),
+			'weight' => trim( (string) ( $values[ $group . '_weight' ] ?? '' ) ),
+		];
+	}
+
+	/**
+	 * The four padding sides joined into one shorthand value. Empty sides
+	 * become zero so a partially filled control still produces valid CSS.
+	 *
+	 * @param array<string, mixed> $values Module settings as an array.
+	 * @param string               $key    Control name (sides stored at "{$key}_top", …).
+	 * @return string Padding shorthand ('' when no side is set).
+	 */
+	private static function padding( array $values, string $key ): string {
+		$sides = [];
+		$any   = false;
+
+		foreach ( [ 'top', 'right', 'bottom', 'left' ] as $side ) {
+			$value = trim( (string) ( $values[ $key . '_' . $side ] ?? '' ) );
+
+			if ( '' !== $value && is_numeric( $value ) ) {
+				$sides[] = $value . self::unit( $values, $key, 'px', self::TEXT_UNITS );
+				$any     = true;
+				continue;
+			}
+
+			$sides[] = '0';
+		}
+
+		return $any ? implode( ' ', $sides ) : '';
+	}
+
+	/**
+	 * A sanitized numeric length value with its unit (e.g. "16px").
+	 *
+	 * @param array<string, mixed> $values   Module settings as an array.
+	 * @param string               $key      Setting name (unit stored at "{$key}_unit").
+	 * @param string               $fallback Unit when none is stored.
+	 * @param list<string>         $allowed  Accepted units.
+	 * @return string Value with unit ('' when the setting is empty or not numeric).
+	 */
+	private static function length( array $values, string $key, string $fallback, array $allowed = [ 'px' ] ): string {
+		$value = trim( (string) ( $values[ $key ] ?? '' ) );
+
+		if ( '' === $value || ! is_numeric( $value ) ) {
+			return '';
+		}
+
+		return $value . self::unit( $values, $key, $fallback, $allowed );
+	}
+
+	/**
+	 * The stored unit for a numeric setting, validated against the allowed list.
+	 *
+	 * @param array<string, mixed> $values   Module settings as an array.
+	 * @param string               $key      Setting name (unit stored at "{$key}_unit").
+	 * @param string               $fallback Unit when none is stored.
+	 * @param list<string>         $allowed  Accepted units.
+	 * @return string Unit.
+	 */
+	private static function unit( array $values, string $key, string $fallback, array $allowed ): string {
+		$unit = trim( (string) ( $values[ $key . '_unit' ] ?? '' ) );
+
+		return in_array( $unit, $allowed, true ) ? $unit : $fallback;
+	}
+
+	/**
+	 * The stored border style, limited to the offered values.
+	 *
+	 * @param array<string, mixed> $values Module settings as an array.
+	 * @return string Border style.
+	 */
+	private static function border_style( array $values ): string {
+		$style = trim( (string) ( $values['field_border_style'] ?? '' ) );
+
+		return in_array( $style, [ 'solid', 'dashed', 'dotted' ], true ) ? $style : 'solid';
+	}
+
+	/**
+	 * A sanitized CSS color: hex, rgb()/rgba()/hsl()/hsla() or transparent.
+	 * Anything else (including declaration-breaking input) is dropped.
+	 *
+	 * @param array<string, mixed> $values Module settings as an array.
+	 * @param string               $key    Setting name.
+	 * @return string Color ('' when unset or invalid).
+	 */
+	private static function color( array $values, string $key ): string {
+		$raw = trim( (string) ( $values[ $key ] ?? '' ) );
+
+		if ( '' === $raw ) {
+			return '';
+		}
+
+		if ( preg_match( '/^#(?:[0-9a-f]{3,4}|[0-9a-f]{6}|[0-9a-f]{8})$/i', $raw ) ) {
+			return $raw;
+		}
+
+		if ( preg_match( '/^(?:rgb|rgba|hsl|hsla)\([\d\s.,%\/]+\)$/i', $raw ) ) {
+			return $raw;
+		}
+
+		if ( 'transparent' === strtolower( $raw ) ) {
+			return $raw;
+		}
+
+		return '';
+	}
+
+	/**
+	 * Deterministic per-instance class: identical settings render identical
+	 * markup (and CSS), different settings get different scopes.
+	 *
+	 * @param array<string, mixed> $values Module settings as an array.
+	 * @return string Class name.
+	 */
+	private static function scopeClass( array $values ): string {
+		return 'rf-bb-' . substr( md5( (string) wp_json_encode( $values ) ), 0, 12 );
+	}
+}

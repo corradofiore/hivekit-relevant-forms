@@ -1,0 +1,80 @@
+<?php
+/**
+ * API status test for the diagnostics screen (admin-ajax).
+ *
+ * @package RelevantForms
+ */
+
+declare(strict_types=1);
+
+namespace RelevantForms\Admin\Controllers;
+
+use RelevantForms\Cloud\CloudClient;
+use RelevantForms\Cloud\CloudConfig;
+use RelevantForms\Support\Ajax;
+
+/**
+ * Probes the Relevant Cloud health endpoint and reports the result.
+ */
+final class ApiStatusController {
+
+	/**
+	 * AJAX action (also the nonce action).
+	 */
+	public const ACTION = 'relevant_forms_test_api_status';
+
+	/**
+	 * Register the AJAX handler.
+	 */
+	public static function register(): void {
+		add_action( 'wp_ajax_' . self::ACTION, [ self::class, 'test' ] );
+	}
+
+	/**
+	 * AJAX: call the health endpoint and report status plus round-trip time.
+	 */
+	public static function test(): void {
+		Ajax::ensureManager( __( 'You do not have permission to test the API connection.', 'hivekit-relevant-forms' ) );
+
+		check_ajax_referer( self::ACTION );
+
+		$started = microtime( true );
+
+		$result = ( new CloudClient( CloudConfig::apiBase(), CloudConfig::key() ) )->health();
+
+		$latency = (int) round( ( microtime( true ) - $started ) * 1000 );
+
+		if ( 200 !== $result['status'] || null === $result['data'] ) {
+			$error = (string) ( $result['error']['message'] ?? '' );
+
+			if ( '' === $error ) {
+				$error = sprintf(
+					/* translators: %d: HTTP status code. */
+					__( 'the service responded with HTTP status %d', 'hivekit-relevant-forms' ),
+					$result['status']
+				);
+			}
+
+			Ajax::fail(
+				'unreachable',
+				sprintf(
+					/* translators: %s: failure detail. */
+					__( 'The API is unreachable — %s.', 'hivekit-relevant-forms' ),
+					$error
+				),
+				502
+			);
+		}
+
+		wp_send_json_success(
+			[
+				'latency_ms' => $latency,
+				'message'    => sprintf(
+					/* translators: %d: round-trip time in milliseconds. */
+					__( 'The API responded in %d msec.', 'hivekit-relevant-forms' ),
+					$latency
+				),
+			]
+		);
+	}
+}
