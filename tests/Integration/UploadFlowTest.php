@@ -13,6 +13,8 @@ use RelevantForms\Entries\Entry;
 use RelevantForms\Entries\EntryRepository;
 use RelevantForms\Forms\FormRepository;
 use RelevantForms\Forms\FormSchema;
+use RelevantForms\Http\UploadController;
+use RelevantForms\Tests\Integration\Support\AjaxRequests;
 use RelevantForms\Uploads\Contracts\StoredObject;
 use RelevantForms\Uploads\Domain\UploadRepository;
 use RelevantForms\Uploads\Domain\UploadStatus;
@@ -175,6 +177,66 @@ final class UploadFlowTest extends TestCase {
 
 		$allowed = $service->authorizeDownload( $result['upload_id'] );
 		$this->assertArrayNotHasKey( 'error', $allowed );
+	}
+
+	/**
+	 * Both public upload endpoints verify the per-form nonce before reading
+	 * the upload token.
+	 *
+	 * @dataProvider uploadEndpoints
+	 *
+	 * @param string $method UploadController method under test.
+	 */
+	public function testThePublicUploadEndpointsRequireTheFormNonce( string $method ): void {
+		$form = $this->makeFileForm();
+
+		$_POST = [
+			'form_id'   => $form->id,
+			'upload_id' => 1,
+			'token'     => str_repeat( 'a', 64 ),
+		];
+
+		try {
+			$response = AjaxRequests::dispatch( [ UploadController::class, $method ] );
+		} finally {
+			$_POST = [];
+		}
+
+		$this->assertFalse( $response['success'] ?? true );
+		$this->assertSame( 'Security check failed.', $response['data']['message'] ?? '' );
+	}
+
+	/**
+	 * Endpoints that require the upload nonce.
+	 *
+	 * @return array<string, array{0: string}>
+	 */
+	public static function uploadEndpoints(): array {
+		return [
+			'local upload' => [ 'localUpload' ],
+			'complete'     => [ 'complete' ],
+		];
+	}
+
+	/**
+	 * With a valid nonce the request reaches the upload-token check.
+	 */
+	public function testAValidUploadNonceReachesTheTokenCheck(): void {
+		$form = $this->makeFileForm();
+
+		$_POST = [
+			'form_id'                => $form->id,
+			'_relevant_upload_nonce' => wp_create_nonce( 'relevant_upload_' . $form->id ),
+			'upload_id'              => 1,
+		];
+
+		try {
+			$response = AjaxRequests::dispatch( [ UploadController::class, 'localUpload' ] );
+		} finally {
+			$_POST = [];
+		}
+
+		$this->assertSame( 'Invalid upload request.', $response['data']['message'] ?? '' );
 	}
 
 	/**

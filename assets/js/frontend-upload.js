@@ -37,10 +37,22 @@
 		return resolved.toString();
 	}
 
+	/**
+	 * Per-form upload nonce printed on the form element.
+	 *
+	 * @param {string|number} formId Form ID.
+	 * @return {string} Nonce (empty when the form is not on the page).
+	 */
+	function uploadNonce(formId) {
+		var form = document.querySelector('.relevant-forms[data-form-id="' + formId + '"]');
+
+		return (form && form.dataset.uploadNonce) || '';
+	}
+
 	function authorize(baseUrl, formId, fieldId, file) {
 		var body = new FormData();
 		body.append('action', 'relevant_forms_upload_authorize');
-		body.append('_relevant_upload_nonce', document.querySelector('.relevant-forms[data-form-id="' + formId + '"]').dataset.uploadNonce || '');
+		body.append('_relevant_upload_nonce', uploadNonce(formId));
 		body.append('form_id', formId);
 		body.append('field_id', fieldId);
 		body.append('filename', file.name);
@@ -56,9 +68,11 @@
 		});
 	}
 
-	function finishLocal(authorization, uploadId, token, file) {
+	function finishLocal(authorization, formId, uploadId, token, file) {
 		var body = new FormData();
 		body.append('action', 'relevant_forms_local_upload');
+		body.append('_relevant_upload_nonce', uploadNonce(formId));
+		body.append('form_id', formId);
 		body.append('upload_id', String(uploadId));
 		body.append('token', token);
 		body.append('file', file);
@@ -93,7 +107,7 @@
 				throw new Error('upload_unsupported_method');
 			}
 
-			return finishLocal(data, data.upload_id, data.token, file);
+			return finishLocal(data, formId, data.upload_id, data.token, file);
 		}).then(function () {
 			var idsInput = document.getElementById(input.id + '-ids');
 			var ids = [];

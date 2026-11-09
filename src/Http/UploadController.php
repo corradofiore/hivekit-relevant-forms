@@ -84,18 +84,28 @@ final class UploadController {
 
 	/**
 	 * Receive a locally uploaded file (multipart) into the private tree.
+	 *
+	 * Two independent gates: the per-form nonce proves the request came from a
+	 * page this site rendered, and the per-upload token authorizes this one
+	 * upload ID.
 	 */
 	public static function localUpload(): void {
-		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- the upload token is the security boundary for this endpoint.
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- verified below, before the payload is used.
 		$raw      = wp_unslash( $_POST );
+		$formId   = isset( $raw['form_id'] ) ? absint( $raw['form_id'] ) : 0;
+		$nonce    = isset( $raw['_relevant_upload_nonce'] ) ? sanitize_text_field( (string) $raw['_relevant_upload_nonce'] ) : '';
 		$uploadId = isset( $raw['upload_id'] ) ? absint( $raw['upload_id'] ) : 0;
 		$token    = sanitize_text_field( (string) ( $raw['token'] ?? '' ) );
+
+		if ( $formId <= 0 || '' === $nonce || ! wp_verify_nonce( $nonce, 'relevant_upload_' . $formId ) ) {
+			wp_send_json_error( [ 'message' => __( 'Security check failed.', 'hivekit-relevant-forms' ) ], 403 );
+		}
 
 		if ( $uploadId <= 0 || '' === $token ) {
 			wp_send_json_error( [ 'message' => __( 'Invalid upload request.', 'hivekit-relevant-forms' ) ], 400 );
 		}
 
-		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotValidated, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.NonceVerification.Missing -- $_FILES content is validated by FileValidator; the token gates access.
+		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotValidated, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.NonceVerification.Missing -- nonce verified above; $_FILES content is validated by FileValidator.
 		if ( ! isset( $_FILES['file'] ) || UPLOAD_ERR_OK !== (int) $_FILES['file']['error'] ) {
 			wp_send_json_error( [ 'message' => __( 'No file received.', 'hivekit-relevant-forms' ) ], 400 );
 		}
@@ -118,12 +128,21 @@ final class UploadController {
 
 	/**
 	 * Confirm a direct-to-storage upload finished.
+	 *
+	 * Same two gates as localUpload(): the per-form nonce and the per-upload
+	 * token are both required.
 	 */
 	public static function complete(): void {
-		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- the upload token is the security boundary for this endpoint.
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- verified below, before the payload is used.
 		$raw      = wp_unslash( $_POST );
+		$formId   = isset( $raw['form_id'] ) ? absint( $raw['form_id'] ) : 0;
+		$nonce    = isset( $raw['_relevant_upload_nonce'] ) ? sanitize_text_field( (string) $raw['_relevant_upload_nonce'] ) : '';
 		$uploadId = isset( $raw['upload_id'] ) ? absint( $raw['upload_id'] ) : 0;
 		$token    = sanitize_text_field( (string) ( $raw['token'] ?? '' ) );
+
+		if ( $formId <= 0 || '' === $nonce || ! wp_verify_nonce( $nonce, 'relevant_upload_' . $formId ) ) {
+			wp_send_json_error( [ 'message' => __( 'Security check failed.', 'hivekit-relevant-forms' ) ], 403 );
+		}
 
 		$result = ( new UploadService() )->completeRemoteUpload( $uploadId, $token );
 

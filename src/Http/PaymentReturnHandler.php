@@ -3,10 +3,11 @@
  * Browser return leg from the hosted checkout (payments doc §4).
  *
  * The checkout service redirects the visitor back to the page the form was
- * submitted from with `relevant_payment=return|cancel` and the entry id.
- * This handler verifies the session server-side (works without JavaScript),
- * flips the entry state idempotently and redirects to a clean URL carrying
- * the existing success/failure markers.
+ * submitted from with `relevant_payment=return|cancel`, the entry id and the
+ * signed `rt` marker this site issued for it. This handler verifies the marker
+ * and the session server-side (works without JavaScript), flips the entry state
+ * idempotently and redirects to a clean URL carrying the existing
+ * success/failure markers.
  *
  * @package RelevantForms
  */
@@ -47,6 +48,14 @@ final class PaymentReturnHandler {
 
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only routing markers set by the checkout service.
 		$entryId = isset( $_GET['entry'] ) ? absint( wp_unslash( $_GET['entry'] ) ) : 0;
+
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- signed marker verified below.
+		$returnToken = isset( $_GET['rt'] ) ? sanitize_text_field( wp_unslash( $_GET['rt'] ) ) : '';
+
+		if ( $entryId <= 0 || ! hash_equals( CloudPaymentsGateway::returnToken( $entryId ), $returnToken ) ) {
+			// Not a return this site issued for that entry: render normally.
+			return;
+		}
 
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only routing markers set by the checkout service.
 		$sessionId = isset( $_GET['session'] ) ? sanitize_text_field( wp_unslash( $_GET['session'] ) ) : '';
@@ -109,7 +118,7 @@ final class PaymentReturnHandler {
 	 */
 	private static function redirect( Entry $entry, int $formId, bool $paid ): never {
 		$target = wp_validate_redirect( $entry->sourceUrl, home_url( '/' ) );
-		$target = remove_query_arg( [ 'relevant_payment', 'entry', 'session' ], $target );
+		$target = remove_query_arg( [ 'relevant_payment', 'entry', 'session', 'rt' ], $target );
 
 		$target = add_query_arg(
 			$paid ? 'relevant_form_success' : 'relevant_payment_failed',

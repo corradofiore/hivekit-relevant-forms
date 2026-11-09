@@ -106,6 +106,8 @@ final class PaymentWiringFlowTest extends TestCase {
 			'relevant_payments' => 'connected',
 		];
 
+		$this->expectReturn();
+
 		$this->fakeCloud(
 			[
 				'/api/v1/payments/connect/status' => $this->cloudResponse(
@@ -140,6 +142,8 @@ final class PaymentWiringFlowTest extends TestCase {
 			'relevant_payments' => 'connected',
 		];
 
+		$this->expectReturn();
+
 		$this->fakeCloud(
 			[
 				'/api/v1/payments/connect/status' => $this->cloudResponse( [ 'connected' => false ] ),
@@ -164,6 +168,8 @@ final class PaymentWiringFlowTest extends TestCase {
 			'relevant_payments' => 'error',
 		];
 
+		$this->expectReturn();
+
 		$url = $this->capture(
 			static function (): void {
 				PaymentSettingsController::maybeCompleteReturn();
@@ -175,6 +181,28 @@ final class PaymentWiringFlowTest extends TestCase {
 	}
 
 	/**
+	 * A return marker without a connect attempt in flight is ignored: no
+	 * backend call and no consent change.
+	 */
+	public function testAReturnWithoutAConnectAttemptIsIgnored(): void {
+		$this->connectCloud();
+
+		$_GET = [
+			'page'              => 'relevant-payments',
+			'relevant_payments' => 'connected',
+		];
+
+		try {
+			PaymentSettingsController::maybeCompleteReturn();
+		} finally {
+			$_GET = [];
+		}
+
+		$this->assertSame( [], $this->requests );
+		$this->assertFalse( ( new CloudConnection() )->capabilityEnabled( CloudConnection::CAP_PAYMENTS ) );
+	}
+
+	/**
 	 * A return started before the update still completes: the legacy
 	 * settings slug is accepted and the browser lands on the new page.
 	 */
@@ -183,6 +211,8 @@ final class PaymentWiringFlowTest extends TestCase {
 			'page'              => 'relevant-settings',
 			'relevant_payments' => 'error',
 		];
+
+		$this->expectReturn();
 
 		$url = $this->capture(
 			static function (): void {
@@ -462,6 +492,17 @@ final class PaymentWiringFlowTest extends TestCase {
 	private function connectCloud(): void {
 		$connection = new CloudConnection();
 		$connection->connect( 'site-uuid-wiring', 'https://a.example', 'Acme' );
+	}
+
+	/**
+	 * Arm the in-flight connect marker the return leg requires.
+	 */
+	private function expectReturn(): void {
+		set_transient(
+			PaymentSettingsController::RETURN_TRANSIENT . get_current_user_id(),
+			1,
+			MINUTE_IN_SECONDS
+		);
 	}
 
 	/**

@@ -24,6 +24,15 @@ use RelevantForms\Cloud\CloudConnection;
 final class PaymentSettingsController {
 
 	/**
+	 * Transient key prefix for the in-flight Stripe Connect return.
+	 *
+	 * The return leg is a plain browser GET from Stripe, so there is no nonce
+	 * to verify. This short-lived, per-admin marker is the request binding:
+	 * the return only runs when that admin started the flow here.
+	 */
+	public const RETURN_TRANSIENT = 'relevant_forms_payments_return_';
+
+	/**
 	 * Register the admin-post actions.
 	 */
 	public static function register(): void {
@@ -54,6 +63,8 @@ final class PaymentSettingsController {
 
 		// Stripe-hosted authorization page; off-site by design and the URL
 		// was scheme-checked above (created by our cloud for this attempt).
+		set_transient( self::RETURN_TRANSIENT . get_current_user_id(), 1, 30 * MINUTE_IN_SECONDS );
+
 		wp_redirect( $authorize ); // phpcs:ignore WordPress.Security.SafeRedirect.wp_redirect_wp_redirect -- validated absolute http(s) Stripe URL.
 		exit;
 	}
@@ -98,8 +109,10 @@ final class PaymentSettingsController {
 	 * Handle the browser returning from the Stripe authorization page
 	 * (`?page=relevant-payments&relevant_payments=connected|error`).
 	 *
-	 * The capability is enabled only when the backend confirms an active
-	 * connection, so a crafted URL can at most trigger one status read.
+	 * The return leg is a plain browser GET from Stripe, so it carries no nonce:
+	 * the short-lived per-user marker set in connect() binds it to the admin's
+	 * own attempt. The capability is enabled only when the backend confirms an
+	 * active connection.
 	 */
 	public static function maybeCompleteReturn(): void {
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- return marker set by the cloud redirect; consent is re-verified against the backend below.
@@ -119,6 +132,15 @@ final class PaymentSettingsController {
 
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only routing check.
 		$flag = sanitize_key( wp_unslash( $_GET['relevant_payments'] ) );
+
+		$returnKey = self::RETURN_TRANSIENT . get_current_user_id();
+
+		if ( ! get_transient( $returnKey ) ) {
+			// No connect attempt in flight for this admin: ignore the marker.
+			return;
+		}
+
+		delete_transient( $returnKey );
 
 		if ( 'error' === $flag ) {
 			self::redirect( 'error' );

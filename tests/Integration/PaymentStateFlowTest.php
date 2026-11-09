@@ -21,9 +21,11 @@ use RelevantForms\Forms\FormSchema;
 use RelevantForms\Forms\SubmissionFeedback;
 use RelevantForms\Http\PaymentReturnHandler;
 use RelevantForms\Http\SubmissionHandler;
+use RelevantForms\Payments\CloudPaymentsGateway;
 use RelevantForms\Payments\PaymentService;
 use RelevantForms\Tests\Integration\Support\CapturesMail;
 use RelevantForms\Tests\Integration\Support\CapturesRedirects;
+use RelevantForms\Tests\Integration\Support\RedirectedException;
 
 /**
  * {@inheritdoc}
@@ -141,6 +143,7 @@ final class PaymentStateFlowTest extends TestCase {
 				'relevant_payment' => 'return',
 				'entry'            => $entry->id,
 				'session'          => 'cs_test_1',
+				'rt'               => CloudPaymentsGateway::returnToken( (int) $entry->id ),
 			]
 		);
 
@@ -183,6 +186,7 @@ final class PaymentStateFlowTest extends TestCase {
 				'relevant_payment' => 'cancel',
 				'entry'            => $entry->id,
 				'session'          => 'cs_test_1',
+				'rt'               => CloudPaymentsGateway::returnToken( (int) $entry->id ),
 			]
 		);
 
@@ -193,6 +197,43 @@ final class PaymentStateFlowTest extends TestCase {
 		$this->assertSame( 'failed', $entry->meta['_payment']['status'] ?? '' );
 
 		$this->assertSame( [], $this->sent_mail );
+	}
+
+	/**
+	 * A return URL without the signed marker this site issues is ignored:
+	 * no gateway call, no state change and no redirect.
+	 */
+	public function testAReturnWithoutTheSignedMarkerIsIgnored(): void {
+		$this->enablePayments();
+		$this->fakeCloud();
+
+		$form  = $this->makePaymentForm();
+		$entry = $this->submitPending( $form );
+
+		$_GET = [
+			'relevant_payment' => 'return',
+			'entry'            => $entry->id,
+			'session'          => 'cs_test_1',
+		];
+
+		$capture = static function ( string $location ): string {
+			// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- handler-generated URL, assertions only.
+			throw new RedirectedException( $location );
+		};
+
+		add_filter( 'wp_redirect', $capture );
+		add_filter( 'relevant_forms_redirect', $capture );
+
+		try {
+			PaymentReturnHandler::maybeHandle();
+		} finally {
+			remove_filter( 'wp_redirect', $capture );
+			remove_filter( 'relevant_forms_redirect', $capture );
+			$_GET = [];
+		}
+
+		$entry = ( new EntryRepository() )->find( (int) $entry->id );
+		$this->assertSame( Entry::STATUS_PENDING_PAYMENT, $entry->status );
 	}
 
 	/**

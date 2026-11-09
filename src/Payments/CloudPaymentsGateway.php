@@ -137,6 +137,7 @@ final class CloudPaymentsGateway implements PaymentsGateway {
 			[
 				'relevant_payment' => $success ? 'return' : 'cancel',
 				'entry'            => $entryId,
+				'rt'               => self::returnToken( $entryId ),
 			],
 			$base
 		);
@@ -147,6 +148,21 @@ final class CloudPaymentsGateway implements PaymentsGateway {
 
 		// Stripe substitutes the literal placeholder in success URLs.
 		return $url . '&session={CHECKOUT_SESSION_ID}';
+	}
+
+	/**
+	 * Signed marker binding a return URL to its entry.
+	 *
+	 * The browser comes back with a plain GET, so a nonce (which needs a
+	 * logged-in session and would expire mid-checkout) is not usable. This
+	 * site-specific hash gives PaymentReturnHandler the same request-forgery
+	 * protection: it only acts on returns this site issued for that entry.
+	 *
+	 * @param int $entryId Stored entry ID.
+	 * @return string Marker value (40 hex characters).
+	 */
+	public static function returnToken( int $entryId ): string {
+		return substr( wp_hash( 'relevant_payment_return_' . $entryId ), 0, 40 );
 	}
 
 	/**
