@@ -51,9 +51,6 @@ final class WpFormsFieldMapper {
 		'entry-preview'    => 'entry-preview',
 		// The WPForms Content field becomes a rich-text display block.
 		'content'          => 'content',
-		// The WPForms HTML field becomes a raw custom-code block (stored and
-		// rendered as authored; editing requires unfiltered_html).
-		'html'             => 'html',
 		// Payment fields (phase 5): amounts are preserved.
 		'payment-single'   => 'payment-single',
 		'payment-select'   => 'payment-select',
@@ -124,9 +121,9 @@ final class WpFormsFieldMapper {
 		}
 
 		// Layout fields may intentionally carry no label (a bare divider, a
-		// page without a title, a preview block, a content block or an
-		// html/code block), so no humanized fallback for them.
-		if ( '' === $label && ! in_array( $wpType, [ 'divider', 'pagebreak', 'entry-preview', 'content', 'html' ], true ) ) {
+		// page without a title, a preview block or a content block), so no
+		// humanized fallback for them.
+		if ( '' === $label && ! in_array( $wpType, [ 'divider', 'pagebreak', 'entry-preview', 'content' ], true ) ) {
 			$label = ucfirst( str_replace( '-', ' ', $wpType ) );
 		}
 
@@ -167,18 +164,9 @@ final class WpFormsFieldMapper {
 				$notes[] = __( 'The preview notice was imported as plain text (formatting removed).', 'hivekit-relevant-forms' );
 			}
 		} elseif ( 'content' === $wpType ) {
-			// The block HTML is kept as authored; rendering sanitizes it.
+			// The block HTML is kept as authored; rendering and saving
+			// sanitize it against the content block allowlist.
 			$definition['content'] = trim( (string) ( $field['content'] ?? '' ) );
-		} elseif ( 'html' === $wpType ) {
-			// Raw code is kept verbatim here: the importer gates storage on
-			// the unfiltered_html capability (see WpFormsImporter) and the
-			// front end renders it as authored.
-			$code               = trim( (string) ( $field['code'] ?? '' ) );
-			$definition['code'] = $code;
-
-			if ( '' !== $code ) {
-				$notes[] = __( 'Custom code block imported: it is rendered as authored — review and test it on this site.', 'hivekit-relevant-forms' );
-			}
 		}
 
 		if ( 'file' === $relevantType ) {
@@ -417,6 +405,10 @@ final class WpFormsFieldMapper {
 	 */
 	public static function skipReason( string $type ): string {
 		$type = strtolower( trim( $type ) );
+
+		if ( 'html' === $type ) {
+			return __( 'Custom HTML fields are not imported: the plugin does not accept arbitrary code. Use a Content block for formatted instructions instead.', 'hivekit-relevant-forms' );
+		}
 
 		if ( 'payment-coupon' === $type ) {
 			return __( 'Coupon fields are not supported: discounts cannot be applied during the Stripe checkout step.', 'hivekit-relevant-forms' );

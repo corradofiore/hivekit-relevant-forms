@@ -11,6 +11,7 @@ namespace RelevantForms\Admin\Controllers;
 
 use RelevantForms\Alerts\PhoneNumber;
 use RelevantForms\Cloud\CloudConnection;
+use RelevantForms\Forms\Fields\ContentField;
 use RelevantForms\Forms\Fields\FieldTypeRegistry;
 use RelevantForms\Forms\FormRepository;
 use RelevantForms\Forms\FormSchema;
@@ -323,16 +324,7 @@ final class FormSaveController {
 			}
 
 			if ( 'content' === $type ) {
-				$definition['content'] = wp_kses_post( (string) ( $rawField['content'] ?? '' ) );
-			}
-
-			if ( 'html' === $type ) {
-				$code = trim( (string) ( $rawField['code'] ?? '' ) );
-
-				// Raw code is storable only by users WordPress trusts with
-				// unfiltered HTML; everyone else saves sanitized code, like
-				// core does for post content.
-				$definition['code'] = current_user_can( 'unfiltered_html' ) ? $code : wp_kses_post( $code );
+				$definition['content'] = ContentField::sanitizeContent( (string) ( $rawField['content'] ?? '' ) );
 			}
 
 			if ( 'file' === $type ) {

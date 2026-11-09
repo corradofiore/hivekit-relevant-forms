@@ -561,10 +561,10 @@ final class ShortcodeRenderTest extends TestCase {
 	}
 
 	/**
-	 * Custom HTML blocks are output as authored — no escaping and no
-	 * shortcode execution — matching the WPForms HTML field.
+	 * The removed html field type is not rendered: an old definition with
+	 * that type produces nothing, never raw code.
 	 */
-	public function testCustomHtmlBlocksRenderAsAuthored(): void {
+	public function testRemovedHtmlFieldsRenderNothing(): void {
 		$repository = new FormRepository();
 
 		$id = $repository->create(
@@ -588,8 +588,8 @@ final class ShortcodeRenderTest extends TestCase {
 
 		$html = do_shortcode( '[relevant_form id="' . $id . '"]' );
 
-		$this->assertStringContainsString( 'relevant-forms-field--html', $html );
-		$this->assertStringContainsString( '<p id="embed">Map</p>', $html );
-		$this->assertStringContainsString( '<script>window.embed=1;</script>', $html );
+		$this->assertStringNotContainsString( 'relevant-forms-field--html', $html );
+		$this->assertStringNotContainsString( 'window.embed', $html );
+		$this->assertStringContainsString( 'f_name', $html );
 	}
 }

@@ -7,8 +7,10 @@
  * nothing is validated, submitted, stored or notified for it.
  *
  * Rendering mirrors WPForms' Content field: the stored HTML is passed
- * through wpautop() for paragraph formatting and then sanitized with
- * wp_kses_post() before output. Shortcodes are intentionally not executed.
+ * through wpautop() for paragraph formatting and then sanitized with a
+ * restricted allowlist (headings, paragraphs, links, lists, quotes, code and
+ * images) before output. Scripts, styles, frames and inline `style`
+ * attributes never survive; shortcodes are intentionally not executed.
  *
  * @package RelevantForms
  */
@@ -21,6 +23,52 @@ namespace RelevantForms\Forms\Fields;
  * content field.
  */
 final class ContentField implements FieldType {
+
+	/**
+	 * HTML elements a content block may contain.
+	 *
+	 * Deliberately narrow: no scripts, styles, frames, forms or inline
+	 * `style` attributes, so a content block can never become an arbitrary
+	 * code or CSS injection point. Rendering and saving share this list.
+	 *
+	 * @var array<string, array<string, bool>>
+	 */
+	public const ALLOWED_HTML = [
+		'p'          => [],
+		'br'         => [],
+		'strong'     => [],
+		'b'          => [],
+		'em'         => [],
+		'i'          => [],
+		'a'          => [
+			'href'   => true,
+			'title'  => true,
+			'target' => true,
+			'rel'    => true,
+		],
+		'ul'         => [],
+		'ol'         => [],
+		'li'         => [],
+		'h2'         => [],
+		'h3'         => [],
+		'h4'         => [],
+		'blockquote' => [],
+		'code'       => [],
+		'pre'        => [],
+		'img'        => [
+			'src'    => true,
+			'alt'    => true,
+			'width'  => true,
+			'height' => true,
+		],
+	];
+
+	/**
+	 * Sanitize content against the block allowlist.
+	 */
+	public static function sanitizeContent( string $content ): string {
+		return wp_kses( $content, self::ALLOWED_HTML );
+	}
 
 	/**
 	 * {@inheritDoc}
@@ -70,7 +118,7 @@ final class ContentField implements FieldType {
 			: '';
 
 		$body = '' !== $content
-			? sprintf( '<div class="relevant-forms-content">%s</div>', wp_kses_post( wpautop( $content ) ) )
+			? sprintf( '<div class="relevant-forms-content">%s</div>', self::sanitizeContent( wpautop( $content ) ) )
 			: '';
 
 		return sprintf(

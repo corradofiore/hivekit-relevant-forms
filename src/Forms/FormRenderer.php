@@ -280,7 +280,7 @@ final class FormRenderer {
 
 		if ( null === $pages ) {
 			foreach ( $definitions as $definition ) {
-				$markup = self::renderField( $definition, $currency, $values, $errors, $visibility, $renderId, $preview );
+				$markup = self::renderField( $definition, $currency, $values, $errors, $visibility, $renderId );
 
 				if ( '' !== $markup ) {
 					$output[] = $markup;
@@ -322,7 +322,7 @@ final class FormRenderer {
 				}
 
 				foreach ( $page['fields'] as $definition ) {
-					$markup = self::renderField( $definition, $currency, $values, $errors, $visibility, $renderId, $preview );
+					$markup = self::renderField( $definition, $currency, $values, $errors, $visibility, $renderId );
 
 					if ( '' !== $markup ) {
 						$output[] = $markup;
@@ -426,9 +426,8 @@ final class FormRenderer {
 	 * @param array<string, string>  $errors     Validation errors keyed by field id.
 	 * @param array<string, bool>    $visibility Visibility map keyed by field id.
 	 * @param string                 $formId     Form id for control ids.
-	 * @param bool                   $preview    Whether this is the admin preview.
 	 */
-	private static function renderField( array $definition, string $currency, array $values, array $errors, array $visibility, string $formId, bool $preview = false ): string {
+	private static function renderField( array $definition, string $currency, array $values, array $errors, array $visibility, string $formId ): string {
 		// Payment fields format and validate with the form currency.
 		$definition['currency'] = $currency;
 
@@ -455,24 +454,7 @@ final class FormRenderer {
 			$definition['visibility_hidden'] = $hidden;
 		}
 
-		$previewNote = '';
-
-		if ( $preview && 'html' === (string) ( $definition['type'] ?? '' ) ) {
-			// Raw author code never runs inside wp-admin: the preview renders
-			// the block through the same filter the save path applies to users
-			// without unfiltered_html, and says what it left out.
-			$raw                = (string) ( $definition['code'] ?? '' );
-			$definition['code'] = wp_kses_post( $raw );
-
-			if ( $definition['code'] !== $raw ) {
-				$previewNote = sprintf(
-					'<p class="relevant-forms-preview__note">%s</p>',
-					esc_html__( 'Custom HTML block: scripts and unsafe markup are not run in the preview — they appear on the live form.', 'hivekit-relevant-forms' )
-				);
-			}
-		}
-
-		return $type->render( $definition, $value, $error, $formId ) . $previewNote;
+		return $type->render( $definition, $value, $error, $formId );
 	}
 
 	/**
@@ -625,7 +607,7 @@ final class FormRenderer {
 			$id    = (string) ( $definition['id'] ?? '' );
 			$label = trim( (string) ( $definition['label'] ?? '' ) );
 
-			if ( in_array( $type, [ 'section', 'pagebreak', 'entry-preview', 'content', 'html' ], true ) || '' === $id || '' === $label ) {
+			if ( in_array( $type, [ 'section', 'pagebreak', 'entry-preview', 'content' ], true ) || '' === $id || '' === $label ) {
 				continue;
 			}
 

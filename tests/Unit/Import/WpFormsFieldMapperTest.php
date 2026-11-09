@@ -449,20 +449,20 @@ it(
 );
 
 it(
-	'maps custom html fields as raw code with a review note',
+	'does not import custom html fields',
 	function () {
-		$mapped = WpFormsFieldMapper::map(
-			[
-				'id'   => '5',
-				'type' => 'html',
-				'code' => "  <div id=\"map\"></div>\n<script>init();</script>  ",
-			]
-		);
+		expect(
+			WpFormsFieldMapper::map(
+				[
+					'id'   => '5',
+					'type' => 'html',
+					'code' => '<script>init();</script>',
+				]
+			)
+		)->toBeNull();
 
-		expect( $mapped['definition']['type'] )->toBe( 'html' );
-		expect( $mapped['definition']['label'] )->toBe( '' );
-		expect( $mapped['definition']['code'] )->toBe( "<div id=\"map\"></div>\n<script>init();</script>" );
-		expect( implode( ' ', $mapped['notes'] ) )->toContain( 'authored' );
+		expect( WpFormsFieldMapper::skipReason( 'html' ) )
+			->toContain( 'does not accept arbitrary code' );
 	}
 );
 

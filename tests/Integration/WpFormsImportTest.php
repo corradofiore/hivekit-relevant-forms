@@ -293,11 +293,10 @@ final class WpFormsImportTest extends TestCase {
 	}
 
 	/**
-	 * Custom HTML fields import as authored for users who may save
-	 * unfiltered HTML and are sanitized (with a report note) for everyone
-	 * else, e.g. multisite site administrators and CLI imports.
+	 * Custom HTML fields are not imported: the plugin does not accept
+	 * arbitrary code. The report lists the field as skipped with the reason.
 	 */
-	public function testImportGatesRawCustomHtmlOnTheUnfilteredCapability(): void {
+	public function testCustomHtmlFieldsAreSkipped(): void {
 		$payload = [
 			'fields'   => [
 				'0' => [
@@ -314,8 +313,6 @@ final class WpFormsImportTest extends TestCase {
 			'settings' => [ 'form_title' => 'Embed' ],
 		];
 
-		// The source record must be written by a user with unfiltered_html,
-		// otherwise WordPress itself sanitizes the payload on insert.
 		wp_set_current_user( self::factory()->user->create( [ 'role' => 'administrator' ] ) );
 
 		$this->createWpFormsForm( $payload, 'Embed' );
@@ -324,20 +321,10 @@ final class WpFormsImportTest extends TestCase {
 		$row   = ( new WpFormsImporter() )->import( $forms[0] );
 		$form  = ( new FormRepository() )->find( (int) $row['form_id'] );
 
-		$this->assertSame( 'html', $form->schema->fields()[1]['type'] );
-		$this->assertStringContainsString( '<script>', $form->schema->fields()[1]['code'] );
-
-		// Without the capability the code is sanitized and the report says so.
-		// User-level deny: remove_cap() is a no-op for role-granted caps.
-		wp_get_current_user()->add_cap( 'unfiltered_html', false );
-
-		$forms = ( new WpFormsScanner() )->forms();
-		$row   = ( new WpFormsImporter() )->import( $forms[0] );
-		$form  = ( new FormRepository() )->find( (int) $row['form_id'] );
-
-		$this->assertStringNotContainsString( '<script', $form->schema->fields()[1]['code'] );
-		$this->assertStringContainsString( '<p>Map</p>', $form->schema->fields()[1]['code'] );
-		$this->assertContains( 'Custom HTML fields were sanitized: your user cannot save unfiltered HTML.', $row['notes'] );
+		$this->assertCount( 1, $form->schema->fields() );
+		$this->assertSame( 'text', $form->schema->fields()[0]['type'] );
+		$this->assertSame( 'html', $row['skipped'][0]['type'] );
+		$this->assertStringContainsString( 'does not accept arbitrary code', $row['skipped'][0]['reason'] );
 	}
 
 	/**

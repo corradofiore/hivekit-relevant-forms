@@ -9,6 +9,7 @@ declare(strict_types=1);
 
 namespace RelevantForms\Import;
 
+use RelevantForms\Forms\Fields\ContentField;
 use RelevantForms\Forms\FormRepository;
 use RelevantForms\Forms\FormSchema;
 use RelevantForms\Payments\Money;
@@ -59,9 +60,8 @@ final class WpFormsImporter {
 	 * @return array<string, mixed> Migration report row.
 	 */
 	public function import( WpFormsForm $form ): array {
-		$allowRawCode = current_user_can( 'unfiltered_html' );
-		$schema       = $this->buildSchema( $form, $allowRawCode );
-		$skipped      = $form->skippedFields();
+		$schema  = $this->buildSchema( $form );
+		$skipped = $form->skippedFields();
 
 		$row = [
 			'source_id'       => $form->sourceId,
@@ -79,10 +79,6 @@ final class WpFormsImporter {
 			$row['error']  = __( 'No importable fields were found.', 'hivekit-relevant-forms' );
 
 			return $row;
-		}
-
-		if ( ! $allowRawCode && self::hasCustomCodeFields( $form ) ) {
-			$row['notes'][] = __( 'Custom HTML fields were sanitized: your user cannot save unfiltered HTML.', 'hivekit-relevant-forms' );
 		}
 
 		try {
@@ -106,22 +102,20 @@ final class WpFormsImporter {
 	/**
 	 * Build the canonical schema for one WPForms form.
 	 *
-	 * Raw custom-code blocks are only stored verbatim when the importing user
-	 * may save unfiltered HTML; otherwise they are sanitized, mirroring the
-	 * editor save behaviour.
+	 * Content blocks are sanitized against the content block allowlist before
+	 * they are stored. Custom HTML fields are not imported at all.
 	 *
-	 * @param WpFormsForm $form           Parsed source form.
-	 * @param bool        $allow_raw_code Whether raw HTML code can be stored.
+	 * @param WpFormsForm $form Parsed source form.
 	 */
-	public function buildSchema( WpFormsForm $form, bool $allow_raw_code = true ): FormSchema {
+	public function buildSchema( WpFormsForm $form ): FormSchema {
 		$fields = [];
 		$used   = [];
 
 		foreach ( $form->mappedFields() as $entry ) {
 			$definition = $entry['definition'];
 
-			if ( ! $allow_raw_code && 'html' === (string) ( $definition['type'] ?? '' ) ) {
-				$definition['code'] = wp_kses_post( (string) ( $definition['code'] ?? '' ) );
+			if ( 'content' === (string) ( $definition['type'] ?? '' ) ) {
+				$definition['content'] = ContentField::sanitizeContent( (string) ( $definition['content'] ?? '' ) );
 			}
 
 			$id = (string) $definition['id'];
@@ -159,19 +153,6 @@ final class WpFormsImporter {
 		}
 
 		return $schema;
-	}
-
-	/**
-	 * Whether the mapped fields contain non-empty custom-code blocks.
-	 */
-	private static function hasCustomCodeFields( WpFormsForm $form ): bool {
-		foreach ( $form->mappedFields() as $entry ) {
-			if ( 'html' === (string) ( $entry['definition']['type'] ?? '' ) && '' !== trim( (string) ( $entry['definition']['code'] ?? '' ) ) ) {
-				return true;
-			}
-		}
-
-		return false;
 	}
 
 	/**

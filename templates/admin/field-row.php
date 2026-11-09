@@ -25,7 +25,6 @@ $isSection      = 'section' === (string) $definition['type'];
 $isPagebreak    = 'pagebreak' === (string) $definition['type'];
 $isEntryPreview = 'entry-preview' === (string) $definition['type'];
 $isContent      = 'content' === (string) $definition['type'];
-$isHtml         = 'html' === (string) $definition['type'];
 
 	$labelHeading = __( 'Field name', 'hivekit-relevant-forms' );
 
@@ -35,8 +34,6 @@ if ( $isSection ) {
 	$labelHeading = __( 'Page title', 'hivekit-relevant-forms' );
 } elseif ( $isEntryPreview || $isContent ) {
 	$labelHeading = __( 'Heading (optional)', 'hivekit-relevant-forms' );
-} elseif ( $isHtml ) {
-	$labelHeading = __( 'Name (editor only)', 'hivekit-relevant-forms' );
 }
 
 $fieldType       = (string) $definition['type'];
@@ -78,8 +75,6 @@ $inputIdBase = 'rf-field-' . $fieldId;
 							<p class="description"><?php esc_html_e( 'Shown above the preview. Leave empty for no heading.', 'hivekit-relevant-forms' ); ?></p>
 						<?php elseif ( $isContent ) : ?>
 							<p class="description"><?php esc_html_e( 'Shown above the content block. Leave empty for no heading.', 'hivekit-relevant-forms' ); ?></p>
-						<?php elseif ( $isHtml ) : ?>
-							<p class="description"><?php esc_html_e( 'Used to tell fields apart in the editor; never shown on the form.', 'hivekit-relevant-forms' ); ?></p>
 						<?php endif; ?>
 					</td>
 				</tr>
@@ -118,20 +113,7 @@ $inputIdBase = 'rf-field-' . $fieldId;
 				</tr>
 			<?php endif; ?>
 
-			<?php if ( $isHtml ) : ?>
-				<tr>
-					<th scope="row"><label for="<?php echo esc_attr( $inputIdBase . '-code' ); ?>"><?php esc_html_e( 'Code', 'hivekit-relevant-forms' ); ?></label></th>
-					<td>
-						<textarea class="widefat code" id="<?php echo esc_attr( $inputIdBase . '-code' ); ?>" name="relevant_fields[<?php echo esc_attr( $fieldId ); ?>][code]" rows="10" spellcheck="false"><?php echo esc_textarea( (string) ( $definition['code'] ?? '' ) ); ?></textarea>
-						<p class="description"><?php esc_html_e( 'Rendered as authored on the form — no escaping is applied. Do not paste code you do not trust.', 'hivekit-relevant-forms' ); ?></p>
-						<?php if ( ! current_user_can( 'unfiltered_html' ) ) : ?>
-							<p class="description"><?php esc_html_e( 'Your role cannot save raw code: scripts, styles and embedded frames will be removed when you save this form.', 'hivekit-relevant-forms' ); ?></p>
-						<?php endif; ?>
-					</td>
-				</tr>
-			<?php endif; ?>
-
-			<?php if ( ! $isHidden && ! $isSection && ! $isPagebreak && ! $isEntryPreview && ! $isContent && ! $isHtml && ! $isPaymentTotal ) : ?>
+			<?php if ( ! $isHidden && ! $isSection && ! $isPagebreak && ! $isEntryPreview && ! $isContent && ! $isPaymentTotal ) : ?>
 				<tr>
 					<th scope="row"><label for="<?php echo esc_attr( $inputIdBase . '-required' ); ?>"><?php esc_html_e( 'Required', 'hivekit-relevant-forms' ); ?></label></th>
 					<td>
@@ -186,7 +168,7 @@ $inputIdBase = 'rf-field-' . $fieldId;
 				</tr>
 			<?php endif; ?>
 
-			<?php if ( ! $isHidden && ! in_array( (string) $definition['type'], [ 'consent', 'section', 'pagebreak', 'entry-preview', 'content', 'html', 'payment-total' ], true ) ) : ?>
+			<?php if ( ! $isHidden && ! in_array( (string) $definition['type'], [ 'consent', 'section', 'pagebreak', 'entry-preview', 'content', 'payment-total' ], true ) ) : ?>
 				<tr>
 					<th scope="row"><label for="<?php echo esc_attr( $inputIdBase . '-placeholder' ); ?>"><?php esc_html_e( 'Placeholder', 'hivekit-relevant-forms' ); ?></label></th>
 					<td>
@@ -302,7 +284,7 @@ $inputIdBase = 'rf-field-' . $fieldId;
 				</tr>
 			<?php endif; ?>
 
-			<?php if ( ! $isSection && ! $isPagebreak && ! $isEntryPreview && ! $isContent && ! $isHtml && ! $isPaymentTotal && ! $isPricedPayment && ! $isFile && ! $isRadio ) : ?>
+			<?php if ( ! $isSection && ! $isPagebreak && ! $isEntryPreview && ! $isContent && ! $isPaymentTotal && ! $isPricedPayment && ! $isFile && ! $isRadio ) : ?>
 				<tr>
 					<th scope="row"><label for="<?php echo esc_attr( $inputIdBase . '-default' ); ?>"><?php esc_html_e( 'Default value', 'hivekit-relevant-forms' ); ?></label></th>
 					<td>

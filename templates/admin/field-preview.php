@@ -20,13 +20,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 $fieldId  = (string) $definition['id'];
 $isHidden = 'hidden' === (string) $definition['type'];
-$isHtml   = 'html' === (string) $definition['type'];
 
 if ( $isHidden ) {
 	$sample = '<p class="description">' . esc_html__( 'Hidden fields are not visible on the front end.', 'hivekit-relevant-forms' ) . '</p>';
-} elseif ( $isHtml ) {
-	// Never execute raw author code inside wp-admin: render a placeholder.
-	$sample = '<p class="description">' . esc_html__( 'Custom HTML block: rendered as authored on the live form, so it is not previewed here.', 'hivekit-relevant-forms' ) . '</p>';
 } else {
 	$sample = $field_type->render( $definition, null, null, (string) $form->id );
 }

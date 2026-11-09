@@ -312,13 +312,9 @@ final class FormEditorPreviewTest extends TestCase {
 	}
 
 	/**
-	 * Raw author code never runs inside wp-admin: custom HTML blocks are
-	 * rendered through wp_kses_post and the panel says what it left out. The
-	 * live form still renders the block as authored.
+	 * A removed html field is not rendered in the editor preview.
 	 */
-	public function testThePreviewDoesNotExecuteCustomHtml(): void {
-		wp_set_current_user( self::factory()->user->create( [ 'role' => 'administrator' ] ) );
-
+	public function testRemovedHtmlFieldsDoNotAppearInThePreview(): void {
 		$formId = $this->form(
 			'HTML preview',
 			[
@@ -338,10 +334,7 @@ final class FormEditorPreviewTest extends TestCase {
 		$preview = $this->panel( $this->renderEditor( $formId ), 'rf-panel-preview' );
 
 		$this->assertStringNotContainsString( '<script>window.x=1;</script>', $preview );
-		$this->assertStringContainsString( '<h2>Fees</h2>', $preview );
-		$this->assertStringContainsString( 'scripts and unsafe markup are not run in the preview', $preview );
-
-		$this->assertStringContainsString( '<script>window.x=1;</script>', FormRenderer::render( $formId ) );
+		$this->assertStringNotContainsString( '<h2>Fees</h2>', $preview );
 	}
 
 	/**

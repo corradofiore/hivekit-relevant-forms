@@ -31,7 +31,7 @@ Core functionality includes:
 visitors see it — conditional fields, multi-page steps, entry previews, counters
 and totals all work — while test submissions stay in the browser and are never
 stored, notified or paid
-* Content blocks for formatted instructions (headings, links, lists and images) between fields, plus a custom HTML field for embedded code (rendered as authored and editable only by users who may save unfiltered HTML)
+* Content blocks for formatted instructions (headings, links, lists and images) between fields
 * Conditional field visibility: show or hide fields based on earlier answers, with rule groups (AND within a group, OR across groups)
 * Payment fields: fixed single items, priced dropdowns and choices, donation-style user-entered amounts and an automatic live total (collecting payments requires connecting your own Stripe account)
 * Entry storage in your own WordPress database
@@ -41,7 +41,7 @@ stored, notified or paid
 * Shortcode and template function embedding: `[relevant_form id="123"]` and `relevant_forms_render( 123 )`
 * Local anti-abuse controls: honeypot, timing checks, rate limiting, duplicate detection and spam signals
 * Local secure-upload fallback: files are stored privately with strict validation and a scan-before-download policy
-* WPForms compatibility scanner and importer for supported field types — including page breaks, dividers, entry previews, content blocks and custom HTML — and conditional logic (drafts only; your WPForms data is never modified), with a Tier 1 hook compatibility layer that keeps submission integrations working after switching
+* WPForms compatibility scanner and importer for supported field types — including page breaks, dividers, entry previews and content blocks — and conditional logic (drafts only; your WPForms data is never modified), with a Tier 1 hook compatibility layer that keeps submission integrations working after switching
 
 = Optional Relevant Cloud – forms that understand the message =
 
@@ -204,10 +204,10 @@ HiveKit Relevant Forms is an independent product and is not affiliated with or e
 
 = 1.0.0 =
 * Initial release.
-* Forms: builder with the common field set, multi-page forms (page breaks with step navigation and a progress indicator), entry preview review steps, content blocks, custom HTML, conditional field visibility (show/hide rules with AND/OR groups), schema versioning, entries inbox, email notifications.
+* Forms: builder with the common field set, multi-page forms (page breaks with step navigation and a progress indicator), entry preview review steps, content blocks, conditional field visibility (show/hide rules with AND/OR groups), schema versioning, entries inbox, email notifications.
 * Security: honeypot, timing checks, rate limiting, duplicate detection, spam signals, local spam triage.
 * Uploads: local private quarantine with strict validation and a scan-before-download policy.
-* Migration: WPForms compatibility scanner and draft importer (field types including page breaks, dividers, entry previews, content blocks and custom HTML code blocks, notifications, confirmations and conditional logic converted to visibility rules), plus a Tier 1 hook compatibility layer that runs only while WPForms itself is not active. Imported forms keep the original WPForms form ID, so integrations with per-form mappings — e.g. Newsletter subscription sources — keep working after the switch.
+* Migration: WPForms compatibility scanner and draft importer (field types including page breaks, dividers, entry previews and content blocks, notifications, confirmations and conditional logic converted to visibility rules), plus a Tier 1 hook compatibility layer that runs only while WPForms itself is not active. Imported forms keep the original WPForms form ID, so integrations with per-form mappings — e.g. Newsletter subscription sources — keep working after the switch.
 * Email delivery: Diagnostics reports whether an SMTP or relay mailer owns the outbound transport, an admin notice warns on the plugin's screens when nothing does, and a failed notification records the reason the mailer gave on the entry and in the Logs screen.
 * Payments: Stripe Connect card payments (fixed items, priced choices, donation-style amounts, live total), hosted Stripe Checkout on the site owner's own Stripe account, 2% platform fee, admin refunds and WPForms payment-field import with amounts preserved.
 * Save and Resume (per form): visitors can store partial progress and receive an emailed link that restores their answers and the step they were on; a browser-local draft keeps progress across visits without leaving the device. Uploads are not kept, partial entries appear in the Entries inbox with their own status, can be re-emailed from the entry screen, and expire automatically.
@@ -215,9 +215,8 @@ HiveKit Relevant Forms is an independent product and is not affiliated with or e
 form can be filled in and reviewed before it is published. Submitting runs the
 browser's validation and reveals the confirmation the visitor would get —
 nothing is posted, so no entry, notification, payment or alert is created.
-Uploads and browser drafts stay off, custom HTML blocks are sanitized so author
-scripts never run inside wp-admin, and the preview refreshes in place after a
-save.
+Uploads and browser drafts stay off, content blocks are sanitized against a
+restricted HTML allowlist, and the preview refreshes in place after a save.
 * Builders: the Divi 5, Elementor, Beaver Builder and block-editor integrations
 style the form in independent panels. The builder's own text controls style the
 fields; "Field labels", "Field captions" and "Option labels" style the text

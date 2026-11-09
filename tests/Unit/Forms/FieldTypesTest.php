@@ -8,6 +8,7 @@
 declare(strict_types=1);
 
 use Brain\Monkey;
+use RelevantForms\Forms\Fields\ContentField;
 use RelevantForms\Forms\Fields\FieldTypeRegistry;
 
 beforeEach(
@@ -152,9 +153,9 @@ it(
 );
 
 it(
-	'registers all twenty-three built-in types',
+	'registers all twenty-two built-in types',
 	function () {
-		expect( FieldTypeRegistry::all() )->toHaveCount( 23 );
+		expect( FieldTypeRegistry::all() )->toHaveCount( 22 );
 	}
 );
 
@@ -475,8 +476,15 @@ it(
 	'renders content blocks with sanitized html and an optional heading',
 	function () {
 		Monkey\Functions\when( 'esc_html' )->returnArg();
-		Monkey\Functions\when( 'wp_kses_post' )->returnArg();
+		Monkey\Functions\when( 'wp_kses' )->returnArg();
 		Monkey\Functions\when( 'wpautop' )->returnArg();
+
+		// The allowlist is deliberately narrow: no scripts, styles, frames or
+		// inline style attributes.
+		expect( ContentField::ALLOWED_HTML )->not->toHaveKey( 'script' );
+		expect( ContentField::ALLOWED_HTML )->not->toHaveKey( 'style' );
+		expect( ContentField::ALLOWED_HTML )->not->toHaveKey( 'iframe' );
+		expect( ContentField::ALLOWED_HTML['a'] )->not->toHaveKey( 'style' );
 
 		$type = FieldTypeRegistry::get( 'content' );
 
