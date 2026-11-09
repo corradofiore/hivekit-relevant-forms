@@ -22,16 +22,21 @@ final class Privacy {
 	 * Salted hash of the current request IP.
 	 */
 	public static function ipHash(): string {
-		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput -- hashed immediately, never stored or output raw.
-		return self::hash( (string) ( $_SERVER['REMOTE_ADDR'] ?? 'unknown' ) );
+		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- validated by filter_var() below, then hashed.
+		$remote = isset( $_SERVER['REMOTE_ADDR'] ) ? wp_unslash( (string) $_SERVER['REMOTE_ADDR'] ) : '';
+		$ip     = '' === $remote ? false : filter_var( $remote, FILTER_VALIDATE_IP );
+
+		return self::hash( is_string( $ip ) ? $ip : 'unknown' );
 	}
 
 	/**
 	 * Salted hash of the current user agent.
 	 */
 	public static function userAgentHash(): string {
-		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput -- hashed immediately, never stored or output raw.
-		return self::hash( (string) ( $_SERVER['HTTP_USER_AGENT'] ?? 'unknown' ) );
+		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- sanitized by sanitize_text_field() below, then hashed.
+		$agent = isset( $_SERVER['HTTP_USER_AGENT'] ) ? sanitize_text_field( wp_unslash( (string) $_SERVER['HTTP_USER_AGENT'] ) ) : '';
+
+		return self::hash( '' !== $agent ? $agent : 'unknown' );
 	}
 
 	/**

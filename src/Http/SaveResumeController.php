@@ -69,8 +69,8 @@ final class SaveResumeController {
 
 		$sourceUrl = isset( $raw['save_resume_source_url'] ) ? esc_url_raw( (string) $raw['save_resume_source_url'] ) : '';
 
-		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput -- stored only; escaped on display.
-		$referrer = (string) ( $_SERVER['HTTP_REFERER'] ?? '' );
+		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- sanitized by esc_url_raw() below.
+		$referrer = isset( $_SERVER['HTTP_REFERER'] ) ? esc_url_raw( wp_unslash( (string) $_SERVER['HTTP_REFERER'] ) ) : '';
 
 		$result = ( new PartialSaveService() )->save( $form, $raw, $email, $page, $token, $sourceUrl, $referrer );
 

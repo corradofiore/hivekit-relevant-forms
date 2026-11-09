@@ -85,6 +85,39 @@ final class WpFormsCompatFlowTest extends TestCase {
 	}
 
 	/**
+	 * The `$entry` hook parameter carries sanitized request data, never the
+	 * raw POST array.
+	 */
+	public function testProcessCompletePassesSanitizedRequestData(): void {
+		$form  = $this->makeForm();
+		$entry = [];
+
+		add_action(
+			'wpforms_process_complete',
+			static function ( $fields, $entry_data ) use ( &$entry ): void {
+				unset( $fields );
+
+				$entry = $entry_data;
+			},
+			10,
+			2
+		);
+
+		$this->submit(
+			$form->id,
+			[
+				'relevant_field_f_name'  => '<script>alert(1)</script>Ada',
+				'relevant_field_f_email' => 'ada@example.com',
+				'relevant_field_f_msg'   => 'Hello <b>there</b>',
+			]
+		);
+
+		$this->assertArrayHasKey( 'relevant_field_f_name', $entry );
+		$this->assertStringNotContainsString( '<script>', (string) $entry['relevant_field_f_name'] );
+		$this->assertStringNotContainsString( '<b>', (string) $entry['relevant_field_f_msg'] );
+	}
+
+	/**
 	 * Consumers can halt a submission through wpforms()->process->errors.
 	 */
 	public function testProcessGateHaltsSubmissionsLikeWpforms(): void {

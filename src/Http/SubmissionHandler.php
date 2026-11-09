@@ -381,8 +381,7 @@ final class SubmissionHandler {
 					$entryStatus,
 					$meta,
 					self::requestUrl(),
-					// phpcs:ignore WordPress.Security.ValidatedSanitizedInput -- stored only, escaped on display.
-					(string) ( $_SERVER['HTTP_REFERER'] ?? '' )
+					self::referer()
 				);
 
 				$entryId = (int) $partial->id;
@@ -397,8 +396,7 @@ final class SubmissionHandler {
 					$versionId,
 					$entryStatus,
 					self::requestUrl(),
-					// phpcs:ignore WordPress.Security.ValidatedSanitizedInput -- stored only, escaped on display.
-					(string) ( $_SERVER['HTTP_REFERER'] ?? '' ),
+					self::referer(),
 					Privacy::userAgentHash(),
 					Privacy::ipHash(),
 					current_time( 'mysql', true ),
@@ -655,9 +653,18 @@ final class SubmissionHandler {
 	 * The page URL the form was submitted from (form host).
 	 */
 	private static function requestUrl(): string {
-		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput -- stored only, escaped on display.
-		$url = (string) ( $_SERVER['HTTP_REFERER'] ?? '' );
+		$url = self::referer();
 
 		return '' !== $url ? $url : home_url( '/' );
+	}
+
+	/**
+	 * Sanitized referrer of the current request ('' when absent or not a URL).
+	 */
+	private static function referer(): string {
+		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- sanitized by esc_url_raw() below.
+		$referer = isset( $_SERVER['HTTP_REFERER'] ) ? wp_unslash( (string) $_SERVER['HTTP_REFERER'] ) : '';
+
+		return esc_url_raw( $referer );
 	}
 }

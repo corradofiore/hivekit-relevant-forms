@@ -17,6 +17,21 @@ beforeEach(
 		Monkey\Functions\when( 'do_action' )->justReturn( null );
 		Monkey\Functions\when( 'apply_filters' )->returnArg( 2 );
 		Monkey\Functions\when( 'wp_unslash' )->returnArg();
+		Monkey\Functions\when( 'sanitize_text_field' )->returnArg();
+		Monkey\Functions\when( 'map_deep' )->alias(
+			static function ( $value, $callback ) {
+				if ( is_array( $value ) ) {
+					return array_map(
+						static function ( $item ) use ( $callback ) {
+							return $callback( $item );
+						},
+						$value
+					);
+				}
+
+				return $callback( $value );
+			}
+		);
 	}
 );
 

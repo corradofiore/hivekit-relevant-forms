@@ -110,8 +110,7 @@ final class EmailCheckController {
 	 * Client IP, as far as the request can be trusted.
 	 */
 	private static function clientIp(): string {
-		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- validated below.
-		$remote = isset( $_SERVER['REMOTE_ADDR'] ) ? wp_unslash( (string) $_SERVER['REMOTE_ADDR'] ) : '';
+		$remote = isset( $_SERVER['REMOTE_ADDR'] ) ? sanitize_text_field( wp_unslash( (string) $_SERVER['REMOTE_ADDR'] ) ) : '';
 		$ip     = '' === $remote ? false : filter_var( $remote, FILTER_VALIDATE_IP );
 
 		return is_string( $ip ) ? $ip : 'unknown';

@@ -132,6 +132,36 @@ final class SubmissionFlowTest extends TestCase {
 	}
 
 	/**
+	 * A malicious referrer is never persisted as the entry source URL.
+	 */
+	public function testAnInvalidRefererFallsBackToTheHomeUrl(): void {
+		$form = $this->makePublishedForm();
+
+		$this->captureMail();
+
+		$_SERVER['HTTP_REFERER'] = 'javascript:alert(1)';
+
+		try {
+			$this->submit(
+				$form->id,
+				[
+					'relevant_field_f_name'    => 'Ada',
+					'relevant_field_f_email'   => 'ada@example.com',
+					'relevant_field_f_message' => 'Hello',
+				]
+			);
+		} finally {
+			unset( $_SERVER['HTTP_REFERER'] );
+			$_POST = [];
+		}
+
+		$entries = ( new EntryRepository() )->findMany( [ 'form_id' => $form->id ] );
+
+		$this->assertCount( 1, $entries );
+		$this->assertSame( home_url( '/' ), $entries[0]->sourceUrl );
+	}
+
+	/**
 	 * Create a published form with three fields.
 	 */
 	private function makePublishedForm(): \RelevantForms\Forms\Form {

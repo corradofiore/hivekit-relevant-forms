@@ -60,8 +60,8 @@ final class UploadController {
 		$result = ( new UploadService() )->authorize(
 			$form,
 			sanitize_key( (string) ( $raw['field_id'] ?? '' ) ),
-			(string) ( $raw['filename'] ?? '' ),
-			(string) ( $raw['content_type'] ?? '' ),
+			sanitize_file_name( (string) ( $raw['filename'] ?? '' ) ),
+			sanitize_mime_type( (string) ( $raw['content_type'] ?? '' ) ),
 			isset( $raw['size'] ) ? absint( $raw['size'] ) : 0,
 		);
 
@@ -115,8 +115,7 @@ final class UploadController {
 			$token,
 			// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotValidated, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.NonceVerification.Missing -- temp path is PHP-controlled; content validated server-side.
 			(string) $_FILES['file']['tmp_name'],
-			// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotValidated, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.NonceVerification.Missing -- declared MIME is treated as untrusted by design.
-			(string) ( $_FILES['file']['type'] ?? '' ),
+			self::uploadedFileMime()
 		);
 
 		if ( isset( $result['error'] ) ) {
@@ -124,6 +123,21 @@ final class UploadController {
 		}
 
 		wp_send_json_success( [ 'upload_id' => $uploadId ] );
+	}
+
+	/**
+	 * Server-derived MIME type for the uploaded file.
+	 *
+	 * The browser-provided type is attacker-controlled, so the type is
+	 * resolved from the sanitized file name with wp_check_filetype();
+	 * FileValidator then sniffs the bytes for the stored detected_mime.
+	 */
+	private static function uploadedFileMime(): string {
+		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotValidated, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.NonceVerification.Missing -- nonce verified by the caller; the name is sanitized below.
+		$name = isset( $_FILES['file']['name'] ) ? sanitize_file_name( wp_unslash( (string) $_FILES['file']['name'] ) ) : '';
+		$type = wp_check_filetype( $name );
+
+		return is_string( $type['type'] ) && '' !== $type['type'] ? $type['type'] : 'application/octet-stream';
 	}
 
 	/**

@@ -151,12 +151,14 @@ final class CompatLayer {
 	}
 
 	/**
-	 * The `$entry` parameter WPForms passes: the original request data.
+	 * The `$entry` parameter WPForms passes: a sanitized copy of the original
+	 * request data. Nested arrays keep their structure; every scalar goes
+	 * through sanitize_text_field() so callbacks never see raw request input.
 	 *
 	 * @return array<string, mixed>
 	 */
 	private static function entry(): array {
-		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- WPForms hooks receive the raw request array by contract.
-		return wp_unslash( $_POST );
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- sanitized by map_deep() below.
+		return (array) map_deep( wp_unslash( $_POST ), 'sanitize_text_field' );
 	}
 }
