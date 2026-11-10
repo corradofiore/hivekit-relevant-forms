@@ -110,6 +110,10 @@ final class Plugin {
 
 		add_filter( 'cron_schedules', [ self::class, 'registerCronSchedules' ] );
 
+		// Installs activated before the recurrence was registered at activation
+		// time never got the polling sweep: create it on the next request.
+		self::ensurePollingCron();
+
 		do_action( 'relevant_forms_loaded' );
 	}
 
@@ -117,6 +121,15 @@ final class Plugin {
 	 * Runs database migrations on activation.
 	 */
 	public static function activate(): void {
+		/*
+		 * The activation request does not run boot() — the plugin is not in the
+		 * active list yet — so the custom recurrence is not registered when the
+		 * events below are scheduled. Register it first, or wp_schedule_event()
+		 * rejects `relevant_fifteen_minutes` and the polling sweep is silently
+		 * never created.
+		 */
+		add_filter( 'cron_schedules', [ self::class, 'registerCronSchedules' ] );
+
 		MigrationRunner::run();
 
 		if ( false === wp_next_scheduled( 'relevant_forms_cleanup_uploads' ) ) {
@@ -138,6 +151,20 @@ final class Plugin {
 		}
 
 		do_action( 'relevant_forms_activated' );
+	}
+
+	/**
+	 * Create the scan polling sweep when it is missing.
+	 *
+	 * Called from boot() so installs activated while the bug above existed
+	 * heal themselves; after the first schedule it is a single option read.
+	 */
+	private static function ensurePollingCron(): void {
+		if ( false !== wp_next_scheduled( 'relevant_forms_poll_scan_results' ) ) {
+			return;
+		}
+
+		wp_schedule_event( time() + 15 * MINUTE_IN_SECONDS, 'relevant_fifteen_minutes', 'relevant_forms_poll_scan_results' );
 	}
 
 	/**
