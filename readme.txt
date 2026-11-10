@@ -92,27 +92,25 @@ Advanced local integrations may be offered separately through Relevant Pro, a se
 
 == External services ==
 
-This plugin works fully without contacting any external service. The services below are contacted only after an administrator explicitly configures the corresponding functionality.
+This plugin works fully without contacting any external service. The services below are contacted only after an administrator explicitly configures the corresponding functionality, and only when a form submission, alert or upload triggers them.
 
 = Relevant Cloud =
 
 Relevant Cloud provides the paid managed functionality described above (semantic classification, managed SMS alerts, managed private storage, malware scanning and payment brokering). Core sends only the information needed by the capability the administrator has enabled and connected, to the Relevant Cloud service (app.relevantforms.com).
 
-Service terms: [INSERT RELEVANT CLOUD TERMS URL]
-Privacy policy: [INSERT RELEVANT PRIVACY POLICY URL]
-Subprocessors: [INSERT RELEVANT SUBPROCESSORS URL]
+Legal documents for the service — terms of service, privacy policy and the current subprocessor list: https://relevantforms.com/legal/
 
 = AI model providers =
 
-When semantic classification is enabled, configured and redacted submission text is processed by Relevant Cloud and its configured model provider(s). The current provider list is documented on the Relevant subprocessors page linked above.
+When semantic classification is enabled for a form, the redacted submission text configured for classification is sent to Relevant Cloud and processed by its configured model provider(s). Redaction (emails, phone numbers, IP addresses, URL paths) is applied before sending. The current provider list is documented in the subprocessor list linked above.
 
 = SMS providers =
 
-When managed SMS is enabled, Relevant Cloud transmits the destination telephone number and the minimal alert content (classification summary and secure entry link) to its configured messaging provider.
+When managed SMS is enabled and an alert is triggered, Relevant Cloud transmits the destination telephone number and the minimal alert content (classification summary and secure entry link) to its configured messaging provider.
 
 = Object storage and malware scanning =
 
-When managed secure uploads are enabled, uploaded files are stored in private object storage and processed by the Relevant Cloud malware-scanning service before being released for authorized download.
+When managed secure uploads are enabled and a visitor attaches a file, the file bytes and limited metadata (original file name, size and detected type) are relayed to Relevant Cloud for private object storage and malware scanning before the file is released for authorized download.
 
 = Stripe (payments) =
 
@@ -120,8 +118,7 @@ Payment fields are local and free: nothing leaves the site until an administrato
 
 Stripe services agreement: https://stripe.com/legal/connect-account
 Stripe privacy policy: https://stripe.com/privacy
-Relevant Cloud platform fee terms: [INSERT RELEVANT CLOUD TERMS URL]
-Subprocessors (including Stripe): [INSERT RELEVANT SUBPROCESSORS URL]
+Relevant Cloud terms and subprocessors (including Stripe): https://relevantforms.com/legal/
 
 == Installation ==
 
