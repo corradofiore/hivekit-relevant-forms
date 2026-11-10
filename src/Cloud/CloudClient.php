@@ -299,11 +299,12 @@ final class CloudClient {
 	/**
 	 * POST /v1/uploads — relay one managed file to the API.
 	 *
-	 * The bytes stream straight from the local file to the API (cURL), which
-	 * writes them to the primary and secondary buckets and verifies the
-	 * primary copy. No storage credentials or presigned URLs exist on the
-	 * WordPress side. A filter (`relevant_forms_cloud_stream_transport`) can
-	 * replace the cURL transport for tests or custom site setups.
+	 * The bytes are read from the local temp file and posted with the
+	 * WordPress HTTP API, which writes them to the primary and secondary
+	 * buckets and verifies the primary copy. No storage credentials or
+	 * presigned URLs exist on the WordPress side. A filter
+	 * (`relevant_forms_cloud_stream_transport`) can replace the transport for
+	 * tests or custom site setups.
 	 *
 	 * @param string $objectKey    Client object key.
 	 * @param string $filename     Original filename.
@@ -322,83 +323,47 @@ final class CloudClient {
 			];
 		}
 
-		if ( ! function_exists( 'curl_init' ) ) {
-			return $this->transportError( 'curl_required', 'The cURL extension is required to relay managed uploads.' );
-		}
-
 		$size = is_file( $filePath ) ? (int) filesize( $filePath ) : 0;
 
 		if ( $size <= 0 ) {
 			return $this->transportError( 'empty_file', 'The upload payload is empty or unreadable.' );
 		}
 
-		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- streaming relay of a temp file.
-		$handle = fopen( $filePath, 'rb' );
+		// Uploads are bounded by the field's upload policy (10 MB by default), so
+		// reading the temp file into memory keeps the relay within the HTTP API,
+		// which has no streaming request body. The API writes both bucket copies
+		// and verifies the primary one.
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- local temp file bounded by the upload policy.
+		$bytes = file_get_contents( $filePath );
 
-		if ( false === $handle ) {
+		if ( false === $bytes ) {
 			return $this->transportError( 'unreadable_file', 'The upload payload could not be read.' );
 		}
 
-		// cURL streams the file handle straight from disk; wp_remote_* would load
-		// the whole upload into PHP memory. CURLOPT_UPLOAD selects the streaming
-		// read path but implies PUT, so the method is forced back to POST to
-		// match the API route (CURLOPT_UPLOAD + CURLOPT_CUSTOMREQUEST still
-		// streams INFILE and sends Content-Length).
-		// phpcs:ignore WordPress.WP.AlternativeFunctions.curl_curl_init -- streaming relay, not a buffered request.
-		$request = curl_init( $this->baseUrl . '/uploads' );
-
-		// phpcs:ignore WordPress.WP.AlternativeFunctions.curl_curl_setopt_array -- cURL streaming options (CURLOPT_UPLOAD/INFILE).
-		curl_setopt_array(
-			$request,
+		$response = wp_remote_post(
+			$this->baseUrl . '/uploads',
 			[
-				CURLOPT_UPLOAD         => true,
-				CURLOPT_CUSTOMREQUEST  => 'POST',
-				CURLOPT_INFILE         => $handle,
-				CURLOPT_INFILESIZE     => $size,
-				CURLOPT_RETURNTRANSFER => true,
-				CURLOPT_CONNECTTIMEOUT => 15,
-				CURLOPT_TIMEOUT        => 300,
-				CURLOPT_HTTPHEADER     => [
-					'Authorization: Bearer ' . $this->apiKey,
-					'Accept: application/json',
-					'Content-Type: application/octet-stream',
-					'Expect:',
-					'X-Relevant-Object-Key: ' . $objectKey,
-					'X-Relevant-Filename: ' . $filename,
-					'X-Relevant-Declared-Mime: ' . $declaredMime,
+				'timeout' => 300,
+				'headers' => [
+					'Authorization'            => 'Bearer ' . $this->apiKey,
+					'Accept'                   => 'application/json',
+					'Content-Type'             => 'application/octet-stream',
+					'X-Relevant-Object-Key'    => $objectKey,
+					'X-Relevant-Filename'      => $filename,
+					'X-Relevant-Declared-Mime' => $declaredMime,
 				],
+				'body'    => $bytes,
 			]
 		);
 
-		// phpcs:ignore WordPress.WP.AlternativeFunctions.curl_curl_exec -- streaming relay, not a buffered request.
-		$body = curl_exec( $request );
-		// phpcs:ignore WordPress.WP.AlternativeFunctions.curl_curl_getinfo -- response code of the streaming relay.
-		$code = (int) curl_getinfo( $request, CURLINFO_RESPONSE_CODE );
-		// phpcs:ignore WordPress.WP.AlternativeFunctions.curl_curl_error -- transport error of the streaming relay.
-		$error = curl_error( $request );
-
-		unset( $request );
-		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- closing the relay stream.
-		fclose( $handle );
-
-		if ( false === $body ) {
-			Logger::warning( 'Managed upload relay failed', [ 'message' => $error ] );
-
-			return $this->transportError( 'network_error', $error );
-		}
-
-		$decoded = json_decode( (string) $body, true );
-		$decoded = is_array( $decoded ) ? $decoded : [];
-
-		return [
-			'status' => $code,
-			'data'   => is_array( $decoded['data'] ?? null ) ? $decoded['data'] : null,
-			'error'  => is_array( $decoded['error'] ?? null ) ? $decoded['error'] : null,
-		];
+		return $this->envelope( $response );
 	}
 
 	/**
 	 * GET /v1/uploads/{key}/content — stream a managed object into a file.
+	 *
+	 * The WordPress HTTP API streams the response straight to the sink file, so
+	 * the managed object is never buffered in PHP memory.
 	 *
 	 * @param string $objectKey Client object key.
 	 * @param string $sinkPath  Destination file path.
@@ -410,56 +375,35 @@ final class CloudClient {
 			return $override;
 		}
 
-		if ( ! function_exists( 'curl_init' ) ) {
-			return false;
-		}
-
-		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- streaming download sink.
-		$sink = fopen( $sinkPath, 'wb' );
-
-		if ( false === $sink ) {
-			return false;
-		}
-
 		$encodedKey = implode( '/', array_map( 'rawurlencode', explode( '/', $objectKey ) ) );
 
-		// cURL streams the response straight to disk; wp_remote_* would buffer
-		// the whole download in PHP memory.
-		// phpcs:ignore WordPress.WP.AlternativeFunctions.curl_curl_init -- streaming download, not a buffered request.
-		$request = curl_init( $this->baseUrl . '/uploads/' . $encodedKey . '/content' );
-
-		// phpcs:ignore WordPress.WP.AlternativeFunctions.curl_curl_setopt_array -- cURL streaming options (CURLOPT_FILE).
-		curl_setopt_array(
-			$request,
+		$response = wp_remote_get(
+			$this->baseUrl . '/uploads/' . $encodedKey . '/content',
 			[
-				CURLOPT_FILE           => $sink,
-				CURLOPT_CONNECTTIMEOUT => 15,
-				CURLOPT_TIMEOUT        => 300,
-				CURLOPT_FAILONERROR    => true,
-				CURLOPT_HTTPHEADER     => [
-					'Authorization: Bearer ' . $this->apiKey,
-					'Accept: application/octet-stream',
+				'timeout'  => 300,
+				'headers'  => [
+					'Authorization' => 'Bearer ' . $this->apiKey,
+					'Accept'        => 'application/octet-stream',
 				],
+				'stream'   => true,
+				'filename' => $sinkPath,
 			]
 		);
 
-		// phpcs:ignore WordPress.WP.AlternativeFunctions.curl_curl_exec -- streaming download, not a buffered request.
-		$ok = curl_exec( $request );
-		// phpcs:ignore WordPress.WP.AlternativeFunctions.curl_curl_getinfo -- response code of the streaming download.
-		$code = (int) curl_getinfo( $request, CURLINFO_RESPONSE_CODE );
+		if ( is_wp_error( $response ) ) {
+			return false;
+		}
 
-		unset( $request );
-		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- closing the download sink.
-		fclose( $sink );
+		$code = (int) wp_remote_retrieve_response_code( $response );
 
-		if ( false === $ok ) {
+		if ( $code < 200 || $code >= 300 ) {
 			// phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink, WordPress.PHP.NoSilencedErrors.Discouraged -- discard a failed partial download.
 			@unlink( $sinkPath );
 
 			return false;
 		}
 
-		return $code >= 200 && $code < 300;
+		return true;
 	}
 
 	/**

@@ -65,7 +65,7 @@ final class ManagedUploadsFlowTest extends TestCase {
 		$connection->connect( 'site-uuid-1', 'https://a.example', 'Acme' );
 		$connection->enableCapability( CloudConnection::CAP_UPLOADS );
 
-		// Deterministic stand-in for the cURL byte relay (upload/download).
+		// Deterministic stand-in for the HTTP API byte relay (upload/download).
 		add_filter(
 			'relevant_forms_cloud_stream_transport',
 			function ( mixed $override, string $action, string $objectKey, string $path ): mixed {
