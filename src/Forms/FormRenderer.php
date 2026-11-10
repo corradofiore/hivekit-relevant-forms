@@ -21,6 +21,12 @@ use RelevantForms\Validation\EmailDeliverability;
 
 /**
  * Renders published forms as accessible markup and registers the shortcode.
+ *
+ * Escaping contract: every dynamic value is escaped where it is built —
+ * esc_attr()/esc_html()/esc_url() in the field renderers and wrappers, and
+ * wp_kses() with a restricted allowlist for content blocks. The assembled
+ * string is therefore safe to return from shortcode, block and builder
+ * callbacks.
  */
 final class FormRenderer {
 
@@ -39,6 +45,7 @@ final class FormRenderer {
 	public static function shortcode( array|string $atts = [] ): string {
 		$atts = shortcode_atts( [ 'id' => 0 ], is_array( $atts ) ? $atts : [], 'relevant_form' );
 
+		// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped markup: see the class escaping contract.
 		return self::render( (int) $atts['id'] );
 	}
 
@@ -56,6 +63,7 @@ final class FormRenderer {
 			return '';
 		}
 
+		// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped markup: see the class escaping contract.
 		return self::renderForm( $form, $errors, $values );
 	}
 
@@ -348,6 +356,7 @@ final class FormRenderer {
 
 		$output[] = '</form>';
 
+		// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- each fragment was escaped as it was built; content blocks pass through wp_kses().
 		return implode( "\n", $output );
 	}
 

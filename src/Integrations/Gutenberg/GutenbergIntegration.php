@@ -191,6 +191,7 @@ final class GutenbergIntegration {
 		$html = ButtonStyleCss::scopedHtml( $html, self::buttonValues( $attributes ), 'rf-gb-' );
 		$html = TextStyleCss::scopedHtml( $html, self::textGroups( $attributes ), 'rf-gb-' );
 
+		// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- $html is escaped form markup and get_block_wrapper_attributes() escapes the wrapper attributes.
 		return sprintf(
 			'<div %1$s>%2$s</div>',
 			get_block_wrapper_attributes( [ 'class' => 'relevant-forms-embed' ] ),

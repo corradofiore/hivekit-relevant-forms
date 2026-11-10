@@ -24,6 +24,7 @@ if ( ! function_exists( 'relevant_forms_render' ) ) {
 			return '';
 		}
 
+		// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped form markup from FormRenderer.
 		return FormRenderer::render( $formId );
 	}
 }

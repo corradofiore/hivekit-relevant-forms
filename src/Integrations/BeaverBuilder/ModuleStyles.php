@@ -92,6 +92,7 @@ final class ModuleStyles {
 
 		StyleCss::enqueue( $css );
 
+		// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- $form_html is escaped form markup; the scope class is escaped here.
 		return '<div class="' . esc_attr( $scope_class ) . '">' . $form_html . '</div>';
 	}
 

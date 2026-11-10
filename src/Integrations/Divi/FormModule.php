@@ -99,6 +99,7 @@ final class FormModule extends \ET_Builder_Module {
 	 * @param string               $render_slug Module slug.
 	 */
 	public function render( $attrs, $content = null, $render_slug = '' ): string {
+		// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped form markup from FormRenderer.
 		return DiviIntegration::renderForm( (int) ( $this->props['form_id'] ?? 0 ) );
 	}
 }

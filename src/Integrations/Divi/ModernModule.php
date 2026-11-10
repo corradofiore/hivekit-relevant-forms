@@ -91,6 +91,7 @@ final class ModernModule implements \ET\Builder\Framework\DependencyManagement\I
 			$form_html
 		);
 
+		// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Divi's Module::render() assembles the wrapper; $module_inner is escaped form markup.
 		return \ET\Builder\Packages\Module\Module::render(
 			[
 				'orderIndex'          => $block->parsed_block['orderIndex'] ?? 0,

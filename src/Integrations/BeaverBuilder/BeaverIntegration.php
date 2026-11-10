@@ -53,6 +53,7 @@ final class BeaverIntegration {
 	 * @param int $formId Form ID.
 	 */
 	public static function renderForm( int $formId ): string {
+		// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped form markup from FormRenderer.
 		return FormRenderer::render( $formId );
 	}
 }
